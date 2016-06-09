@@ -15,4 +15,15 @@ write.csv(sav_data, '../IPA/IPA_data_incomplete.csv');
 ###### Setup
 See **Joe Walsh** about spinning up a MS SQL Server, installing the backup file, restoring it, and uploading it to the postgres server.
 ###### Description
+The .bak file includes 10 data tables, the following describes their shape (rows, columns) and what we perceive as unique identifiers.
+* Collection_Data__c (522,263 rows, ):
+* FLT_Collection_Schedule__c
+* _IPA_tbl_system_user
+* _IPA_tbl_toilet
+* _IPA_tbl_transactions
+* _IPA_tbl_user
+* _IPA_tbl_user_card
+* spatial_ref_sys
+* stdin
+* tblToilet
 ##### "Map Kibera/Shapefiles" (Shapefiles)
