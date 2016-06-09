@@ -61,6 +61,6 @@ target/
 #Ipython Notebook
 .ipynb_checkpoints
 
-
 # credentials
 default_profile*
+dbconfig.py
