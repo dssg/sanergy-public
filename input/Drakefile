@@ -22,4 +22,4 @@ import_shapefile()
 ; SAV file
 data/input/IPA_data_incomplete.csv <- data/input/box_folder/data/IPA/IPA_data_incomplete.sav
 	R CMD BATCH IPA_data_incomplete.R
-
+psql/ipa_data_incomplete <- input/ipa_data_incomplete.sql, data/input/IPA_data_incomplete.csv [method:psql]
