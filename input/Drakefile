@@ -1,0 +1,25 @@
+
+wget_unzip()
+        mkdir -p $(dirname $OUTPUT0)
+        mkdir -p $(dirname $OUTPUT1)
+        wget --output-document="$OUTPUT0" "$URL"
+        unzip -o "$OUTPUT0" -d $(dirname $OUTPUT1)
+
+extract_shapefiles_fromzip()
+        DIRNAME=$(dirname $OUTPUT)
+        BASENAME=$(basename $OUTPUT | sed 's/.shp//')
+        unzip -joDD $INPUT */$BASENAME.* -d $DIRNAME
+
+import_shapefile()
+        BASENAME=$(basename $INPUT | sed 's/.shp//')
+        BASENAME_LOWERCASE=$(echo $BASENAME | tr -d ':' | tr [:upper:] [:lower:])
+        shp2pgsql -d -s 2274 $INPUT shapefiles."$BASENAME_LOWERCASE" | psql -q
+        touch $OUTPUT
+
+
+;;; DOWNLOAD DATA ;;;
+
+
+
+; SAV file
+

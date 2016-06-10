@@ -1,12 +1,8 @@
-PROFILE:=default_profile
-%include $[PROFILE]
 
 psql()
-    psql -v ON_ERROR_STOP=1 -f $[INPUT] && touch $[OUTPUT]
+	psql -v ON_ERROR_STOP=1 -f $[INPUT] && touch $[OUTPUT]
 
-psql/build_directories_schemas <- build_directories_schemas.sh
-    bash $INPUT && touch $OUTPUT
-    
+PROFILE:=database_profile
+%include $[PROFILE]
+
 %include input/Drakefile
-
-

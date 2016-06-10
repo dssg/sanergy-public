@@ -1,3 +1,14 @@
+# Ignore data directory
+data
+
+# Ignore sensitive drake outputs
+drake.log
+.drake/
+
+# ignore database info
+database_profile
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

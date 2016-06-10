@@ -28,3 +28,9 @@ The .bak file includes 10 data tables, the following describes their shape (rows
 * tblToilet (893 rows):
 
 ##### "Map Kibera/Shapefiles" (Shapefiles)
+
+
+Need davfs2 to connect directly to the Box data source
+
+
+.
