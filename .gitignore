@@ -8,6 +8,8 @@ drake.log
 # ignore database info
 database_profile
 
+# Ignore nasty R files
+*.Rout
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
