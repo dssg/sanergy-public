@@ -1,9 +1,10 @@
-# Ignore data directory
+# Ignore  directories
 data
+psql
 
 # Ignore sensitive drake outputs
 drake.log
-.drake/
+.drake
 
 # ignore database info
 database_profile
