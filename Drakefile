@@ -2,7 +2,7 @@
 psql()
 	psql -v ON_ERROR_STOP=1 -f $[INPUT] && touch $[OUTPUT]
 
-PROFILE:=database_profile
+PROFILE:=default_profile
 %include $[PROFILE]
 
 %include input/Drakefile

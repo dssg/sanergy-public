@@ -1,5 +1,5 @@
 # Sanergy: Sanitation in Nairobi, Kenya
-Repository for 2016 DSSG project with Sanergy
+Repository for 2016 DSSG project with [Sanergy](http://saner.gy/)
 
 # Setup
 You need the following software:
