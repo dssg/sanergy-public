@@ -10,6 +10,7 @@ database_profile
 
 # Ignore nasty R files
 *.Rout
+*.RData
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
