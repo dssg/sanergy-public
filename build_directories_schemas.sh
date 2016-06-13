@@ -9,6 +9,6 @@ cat input/Drakefile | grep -E "(^data/|^psql/)" | cut -d ' ' -f1 |
 parallel 'dirname {} | xargs mkdir -p'
 
 # create schema on postgres server
-cat input/Drakefile_"$DEPT" | grep -E "^psql/" | cut -d '/' -f4 |
+cat input/Drakefile | grep -E "^psql/" | cut -d '/' -f2 |
 tr [:upper:] [:lower:] | sort | uniq |
 parallel 'echo "create schema if not exists {};" | psql -f-'
