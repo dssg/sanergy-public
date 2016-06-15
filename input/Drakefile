@@ -17,11 +17,21 @@ import_shapefile()
         touch $OUTPUT
 
 
-;;; DOWNLOAD DATA ;;;
+;;; SHAPEFILES ;;;
+psql/input/shapefiles/SanergyFresh_Life_mapping_areas <- data/input/shapefiles/SanergyFresh_Life_mapping_areas.kml
+	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD" $INPUT
+	touch $OUTPUT
 
-; SAV file
+
+
+;;; IPA Survey ;;;
 data/input/IPA/IPA_data_incomplete.csv <- data/input/IPA/IPA_data_incomplete.sav
 	R CMD BATCH IPA_data_incomplete.R
 data/input/IPA/IPA_data_incomplete_NAreplaced.csv <- data/input/IPA/IPA_data_incomplete.csv
 	sed 's~"N/A"~~g' $INPUT > $OUTPUT
 psql/input/ipa_data_incomplete_NAreplaced <- input/ipa_data_incompleteNAreplaced.sql, data/input/IPA/IPA_data_incomplete_NAreplaced.csv [method:psql]
+
+
+
+;;; SQL SERVER DATA ;;;
+
