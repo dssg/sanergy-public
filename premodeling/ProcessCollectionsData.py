@@ -24,7 +24,11 @@ import numpy as np
 from pandas import Series, Panel
 
 # Helper functions
-RULES = [("__c","")]
+RULES = [("^(Toilet__c|ToiletID)$","ToiletID"),
+		("Toilet_External_ID__c","ToiletExID"),
+		("(.*)(Faeces)(.*)","\\1Feces\\3"),
+		("__c","")]
+
 def standardize_variable_names(table, RULES):
 	"""
 	Script to standardize the variable names in the tables
@@ -37,8 +41,8 @@ def standardize_variable_names(table, RULES):
 	for v in variableNames:
 		f = v
 		for r in RULES:
-			f = f.replace(r[0],r[1])
-		#print '%s to %s' %(v,f)
+			f = re.sub(r[0],r[1],f)
+		print '%s to %s' %(v,f)
 		standardizedNames[v] = f
 	table = table.rename(columns=standardizedNames)
 	return table
@@ -52,9 +56,23 @@ conn = psycopg2.connect(host=dbconfig.config['host'],
 print('connected to postgres')
 # Load the collections data to a pandas dataframe
 collects = pd.read_sql('SELECT * FROM public."Collection_Data__c" limit 10',conn,coerce_float=True,params=None)
-print('data read from postgres')
-
 collects = standardize_variable_names(collects, RULES)
-print(list(collects.columns.values))
+
+# Load the toilet data to pandas
+toilets = pd.read_sql('SELECT * FROM public."tblToilet" limit 10',conn,coerce_float=True,params=None)
+toilets = standardize_variable_names(toilets, RULES)
+print(list(toilets.columns.names))
+
+# Note the unmerged toilet records
+pprint.pprint(list(set(toilets['ToiletID'])-set(collects['ToiletID'])))
+# Merge the collection and toilet data
+
+collect_toilets = pd.merge(collects,
+				toilets,
+				on="ToiletID")
+print(collect_toilets.shape)
+
+
+
 conn.close()
 
