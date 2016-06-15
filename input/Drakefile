@@ -20,8 +20,8 @@ import_shapefile()
 ;;; DOWNLOAD DATA ;;;
 
 ; SAV file
-data/input/IPA_data_incomplete.csv <- data/input/static_box_folder/data/IPA/IPA_data_incomplete.sav
+data/input/IPA/IPA_data_incomplete.csv <- data/input/IPA/IPA_data_incomplete.sav
 	R CMD BATCH IPA_data_incomplete.R
-data/input/IPA_data_incomplete_NAreplaced.csv <- data/input/IPA_data_incomplete.csv
-	sed 's/"N\/A"/g' $INPUT > $OUTPUT
-psql/input/ipa_data_incomplete_NAreplaced <- input/ipa_data_incompleteNAreplaced.sql, data/input/IPA_data_incomplete_NAreplaced.csv [method:psql]
+data/input/IPA/IPA_data_incomplete_NAreplaced.csv <- data/input/IPA/IPA_data_incomplete.csv
+	sed 's~"N/A"~~g' $INPUT > $OUTPUT
+psql/input/ipa_data_incomplete_NAreplaced <- input/ipa_data_incompleteNAreplaced.sql, data/input/IPA/IPA_data_incomplete_NAreplaced.csv [method:psql]
