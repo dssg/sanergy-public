@@ -48,24 +48,19 @@ def standardize_variable_names(table, RULES):
 	table = table.rename(columns=standardizedNames)
 	return table
 
-# Connect to the postgres database
-conn = psycopg2.connect(host=dbconfig.config['host'],
-			user=dbconfig.config['user'],
-			password=dbconfig.config['password'],
-			port=dbconfig.config['port'])
-
 engine = create_engine('postgresql+psycopg2://%s:%s@%s:%s' %(dbconfig.config['user'],
 							dbconfig.config['password'],
 							dbconfig.config['host'],
 							dbconfig.config['port']))
-
+conn = engine.connect()
 print('connected to postgres')
+
 # Load the collections data to a pandas dataframe
-collects = pd.read_sql('SELECT * FROM public."Collection_Data__c"',engine,coerce_float=True,params=None)
+collects = pd.read_sql('SELECT * FROM public."Collection_Data__c"', conn, coerce_float=True, params=None)
 collects = standardize_variable_names(collects, RULES)
 
 # Load the toilet data to pandas
-toilets = pd.read_sql('SELECT * FROM public."tblToilet"',engine,coerce_float=True,params=None)
+toilets = pd.read_sql('SELECT * FROM public."tblToilet"', conn, coerce_float=True, params=None)
 toilets = standardize_variable_names(toilets, RULES)
 
 # Convert toilets opening/closing time numeric:
@@ -97,7 +92,8 @@ print(collect_toilets[['FecesContainer_percent','UrineContainer_percent']].descr
 
 # Push merged collection and toilet data to postgres
 print(collect_toilets.loc[1,['UrineContainer','UrineContainer_percent']])
-collect_toilets.loc[1,['UrineContainer','UrineContainer_percent']].to_sql(name='premodeling.toiletcollection', con=engine, if_exists='replace')
-
-conn.close()
-
+collect_toilets.to_sql(name='toiletcollection', 
+			schema="premodeling",
+			con=engine,
+			chunksize=10000)
+print('end');
