@@ -30,9 +30,7 @@ conn = psycopg2.connect(host=dbconfig.config['host'],
 			port=dbconfig.config['port'])
 
 # Load the collections data to a pandas dataframe
-collects = pd.read_sql('SELECT * FROM public."Collection_Data__c",					conn,
-			coerce_float=True,
-			params=None)
+collects = pd.read_sql('SELECT * FROM public."Collection_Data__c"',conn,coerce_float=True,params=None)
 print(list(collects.columns.values))
 conn.close()
 
