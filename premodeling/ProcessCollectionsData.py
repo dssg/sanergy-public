@@ -11,6 +11,7 @@ A script that performs the following tasks:
 # Connect to the database
 import dbconfig
 import psycopg2
+from sqlalchemy import create_engine
 
 # Visualizing the data
 import matplotlib
@@ -53,26 +54,50 @@ conn = psycopg2.connect(host=dbconfig.config['host'],
 			password=dbconfig.config['password'],
 			port=dbconfig.config['port'])
 
+engine = create_engine('postgresql+psycopg2://%s:%s@%s:%s' %(dbconfig.config['user'],
+							dbconfig.config['password'],
+							dbconfig.config['host'],
+							dbconfig.config['port']))
+
 print('connected to postgres')
 # Load the collections data to a pandas dataframe
-collects = pd.read_sql('SELECT * FROM public."Collection_Data__c" limit 10',conn,coerce_float=True,params=None)
+collects = pd.read_sql('SELECT * FROM public."Collection_Data__c"',engine,coerce_float=True,params=None)
 collects = standardize_variable_names(collects, RULES)
 
 # Load the toilet data to pandas
-toilets = pd.read_sql('SELECT * FROM public."tblToilet" limit 10',conn,coerce_float=True,params=None)
+toilets = pd.read_sql('SELECT * FROM public."tblToilet"',engine,coerce_float=True,params=None)
 toilets = standardize_variable_names(toilets, RULES)
-print(list(toilets.columns.names))
+
+# Convert toilets opening/closing time numeric:
+toilets.loc[(toilets['OpeningTime']=="30AM"),['OpeningTime']] = "0030"
+toilets['OpeningTime'] = pd.to_numeric(toilets['OpeningTime'])
+toilets['ClosingTime'] = pd.to_numeric(toilets['ClosingTime'])
+toilets['TotalTime'] = toilets['ClosingTime'] - toilets['OpeningTime']  
+print(toilets[['OpeningTime','ClosingTime','TotalTime']].describe())
+
+# Convert the container data to numeric
+toilets['UrineContainer'] = pd.to_numeric(toilets['UrineContainer'].str.replace("L",""))
+toilets['FecesContainer'] = pd.to_numeric(toilets['FecesContainer'].str.replace("L",""))
+print("Feces: %i-%iL" %(np.min(toilets['FecesContainer']), np.max(toilets['FecesContainer'])))
+print("Urine: %i-%iL" %(np.min(toilets['UrineContainer']), np.max(toilets['UrineContainer'])))
 
 # Note the unmerged toilet records
 pprint.pprint(list(set(toilets['ToiletID'])-set(collects['ToiletID'])))
-# Merge the collection and toilet data
 
+# Merge the collection and toilet data
 collect_toilets = pd.merge(collects,
 				toilets,
 				on="ToiletID")
 print(collect_toilets.shape)
 
+# Calculate the percentage of the container full (urine/feces)
+collect_toilets['UrineContainer_percent'] = (collect_toilets['Urine_kg_day']/collect_toilets['UrineContainer'])*100
+collect_toilets['FecesContainer_percent'] = (collect_toilets['Feces_kg_day']/collect_toilets['FecesContainer'])*100
+print(collect_toilets[['FecesContainer_percent','UrineContainer_percent']].describe())
 
+# Push merged collection and toilet data to postgres
+print(collect_toilets.loc[1,['UrineContainer','UrineContainer_percent']])
+collect_toilets.loc[1,['UrineContainer','UrineContainer_percent']].to_sql(name='premodeling.toiletcollection', con=engine, if_exists='replace')
 
 conn.close()
 
