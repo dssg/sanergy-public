@@ -19,9 +19,10 @@ import_shapefile()
 
 ;;; SHAPEFILES ;;;
 psql/input/shapefiles/SanergyFresh_Life_mapping_areas <- data/input/shapefiles/SanergyFresh_Life_mapping_areas.kml
-	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD" $INPUT
+	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles" $INPUT
 	touch $OUTPUT
 
+psql/input/shapefiles/Map_Kibera/watsan <- data/input/shapefiles/Map_Kibera/Mathare-watsan-shapefile/watsan.shp [method:import_shapefile]
 
 
 ;;; IPA Survey ;;;
