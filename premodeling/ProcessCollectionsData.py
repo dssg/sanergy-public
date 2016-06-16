@@ -24,6 +24,10 @@ import numpy as np
 # Timeseries data
 from pandas import Series, Panel
 
+# Constants
+URINE_DENSITY = 1.0
+FECES_DENSITY = 0.6
+
 # Helper functions
 RULES = [("^(Toilet__c|ToiletID)$","ToiletID"),
 		("Toilet_External_ID__c","ToiletExID"),
@@ -86,8 +90,8 @@ collect_toilets = pd.merge(collects,
 print(collect_toilets.shape)
 
 # Calculate the percentage of the container full (urine/feces)
-collect_toilets['UrineContainer_percent'] = (collect_toilets['Urine_kg_day']/collect_toilets['UrineContainer'])*100
-collect_toilets['FecesContainer_percent'] = (collect_toilets['Feces_kg_day']/collect_toilets['FecesContainer'])*100
+collect_toilets['UrineContainer_percent'] = ((collect_toilets['Urine_kg_day']/URINE_DENSITY)/collect_toilets['UrineContainer'])*100
+collect_toilets['FecesContainer_percent'] = ((collect_toilets['Feces_kg_day']/FECES_DENSITY)/collect_toilets['FecesContainer'])*100
 print(collect_toilets[['FecesContainer_percent','UrineContainer_percent']].describe())
 
 # Push merged collection and toilet data to postgres
