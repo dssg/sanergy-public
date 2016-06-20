@@ -16,21 +16,20 @@ import_shapefile()
         shp2pgsql -d -s 2274 $INPUT shapefiles."$BASENAME_LOWERCASE" | psql -q
         touch $OUTPUT
 
-
 ;;; SHAPEFILES ;;;
-psql/input/shapefiles/SanergyFresh_Life_mapping_areas <- data/input/shapefiles/SanergyFresh_Life_mapping_areas.kml
-	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles" $INPUT
-	touch $OUTPUT
+;;;psql/input/shapefiles/SanergyFresh_Life_mapping_areas <- data/input/shapefiles/SanergyFresh_Life_mapping_areas.kml
+;;;	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles" $INPUT
+;;;	touch $OUTPUT
 
-psql/input/shapefiles/Map_Kibera/watsan <- data/input/shapefiles/Map_Kibera/Mathare-watsan-shapefile/watsan.shp [method:import_shapefile]
+;;;psql/input/shapefiles/Map_Kibera/watsan <- data/input/shapefiles/Map_Kibera/Mathare-watsan-shapefile/watsan.shp [method:import_shapefile]
 
 
 ;;; IPA Survey ;;;
-data/input/IPA/IPA_data_incomplete.csv <- data/input/IPA/IPA_data_incomplete.sav
-	R CMD BATCH IPA_data_incomplete.R
+data/input/IPA/IPA_data_incomplete.csv <- input/IPA_data_incomplete.R, data/input/IPA/IPA_data_incomplete.sav
+	R CMD BATCH $INPUT0
 data/input/IPA/IPA_data_incomplete_NAreplaced.csv <- data/input/IPA/IPA_data_incomplete.csv
-	sed 's~"N/A"~~g' $INPUT > $OUTPUT
-psql/input/ipa_data_incomplete_NAreplaced <- input/ipa_data_incompleteNAreplaced.sql, data/input/IPA/IPA_data_incomplete_NAreplaced.csv [method:psql]
+	sed -E 's~("N/A"|NA)~~g' $INPUT > $OUTPUT
+psql/input/ipa_data_incomplete_NAreplaced <- input/ipa_data_incomplete.sql, data/input/IPA/IPA_data_incomplete_NAreplaced.csv [method:psql]
 
 
 
