@@ -17,11 +17,15 @@ import_shapefile()
         touch $OUTPUT
 
 ;;; SHAPEFILES ;;;
-;;;psql/input/shapefiles/SanergyFresh_Life_mapping_areas <- data/input/shapefiles/SanergyFresh_Life_mapping_areas.kml
-;;;	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles" $INPUT
-;;;	touch $OUTPUT
+psql/input/shapefiles/SanergyFresh_Life_mapping_areas <- data/input/shapefiles/SanergyFresh_Life_mapping_areas.kml
+	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles" $INPUT
+	touch $OUTPUT
 
-;;;psql/input/shapefiles/Map_Kibera/watsan <- data/input/shapefiles/Map_Kibera/Mathare-watsan-shapefile/watsan.shp [method:import_shapefile]
+psql/input/shapefiles/watsan_Mathare <- data/input/shapefiles/Map_Kibera/Mathare-watsan-shapefile/watsan.shp [method:import_shapefile]
+psql/input/shapefiles//watsan_Mukuru <- data/input/shapefiles/Map_Kibera/MKR-watsan-shapefile/watsan.shp [method:import_shapefile]
+psql/input/shapefiles/boundary_Kibera <- data/input/shapefiles/Map_Kibera/Shapefiles/kibera_boundary-shapefile/Boundary.shp [method:import_shapefile]
+psql/input/shapefiles/boundary_Mathare <- data/input/shapefiles/Map_Kibera/Shapefiles/Mathare_boundary-shapefile/Boundary.shp [method:import_shapefile]
+psql/input/shapefiles/boundary_Mukuru <- data/input/shapefiles/Map_Kibera/Shapefiles/Mukuru_boundary-shapefile/Boundary.shp [method:import_shapefile]
 
 
 ;;; IPA Survey ;;;
@@ -34,4 +38,3 @@ psql/input/ipa_data_incomplete_NAreplaced <- input/ipa_data_incomplete.sql, data
 
 
 ;;; SQL SERVER DATA ;;;
-
