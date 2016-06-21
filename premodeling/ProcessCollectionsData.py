@@ -63,17 +63,24 @@ print('connected to postgres')
 collects = pd.read_sql('SELECT * FROM input."Collection_Data__c"', conn, coerce_float=True, params=None)
 collects = standardize_variable_names(collects, RULES)
 
+collects = collects.drop('Collection_Route',1)
+
 # Load the toilet data to pandas
 toilets = pd.read_sql('SELECT * FROM input."tblToilet"', conn, coerce_float=True, params=None)
 toilets = standardize_variable_names(toilets, RULES)
 
 # Load the toilet data to pandas
-#schedule = pd.read_sql('SELECT * FROM input."FLT_Collection_Schedule__c"', conn, coerce_float=True, params=None)
-#schedule = standardize_variable_names(schedule, RULES)
+schedule = pd.read_sql('SELECT * FROM input."FLT_Collection_Schedule__c"', conn, coerce_float=True, params=None)
+schedule = standardize_variable_names(schedule, RULES)
 
 # Drop columns that are identical between the Collections and FLT Collections records
-#schedule.drop('CurrencyIsoCode',1)
-
+schedule = schedule.drop('CreatedDate',1)
+schedule = schedule.drop('CurrencyIsoCode',1)
+schedule = schedule.drop('Day',1)
+schedule = schedule.drop('Id',1)
+schedule = schedule.drop('Name',1)
+schedule = schedule.drop('Schedule_Status',1)
+schedule = schedule.drop('SystemModstamp',1)
 
 # Convert toilets opening/closing time numeric:
 toilets.loc[(toilets['OpeningTime']=="30AM"),['OpeningTime']] = "0030"
@@ -98,12 +105,12 @@ collect_toilets = pd.merge(collects,
 print(collect_toilets.shape)
 
 # Merge the collection and toilet data
-#collect_toilets = pd.merge(left=collect_toilets,
-#				right=schedule,
-#				how="left",
-#				left_on=["ToiletID","Collection_Date"],
-#				right_on=["ToiletID","Planned_Collection_Date"])
-#print(collect_toilets.shape)
+collect_toilets = pd.merge(left=collect_toilets,
+				right=schedule,
+				how="left",
+				left_on=["ToiletID","Collection_Date"],
+				right_on=["ToiletID","Planned_Collection_Date"])
+print(collect_toilets.shape)
 
 # Calculate the percentage of the container full (urine/feces)
 collect_toilets['UrineContainer_percent'] = ((collect_toilets['Urine_kg_day']/URINE_DENSITY)/collect_toilets['UrineContainer'])*100
@@ -115,5 +122,5 @@ print(collect_toilets.loc[1,['UrineContainer','UrineContainer_percent']])
 collect_toilets.to_sql(name='toiletcollection', 
 			schema="premodeling",
 			con=engine,
-			chunksize=10000)
+			chunksize=1000)
 print('end');
