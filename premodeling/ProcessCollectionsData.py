@@ -68,8 +68,12 @@ toilets = pd.read_sql('SELECT * FROM input."tblToilet"', conn, coerce_float=True
 toilets = standardize_variable_names(toilets, RULES)
 
 # Load the toilet data to pandas
-schedule = pd.read_sql('SELECT * FROM input."FLT_Collection_Schedule__c"', conn, coerce_float=True, params=None)
-schedule = standardize_variable_names(schedule, RULES)
+#schedule = pd.read_sql('SELECT * FROM input."FLT_Collection_Schedule__c"', conn, coerce_float=True, params=None)
+#schedule = standardize_variable_names(schedule, RULES)
+
+# Drop columns that are identical between the Collections and FLT Collections records
+#schedule.drop('CurrencyIsoCode',1)
+
 
 # Convert toilets opening/closing time numeric:
 toilets.loc[(toilets['OpeningTime']=="30AM"),['OpeningTime']] = "0030"
@@ -94,12 +98,12 @@ collect_toilets = pd.merge(collects,
 print(collect_toilets.shape)
 
 # Merge the collection and toilet data
-collect_toilets = pd.merge(left=collect_toilets,
-				right=schedule,
-				how="left",
-				left_on=["ToiletID","Collection_Date"],
-				right_on=["ToiletID","Planned_Collection_Date"])
-print(collect_toilets.shape)
+#collect_toilets = pd.merge(left=collect_toilets,
+#				right=schedule,
+#				how="left",
+#				left_on=["ToiletID","Collection_Date"],
+#				right_on=["ToiletID","Planned_Collection_Date"])
+#print(collect_toilets.shape)
 
 # Calculate the percentage of the container full (urine/feces)
 collect_toilets['UrineContainer_percent'] = ((collect_toilets['Urine_kg_day']/URINE_DENSITY)/collect_toilets['UrineContainer'])*100
