@@ -18,8 +18,9 @@ import matplotlib
 
 # Analyzing the data
 import pandas as pd
-import pprint, re
+import pprint, re, datetime 
 import numpy as np
+from scipy import stats
 
 # Timeseries data
 from pandas import Series, Panel
@@ -112,9 +113,21 @@ collect_toilets = pd.merge(left=collect_toilets,
 				right_on=["ToiletID","Planned_Collection_Date"])
 print(collect_toilets.shape)
 
+# Removing observations that are outside of the time range (See notes from Rosemary meeting 6/21)
+collect_toilets = collect_toilets.loc[(collect_toilets['Collection_Date'] > datetime.datetime(2011,11,20)),]
+print(collect_toilets.shape)
+
+# Update negative weights as zero (See notes from Rosemary meeting 6/21)
+collect_toilets.loc[(collect_toilets['Urine_kg_day'] < 0),['Urine_kg_day']]=0
+collect_toilets.loc[(collect_toilets['Feces_kg_day'] < 0),['Feces_kg_day']]=0
+
+
 # Calculate the percentage of the container full (urine/feces)
+collect_toilets['waste_factor'] = 25.0 # Feces container size is 35 L
+collect_toilets.loc[(collect_toilets['FecesContainer']==45),['waste_factor']]=37.0 # Feces container size is 45 L
+
 collect_toilets['UrineContainer_percent'] = ((collect_toilets['Urine_kg_day']/URINE_DENSITY)/collect_toilets['UrineContainer'])*100
-collect_toilets['FecesContainer_percent'] = ((collect_toilets['Feces_kg_day']/FECES_DENSITY)/collect_toilets['FecesContainer'])*100
+collect_toilets['FecesContainer_percent'] = (collect_toilets['Feces_kg_day']/collect_toilets['waste_factor'])*100
 print(collect_toilets[['FecesContainer_percent','UrineContainer_percent']].describe())
 
 # Push merged collection and toilet data to postgres
