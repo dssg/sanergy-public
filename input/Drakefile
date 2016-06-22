@@ -16,6 +16,7 @@ import_shapefile()
         shp2pgsql -d -s 2274 $INPUT shapefiles."$BASENAME_LOWERCASE" | psql -q
         touch $OUTPUT
 
+
 ;;; SHAPEFILES ;;;
 psql/input/shapefiles/SanergyFresh_Life_mapping_areas <- data/input/shapefiles/SanergyFresh_Life_mapping_areas.kml
 	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles" $INPUT
@@ -34,6 +35,12 @@ data/input/IPA/IPA_data_incomplete.csv <- input/IPA_data_incomplete.R, data/inpu
 data/input/IPA/IPA_data_incomplete_NAreplaced.csv <- data/input/IPA/IPA_data_incomplete.csv
 	sed -E 's~("N/A"|NA)~~g' $INPUT > $OUTPUT
 psql/input/ipa_data_incomplete_NAreplaced <- input/ipa_data_incomplete.sql, data/input/IPA/IPA_data_incomplete_NAreplaced.csv [method:psql]
+
+
+;;; Collection Schedule ;;;
+data/input/wheelCut.csv, data/input/truckCut.csv, data/input/tukCut.csv <- input/extract_schedule.sh, data/input/Logistics_schedule.xlsx
+  eval ${INPUT0}
+psql/input/Collection_Schedule_Wheelbarrow, psql/input/Collection_Schedule_Truck, psql/input/Collection_Schedule_Tuktuk  <- input/CollectionSchedule_input.sql, data/input/wheelCut.csv, data/input/truckCut.csv, data/input/tukCut.csv [method:psql]
 
 
 
