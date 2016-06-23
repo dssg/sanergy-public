@@ -43,5 +43,16 @@ data/input/wheelCut.csv, data/input/truckCut.csv, data/input/tukCut.csv <- input
 psql/input/Collection_Schedule_Wheelbarrow, psql/input/Collection_Schedule_Truck, psql/input/Collection_Schedule_Tuktuk  <- input/CollectionSchedule_input.sql, data/input/wheelCut.csv, data/input/truckCut.csv, data/input/tukCut.csv [method:psql]
 
 
+;;; WEATHER ;;;
+data/input/weather/weather_download_jkia <- input/weather/weather_download.sh
+        DIRNAME=$(dirname $OUTPUT)
+        bash $INPUT $DIRNAME '637400' '99999'
+        touch $OUTPUT
+data/input/weather/weather_master.csv <- input/weather/weather_schema.csv, data/input/weather/weather_download_jkia
+        gunzip -c $(dirname $OUTPUT)/*.gz |
+        sed 's/-9999/     /g' |
+        in2csv -H -s $INPUT0 > $OUTPUT
+psql/input/weather/jkia <- input/weather/weather.sql, data/input/weather/weather_master.csv [method:psql]
+
 
 ;;; SQL SERVER DATA ;;;
