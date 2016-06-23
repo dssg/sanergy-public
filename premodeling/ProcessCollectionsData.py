@@ -18,16 +18,28 @@ import matplotlib
 
 # Analyzing the data
 import pandas as pd
-import pprint, re, datetime 
+import pprint, re, datetime
 import numpy as np
 from scipy import stats
 
 # Timeseries data
 from pandas import Series, Panel
 
+import copy
+
 # Constants
 URINE_DENSITY = 1.0
 FECES_DENSITY = 0.6
+
+COLUMNS_COLLECTION_SCHEDULE1 = ['"flt_name"','"flt-location"','"responsible_wc"','"crew_lead"','"field_officer"','"franchise_type"','"route_name"','"sub-route_number"',
+'"mon"','"tue"','"wed"','"thur"','"fri"','"sat"','"sun"','"extra_containers"','"open?"']
+COLUMNS_COLLECTION_SCHEDULE2 = copy.deepcopy(COLUMNS_COLLECTION_SCHEDULE1)
+COLUMNS_COLLECTION_SCHEDULE2.remove('"extra_containers"')
+COLUMNS_COLLECTION_SCHEDULE2.remove('"open?"')
+COLUMNS_COLLECTION_SCHEDULE2.extend(['"extra_container?"','"open"'])
+#Put in the sql format
+SQL_COL_COLLECTION1=",".join(COLUMNS_COLLECTION_SCHEDULE1)
+SQL_COL_COLLECTION2=",".join(COLUMNS_COLLECTION_SCHEDULE2)
 
 # Helper functions
 RULES = [("^(Toilet__c|ToiletID)$","ToiletID"),
@@ -74,6 +86,17 @@ toilets = standardize_variable_names(toilets, RULES)
 schedule = pd.read_sql('SELECT * FROM input."FLT_Collection_Schedule__c"', conn, coerce_float=True, params=None)
 schedule = standardize_variable_names(schedule, RULES)
 
+# Load the collection schedule data.
+schedule_wheelcart = pd.read_sql('SELECT ' + SQL_COL_COLLECTION1 + '  FROM input."collection_schedule_wheelbarrow"', conn, coerce_float=True, params=None)
+schedule_tuktuk = pd.read_sql('SELECT ' + SQL_COL_COLLECTION1 + '  FROM input."collection_schedule_tuktuk"', conn, coerce_float=True, params=None)
+schedule_truck = pd.read_sql('SELECT ' + SQL_COL_COLLECTION2 + '  FROM input."collection_schedule_truck"', conn, coerce_float=True, params=None)
+schedule_truck.rename(columns={'"extra_container?"':'"extra_containers"','"open"':'"open?"'},inplace=True)
+schedule_wheelcart.append(schedule_truck)
+schedule_wheelcart.append(schedule_tuktuk)
+schedule_wheelcart = standardize_variable_names(schedule_wheelcart,RULES)
+print(schedule_wheelcart.shape)
+
+exit
 # Drop columns that are identical between the Collections and FLT Collections records
 schedule = schedule.drop('CreatedDate',1)
 schedule = schedule.drop('CurrencyIsoCode',1)
@@ -87,7 +110,7 @@ schedule = schedule.drop('SystemModstamp',1)
 toilets.loc[(toilets['OpeningTime']=="30AM"),['OpeningTime']] = "0030"
 toilets['OpeningTime'] = pd.to_numeric(toilets['OpeningTime'])
 toilets['ClosingTime'] = pd.to_numeric(toilets['ClosingTime'])
-toilets['TotalTime'] = toilets['ClosingTime'] - toilets['OpeningTime']  
+toilets['TotalTime'] = toilets['ClosingTime'] - toilets['OpeningTime']
 print(toilets[['OpeningTime','ClosingTime','TotalTime']].describe())
 
 # Convert the container data to numeric
@@ -113,6 +136,14 @@ collect_toilets = pd.merge(left=collect_toilets,
 				right_on=["ToiletID","Planned_Collection_Date"])
 print(collect_toilets.shape)
 
+collect_toilets = pd.merge(left=collect_toilets,
+							right=schedule_wheelcart,
+							how="left",
+							left_on=["ToiletExID"],
+							right_on=["flt_name"])
+
+print(collect_toilets.shape)
+
 # Removing observations that are outside of the time range (See notes from Rosemary meeting 6/21)
 collect_toilets = collect_toilets.loc[(collect_toilets['Collection_Date'] > datetime.datetime(2011,11,20)),]
 print(collect_toilets.shape)
@@ -132,7 +163,8 @@ print(collect_toilets[['FecesContainer_percent','UrineContainer_percent']].descr
 
 # Push merged collection and toilet data to postgres
 print(collect_toilets.loc[1,['UrineContainer','UrineContainer_percent']])
-collect_toilets.to_sql(name='toiletcollection', 
+conn.execute('DROP TABLE IF EXISTS premodeling."toiletcollection"')
+collect_toilets.to_sql(name='toiletcollection',
 			schema="premodeling",
 			con=engine,
 			chunksize=1000)
