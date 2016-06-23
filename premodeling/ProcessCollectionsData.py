@@ -76,7 +76,12 @@ print('connected to postgres')
 collects = pd.read_sql('SELECT * FROM input."Collection_Data__c"', conn, coerce_float=True, params=None)
 collects = standardize_variable_names(collects, RULES)
 
+# Drop the route variable from the collections data
 collects = collects.drop('Collection_Route',1)
+
+# Change outier toilets to none
+collects.loc[(collects['Urine_kg_day']>400),'Urine_kg_day']=None
+collects.loc[(collects['Feces_kg_day']>400),'Feces_kg_day']=None
 
 # Load the toilet data to pandas
 toilets = pd.read_sql('SELECT * FROM input."tblToilet"', conn, coerce_float=True, params=None)
@@ -85,6 +90,24 @@ toilets = standardize_variable_names(toilets, RULES)
 # Load the toilet data to pandas
 schedule = pd.read_sql('SELECT * FROM input."FLT_Collection_Schedule__c"', conn, coerce_float=True, params=None)
 schedule = standardize_variable_names(schedule, RULES)
+
+# Correct the schedule_status variable, based on Rosemary (6/21)
+print(schedule['Schedule_Status'].value_counts())
+schedule.loc[(schedule['Schedule_Status']=="School"),'Schedule_Status']="DC school is closed"
+schedule.loc[(schedule['Schedule_Status']=="#N/A"),'Schedule_Status']="Remove record from table"
+schedule.loc[(schedule['Schedule_Status']=="Closed"),'Schedule_Status']="Closed by FLI"
+schedule.loc[(schedule['Schedule_Status']=="`Collect"),'Schedule_Status']="Collect"
+schedule.loc[(schedule['Schedule_Status']=="Closure Chosen by FLO"),'Schedule_Status']="Closed by FLO"
+schedule.loc[(schedule['Schedule_Status']=="Collect"),'Schedule_Status']="Collect"
+schedule.loc[(schedule['Schedule_Status']=="Closed by FLO"),'Schedule_Status']="Closed by FLO"
+schedule.loc[(schedule['Schedule_Status']=="Daily"),'Schedule_Status']="Collect"
+schedule.loc[(schedule['Schedule_Status']=="Demolished"),'Schedule_Status']="Closed by FLI"
+schedule.loc[(schedule['Schedule_Status']=="NULL"),'Schedule_Status']="Remove record from table"
+schedule.loc[(schedule['Schedule_Status']=="Periodic"),'Schedule_Status']="Periodic"
+schedule.loc[(schedule['Schedule_Status']=="DC school is closed"),'Schedule_Status']="DC school is closed"
+schedule.loc[(schedule['Schedule_Status']=="no"),'Schedule_Status']="Closed by FLO"
+schedule.loc[(schedule['Schedule_Status']=="Closed by FLI"),'Schedule_Status']="Closed by FLI"
+print(schedule['Schedule_Status'].value_counts())
 
 # Load the collection schedule data.
 schedule_wheelcart = pd.read_sql('SELECT ' + SQL_COL_COLLECTION1 + '  FROM input."collection_schedule_wheelbarrow"', conn, coerce_float=True, params=None)
@@ -103,7 +126,6 @@ schedule = schedule.drop('CurrencyIsoCode',1)
 schedule = schedule.drop('Day',1)
 schedule = schedule.drop('Id',1)
 schedule = schedule.drop('Name',1)
-schedule = schedule.drop('Schedule_Status',1)
 schedule = schedule.drop('SystemModstamp',1)
 
 # Convert toilets opening/closing time numeric:
