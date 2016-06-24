@@ -29,7 +29,8 @@ import copy
 
 # Constants
 URINE_DENSITY = 1.0
-FECES_DENSITY = 0.6
+FECES_DENSITY = 1.0
+OUTLIER_KG_DAY = 400
 
 COLUMNS_COLLECTION_SCHEDULE1 = ['"flt_name"','"flt-location"','"responsible_wc"','"crew_lead"','"field_officer"','"franchise_type"','"route_name"','"sub-route_number"',
 '"mon"','"tue"','"wed"','"thur"','"fri"','"sat"','"sun"','"extra_containers"','"open?"']
@@ -80,8 +81,8 @@ collects = standardize_variable_names(collects, RULES)
 collects = collects.drop('Collection_Route',1)
 
 # Change outier toilets to none
-collects.loc[(collects['Urine_kg_day']>400),'Urine_kg_day']=None
-collects.loc[(collects['Feces_kg_day']>400),'Feces_kg_day']=None
+collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),'Urine_kg_day']=None
+collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),'Feces_kg_day']=None
 
 # Load the toilet data to pandas
 toilets = pd.read_sql('SELECT * FROM input."tblToilet"', conn, coerce_float=True, params=None)
@@ -180,7 +181,7 @@ collect_toilets['waste_factor'] = 25.0 # Feces container size is 35 L
 collect_toilets.loc[(collect_toilets['FecesContainer']==45),['waste_factor']]=37.0 # Feces container size is 45 L
 
 collect_toilets['UrineContainer_percent'] = ((collect_toilets['Urine_kg_day']/URINE_DENSITY)/collect_toilets['UrineContainer'])*100
-collect_toilets['FecesContainer_percent'] = (collect_toilets['Feces_kg_day']/collect_toilets['waste_factor'])*100
+collect_toilets['FecesContainer_percent'] = ((collect_toilets['Feces_kg_day']/FECES_DENSITY)/collect_toilets['waste_factor'])*100
 print(collect_toilets[['FecesContainer_percent','UrineContainer_percent']].describe())
 
 # Push merged collection and toilet data to postgres
