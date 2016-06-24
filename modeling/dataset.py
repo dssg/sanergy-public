@@ -14,7 +14,7 @@ from sqlalchemy import create_engine
 import pandas as pd
 
 # Helper functions
-import re
+import re, pprint
 
 # For logging errors
 import logging
@@ -30,36 +30,66 @@ try:
 except:
 	log.warning('Failure to connect to postgres')
 
-def return_from_database(conn, parameters):
+def grab_collections_data(db, response, features, start_date, end_date, label):
 	"""
 		A function to return a postgres query as a Pandas data frame
 		Args:
-			CONN A connection objection
-			PARAMETERS dict[variables, database, table, conditions]
+		  DICT DB		A connection objection, database name/table
+		  DICT RESPONSE		The variable to be predicted 
+					e.g., Feces container between 30% and  40% full:
+						{'type':'binary',
+						 'variable':'FecesContainer_percent',
+						 'split':{'and':[('>',30),('<',40)]}
+		  DICT[dict] FEATURES	The variables of interest and any subsets on those variables
+					e.g., Not the school franchise types:
+						{'and':[('=','school')]}
+						Or school and commercial:
+						{"or":[('=',"school"),('=',"commerical")]}
+		  DT START_DATE		A minimum or equal to start date
+					(e.g., "Collection_Date" >= '2012-01-01')
+		  DT END_DATE		A maximum or equal to end date
+					(e.g., "Collection_Date" <= '2012-01-01')
+		  DICT LABEL		Apply a label to the RESPONSE variable
+	
 		Returns:
-			Pandas DataFrame based on the query	
+		  Pandas DataFrame based on the query	
 	"""
-	if isinstance(parameters['variables'],list):
-		parameters['variables'] = ','.join(['"%s"' %(pr) for pr in parameters['variables']]) 
-	statement = 'select %s from %s.%s %s' %(parameters['variables'],
-						parameters['database'],
-						parameters['table'],
-						parameters['conditions'])
+	# Create the list of all variables requested from the database
+	list_of_variables = [response['variable']] + features.keys() + ['Collection_Date','ToiletID']
+	list_of_variables = ['"'+lv+'"' for lv in list_of_variables]
+	log.info('Requestion variable(s): %s' %(','.join(list_of_variables)))
+
+	# Determine the conditions statement for the data request
+	conditions = []
+	for feat in features:
+		if bool(features[feat])==True:
+			# Dictionary is not empty, parse the split values into a statement
+			for split in features[feat]:
+				statement = split.join(['("%s"%s%s)' %(feat,sp[0],sp[1]) 
+						for sp in features[feat][split]])
+				conditions.append('('+statement+')')
+	if len(conditions)>0:
+		conditions = 'and'.join(conditions)
+		conditions = 'where '+conditions
+	else:
+		conditions = ""				
+	# Create the SQL statement requesting the data
+	statement = "select %s from %s.%s %s" %(','.join(list_of_variables),
+						db['database'],
+						db['table'],
+						conditions)
 	dataset = pd.read_sql(statement, 
-				con=conn, 
+				con=db['connection'], 
 				coerce_float=True, 
 				params=None)
 	return(dataset)
 
 # Experiments
-db = return_from_database(conn, {'variables':'*',
-				'database':'premodeling',
-				'table':'toiletcollection',
-				'conditions':'limit 10'})
-print(db.shape)
-
-db = return_from_database(conn, {'variables':['ToiletID','Feces_kg_day','Urine_kg_day'],
-				'database':'premodeling',
-				'table':'toiletcollection',
-				'conditions':'limit 10'})
-print(db.shape)
+db={'connection':conn, 'table':'toiletcollection', 'database':'premodeling'}
+response = {'type':'binary','variable':'Feces_kg_day','split':{'and':[('<=',10),('>',3)]}}
+features = {'Urine_kg_day':{'and':[('<=',10),('>',3)]}}
+start_date = '2012-01-01'
+end_date = '2014-01-01'
+label = False
+data = grab_collections_data(db, response, features, start_date, end_date, label)
+print(data)
