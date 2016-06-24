@@ -6,8 +6,11 @@ An encapsulating class for toilet waste predictions, so we don't have to worry a
         pass
         #self.lyrics = lyrics
 
-    def getToiletEstimate(self, toilet, day):
+    def getToiletEstimate(self, toilet, day, type="feces"):
         """
         Return an estimate of the toilet waste for the given toilet on the given day
+
+        Args:
+        type: "feces" vs "urine"
         """
         pass
