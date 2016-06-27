@@ -97,16 +97,31 @@ def grab_collections_data(db, response, features, unique, label):
 						db['database'],
 						db['table'],
 						conditions)
+	# Retrieve the dataset from postgres
 	dataset = pd.read_sql(statement, 
 				con=db['connection'], 
 				coerce_float=True, 
 				params=None)
+	# Return the response variable
+	if (bool(response['split'])==True):
+		statement = ""
+		for split in response['split']:
+			if (split=='and'):
+				statement = '&'.join(['(dataset["%s"]%s%s)' %(response['variable'],sp[0],sp[1]) 
+						for sp in response['split'][split]])
+			elif (split=='or'):
+				statement = '|'.join(['(dataset["%s"]%s%s)' %(response['variable'],sp[0],sp[1]) 
+						for sp in response['split'][split]])
+		dataset['response'] = False
+		dataset.loc[(eval(statement)),"response"] = True
+	else:
+		dataset['response'] = dataset[response['variable']]
 	return(dataset)
 
 # Experiments
 db={'connection':conn, 'table':'toiletcollection', 'database':'premodeling'}
-response = {'type':'binary','variable':'Feces_kg_day','split':{'list':['4','6','8']}}
-features = {'Urine_kg_day':{'and':[('<=',10),('>',3)],'not':('=',5),'list':['4','7','8']}}
+response = {'variable':'Feces_kg_day','split':{'and':[('>',3),('<',7)]}}
+features = {'Urine_kg_day':{'and':[('<=',10),('>',3)],'not':('=',5),'list':['4','7','8','5']}}
 unique = {'ToiletID':{'list':['a08D000000i1KgnIAE']}, 'Collection_Date':{'and':[('>',"'2012-01-01'"),('<',"'2014-01-01'")]}}
 label = False
 data = grab_collections_data(db, response, features, unique, label)
