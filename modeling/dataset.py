@@ -30,7 +30,33 @@ try:
 except:
 	log.warning('Failure to connect to postgres')
 
-def grab_collections_data(db, response, features, start_date, end_date, label):
+def write_statement(vardict):
+	"""
+	A function to write a conditional statement based on the conditions in a variable
+	Args
+	  DICT[dict] VARDICT	A dictionary of variable names, where the values are conditions
+	Returns
+	  LIST[str] Conditions	A list of condition statements
+	"""
+	conditions = []
+	for feat in vardict:
+		if bool(vardict[feat])==True:
+			# Dictionary is not empty, parse the split values into a statement
+			for split in vardict[feat]:
+				if ((split=='and')|(split=="or")):
+					statement = split.join(['("%s"%s%s)' %(feat,sp[0],sp[1]) 
+							for sp in vardict[feat][split]])
+				elif (split=='not'):
+					statement = split + ' "%s"%s%s' %(feat,
+							vardict[feat][split][0],
+							vardict[feat][split][1])
+				elif (split=='list'):
+					statement = '"%s"' %(feat) + "=any('{%s}')" %(','.join(vardict[feat][split]))
+				conditions.append('('+statement+')')  
+	pprint.pprint(conditions)
+	return(conditions)
+
+def grab_collections_data(db, response, features, unique, label):
 	"""
 		A function to return a postgres query as a Pandas data frame
 		Args:
@@ -41,33 +67,26 @@ def grab_collections_data(db, response, features, start_date, end_date, label):
 						 'variable':'FecesContainer_percent',
 						 'split':{'and':[('>',30),('<',40)]}
 		  DICT[dict] FEATURES	The variables of interest and any subsets on those variables
-					e.g., Not the school franchise types:
+					(e.g., Not the school franchise types:
 						{'and':[('=','school')]}
 						Or school and commercial:
 						{"or":[('=',"school"),('=',"commerical")]}
-		  DT START_DATE		A minimum or equal to start date
-					(e.g., "Collection_Date" >= '2012-01-01')
-		  DT END_DATE		A maximum or equal to end date
-					(e.g., "Collection_Date" <= '2012-01-01')
+		  DICT[dict] UNIQUE	The unique variables for the dataset
+					(e.g., {'Collection_Date':{}}, {'ToiletID':{}}
 		  DICT LABEL		Apply a label to the RESPONSE variable
 	
 		Returns:
 		  Pandas DataFrame based on the query	
 	"""
 	# Create the list of all variables requested from the database
-	list_of_variables = [response['variable']] + features.keys() + ['Collection_Date','ToiletID']
+	list_of_variables = [response['variable']]+features.keys()+unique.keys()
 	list_of_variables = ['"'+lv+'"' for lv in list_of_variables]
 	log.info('Requestion variable(s): %s' %(','.join(list_of_variables)))
 
 	# Determine the conditions statement for the data request
 	conditions = []
-	for feat in features:
-		if bool(features[feat])==True:
-			# Dictionary is not empty, parse the split values into a statement
-			for split in features[feat]:
-				statement = split.join(['("%s"%s%s)' %(feat,sp[0],sp[1]) 
-						for sp in features[feat][split]])
-				conditions.append('('+statement+')')
+	conditions = write_statement(features)
+	conditions.extend(write_statement(unique))
 	if len(conditions)>0:
 		conditions = 'and'.join(conditions)
 		conditions = 'where '+conditions
@@ -86,10 +105,9 @@ def grab_collections_data(db, response, features, start_date, end_date, label):
 
 # Experiments
 db={'connection':conn, 'table':'toiletcollection', 'database':'premodeling'}
-response = {'type':'binary','variable':'Feces_kg_day','split':{'and':[('<=',10),('>',3)]}}
-features = {'Urine_kg_day':{'and':[('<=',10),('>',3)]}}
-start_date = '2012-01-01'
-end_date = '2014-01-01'
+response = {'type':'binary','variable':'Feces_kg_day','split':{'list':['4','6','8']}}
+features = {'Urine_kg_day':{'and':[('<=',10),('>',3)],'not':('=',5),'list':['4','7','8']}}
+unique = {'ToiletID':{'list':['a08D000000i1KgnIAE']}, 'Collection_Date':{'and':[('>',"'2012-01-01'"),('<',"'2014-01-01'")]}}
 label = False
-data = grab_collections_data(db, response, features, start_date, end_date, label)
+data = grab_collections_data(db, response, features, unique, label)
 print(data)
