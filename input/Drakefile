@@ -39,9 +39,15 @@ psql/input/ipa_data_incomplete_NAreplaced <- input/ipa_data_incomplete.sql, data
 
 ;;; Collection Schedule ;;;
 data/input/wheelCut.csv, data/input/truckCut.csv, data/input/tukCut.csv <- input/extract_schedule.sh, data/input/Logistics_schedule.xlsx
-  eval ${INPUT0}
+	bash $INPUT0
 psql/input/Collection_Schedule_Wheelbarrow, psql/input/Collection_Schedule_Truck, psql/input/Collection_Schedule_Tuktuk  <- input/CollectionSchedule_input.sql, data/input/wheelCut.csv, data/input/truckCut.csv, data/input/tukCut.csv [method:psql]
 
+;;; School by Route ;;;
+;data/input/school_by_route.csv <- input/extract_school.sh, data/input/Logistics_schedule.xlsx
+;	bash $INPUT0
+data/input/school_by_route.csv <- data/input/Logistics_schedule.xlsx
+	in2csv --sheet "SF_check" $INPUT | tail -n +2 > $OUTPUT
+psql/input/Collection_Schedule_School <- input/CollectionSchedule_input.sql, data/input/school_by_route.csv [method:psql]
 
 ;;; WEATHER ;;;
 data/input/weather/weather_download_jkia <- input/weather/weather_download.sh

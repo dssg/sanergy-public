@@ -73,6 +73,8 @@ engine = create_engine('postgresql+psycopg2://%s:%s@%s:%s' %(dbconfig.config['us
 conn = engine.connect()
 print('connected to postgres')
 
+conn.execute("DROP TABLE IF EXISTS premodeling.toiletcollection")
+
 # Load the collections data to a pandas dataframe
 collects = pd.read_sql('SELECT * FROM input."Collection_Data__c"', conn, coerce_float=True, params=None)
 collects = standardize_variable_names(collects, RULES)
@@ -120,7 +122,6 @@ schedule_wheelcart.append(schedule_tuktuk)
 schedule_wheelcart = standardize_variable_names(schedule_wheelcart,RULES)
 print(schedule_wheelcart.shape)
 
-exit
 # Drop columns that are identical between the Collections and FLT Collections records
 schedule = schedule.drop('CreatedDate',1)
 schedule = schedule.drop('CurrencyIsoCode',1)
@@ -128,6 +129,7 @@ schedule = schedule.drop('Day',1)
 schedule = schedule.drop('Id',1)
 schedule = schedule.drop('Name',1)
 schedule = schedule.drop('SystemModstamp',1)
+print(schedule.keys())
 
 # Convert toilets opening/closing time numeric:
 toilets.loc[(toilets['OpeningTime']=="30AM"),['OpeningTime']] = "0030"
@@ -150,6 +152,8 @@ collect_toilets = pd.merge(collects,
 				toilets,
 				on="ToiletID")
 print(collect_toilets.shape)
+collect_toilets['duplicated'] = collect_toilets.duplicated(subset=['Id'])
+print('merge collections and toilets: %i' %(len(collect_toilets.loc[(collect_toilets['duplicated']==True)])))
 
 # Merge the collection and toilet data
 collect_toilets = pd.merge(left=collect_toilets,
@@ -158,14 +162,30 @@ collect_toilets = pd.merge(left=collect_toilets,
 				left_on=["ToiletID","Collection_Date"],
 				right_on=["ToiletID","Planned_Collection_Date"])
 print(collect_toilets.shape)
-
-collect_toilets = pd.merge(left=collect_toilets,
-							right=schedule_wheelcart,
-							how="left",
-							left_on=["ToiletExID"],
-							right_on=["flt_name"])
-
+collect_toilets['duplicated'] = collect_toilets.duplicated(subset=['Id'])
+print('merge collections and schedule: %i' %(len(collect_toilets.loc[(collect_toilets['duplicated']==True)])))
+duplicate_ids = set(collect_toilets.loc[(collect_toilets['duplicated']==True),'ToiletID'])
+print(collect_toilets.loc[(collect_toilets['ToiletID'].isin(list(duplicate_ids))),['ToiletID','Planned_Collection_Date','Collection_Date','Route_Name']])
+collect_toilets = collect_toilets[(collect_toilets['duplicated']==False)]
 print(collect_toilets.shape)
+
+#collect_toilets = pd.merge(left=collect_toilets,
+#					right=schedule_wheelcart,
+#					how="left",
+#					left_on=["ToiletExID"],
+#					right_on=["flt_name"])
+
+#print(collect_toilets.shape)
+#print(schedule_wheelcart.keys())
+#collect_toilets['duplicated'] = collect_toilets.duplicated(subset=['Id'])
+#print('merge collections and schedule wheelcart: %i' %(len(collect_toilets.loc[(collect_toilets['duplicated']==True)])))
+#collect_toilets = collect_toilets.loc[(collect_toilets['duplicated']==False)]
+#print(collect_toilets.shape)
+#duplicate_ids = set(collect_toilets.loc[(collect_toilets['duplicated']==True),'ToiletID'])
+#pprint.pprint(duplicate_ids)
+#print(collect_toilets.loc[(collect_toilets['ToiletID'].isin(list(duplicate_ids))),['ToiletID','Id','duplicated','sub-route_name','route_name','open?']])
+#print(collect_toilets.loc[(collect_toilets['Id']=='a0AD000000TcGuGMAV')])
+
 
 # Removing observations that are outside of the time range (See notes from Rosemary meeting 6/21)
 collect_toilets = collect_toilets.loc[(collect_toilets['Collection_Date'] > datetime.datetime(2011,11,20)),]
