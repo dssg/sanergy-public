@@ -1,6 +1,6 @@
-drop table if exists weather.weather;
+drop table if exists input.weather;
 
-CREATE TABLE weather.weather (
+CREATE TABLE input.weather (
 	year INTEGER NOT NULL, 
 	month VARCHAR(2) NOT NULL, 
 	day VARCHAR(2) NOT NULL, 
@@ -15,4 +15,4 @@ CREATE TABLE weather.weather (
 	liquid_precipitation_depth_dimension_six_hours INTEGER
 );
 
-\copy weather.weather from 'data/input/weather/weather_master.csv' with csv header;
+\copy input.weather from 'data/input/weather/weather_master.csv' with csv header;
