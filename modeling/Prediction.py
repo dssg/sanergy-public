@@ -24,7 +24,7 @@ class Prediction(object):
             df: A Dataframe with the columns for the toiletname, date (of prediction),
         """
         self.df = df
-        print(df)
+        #print(df)
 
     def get_toilet_waste_estimate(self, toilet, day, type_waste="feces"):
         """
@@ -34,7 +34,7 @@ class Prediction(object):
             type: "feces" vs "urine"
 
         """
-        waste_estimate = self.df.loc[ (self.df[COLNAMES.TOILETNAME] == toilet) & (self.df[COLNAMES.DATE] == day) ]
+        waste_estimate = (self.df[COLNAMES.WASTE[type_waste]].loc[ (self.df[COLNAMES.TOILETNAME] == toilet) & (self.df[COLNAMES.DATE] == day) ]).values[0]
         #waste_estimate = self.df[[COLNAMES.TOILETNAME, COLNAMES.DATE, COLNAMES.WASTE[type_waste]]].loc[ self.df[COLNAMES.TOILETNAME] == toilet & self.df[COLNAMES.DATE] == day ]
         return( waste_estimate )
 
