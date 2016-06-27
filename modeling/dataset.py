@@ -63,8 +63,7 @@ def grab_collections_data(db, response, features, unique, label):
 		  DICT DB		A connection objection, database name/table
 		  DICT RESPONSE		The variable to be predicted 
 					e.g., Feces container between 30% and  40% full:
-						{'type':'binary',
-						 'variable':'FecesContainer_percent',
+						{'variable':'FecesContainer_percent',
 						 'split':{'and':[('>',30),('<',40)]}
 		  DICT[dict] FEATURES	The variables of interest and any subsets on those variables
 					(e.g., Not the school franchise types:
