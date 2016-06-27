@@ -73,6 +73,8 @@ engine = create_engine('postgresql+psycopg2://%s:%s@%s:%s' %(dbconfig.config['us
 conn = engine.connect()
 print('connected to postgres')
 
+conn.execute("DROP TABLE IF EXISTS premodeling.toiletcollection")
+
 # Load the collections data to a pandas dataframe
 collects = pd.read_sql('SELECT * FROM input."Collection_Data__c"', conn, coerce_float=True, params=None)
 collects = standardize_variable_names(collects, RULES)
@@ -167,18 +169,18 @@ print(collect_toilets.loc[(collect_toilets['ToiletID'].isin(list(duplicate_ids))
 collect_toilets = collect_toilets[(collect_toilets['duplicated']==False)]
 print(collect_toilets.shape)
 
-collect_toilets = pd.merge(left=collect_toilets,
-							right=schedule_wheelcart,
-							how="left",
-							left_on=["ToiletExID"],
-							right_on=["flt_name"])
+#collect_toilets = pd.merge(left=collect_toilets,
+#					right=schedule_wheelcart,
+#					how="left",
+#					left_on=["ToiletExID"],
+#					right_on=["flt_name"])
 
-print(collect_toilets.shape)
-print(schedule_wheelcart.keys())
-collect_toilets['duplicated'] = collect_toilets.duplicated(subset=['Id'])
-print('merge collections and schedule wheelcart: %i' %(len(collect_toilets.loc[(collect_toilets['duplicated']==True)])))
-collect_toilets = collect_toilets.loc[(collect_toilets['duplicated']==False)]
-print(collect_toilets.shape)
+#print(collect_toilets.shape)
+#print(schedule_wheelcart.keys())
+#collect_toilets['duplicated'] = collect_toilets.duplicated(subset=['Id'])
+#print('merge collections and schedule wheelcart: %i' %(len(collect_toilets.loc[(collect_toilets['duplicated']==True)])))
+#collect_toilets = collect_toilets.loc[(collect_toilets['duplicated']==False)]
+#print(collect_toilets.shape)
 #duplicate_ids = set(collect_toilets.loc[(collect_toilets['duplicated']==True),'ToiletID'])
 #pprint.pprint(duplicate_ids)
 #print(collect_toilets.loc[(collect_toilets['ToiletID'].isin(list(duplicate_ids))),['ToiletID','Id','duplicated','sub-route_name','route_name','open?']])
