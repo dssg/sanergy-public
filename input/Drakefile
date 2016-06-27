@@ -42,6 +42,10 @@ data/input/wheelCut.csv, data/input/truckCut.csv, data/input/tukCut.csv <- input
   eval ${INPUT0}
 psql/input/Collection_Schedule_Wheelbarrow, psql/input/Collection_Schedule_Truck, psql/input/Collection_Schedule_Tuktuk  <- input/CollectionSchedule_input.sql, data/input/wheelCut.csv, data/input/truckCut.csv, data/input/tukCut.csv [method:psql]
 
+;;; School by Route ;;;
+data/input/school_by_route.csv <- input/extract_school.sh, data/input/Logistics_schedule.xlsx
+  eval ${INPUT0}
+psql/input/Collection_Schedule_School <- input/CollectionSchedule_input.sql, data/input/school_by_route.csv [method:psql]
 
 ;;; WEATHER ;;;
 data/input/weather/weather_download_jkia <- input/weather/weather_download.sh
