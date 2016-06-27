@@ -1,7 +1,7 @@
 drop table if exists input.Collection_Schedule_Wheelbarrow;
 drop table if exists input.Collection_Schedule_Truck;
 drop table if exists input.Collection_Schedule_Tuktuk;
-
+drop table if exists input.Collection_Schedule_School;
 
 CREATE TABLE input.Collection_Schedule_Wheelbarrow (
 	flt_name TEXT,
