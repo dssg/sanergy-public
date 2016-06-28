@@ -1,7 +1,7 @@
 """
 A script that is imported by run.py to manage dataset extraction and writing results to the postgres database.
 1. A function to connect to the database
-2. A function that takes a query and returns a dataset
+2. A function that takes a query and returns two datasets (e.g., labels and features)
 3. A function that writes a dataset to postgres
 """
 
@@ -116,13 +116,20 @@ def grab_collections_data(db, response, features, unique, label):
 		dataset.loc[(eval(statement)),"response"] = True
 	else:
 		dataset['response'] = dataset[response['variable']]
-	return(dataset)
+	# Divide the dataset into a LABELS and FEATURES dataframe so that they link by UNIQUE variables
+	y_labels = dataset[response['variable']+unique.keys()]
+	x_features = dataset[unique.keys()+features.keys()]
+	return(y_labels, x_features)
 
 # Experiments
+#############
 db={'connection':conn, 'table':'toiletcollection', 'database':'premodeling'}
 response = {'variable':'Feces_kg_day','split':{'and':[('>',3),('<',7)]}}
 features = {'Urine_kg_day':{'and':[('<=',10),('>',3)],'not':('=',5),'list':['4','7','8','5']}}
 unique = {'ToiletID':{'list':['a08D000000i1KgnIAE']}, 'Collection_Date':{'and':[('>',"'2012-01-01'"),('<',"'2014-01-01'")]}}
 label = False
-data = grab_collections_data(db, response, features, unique, label)
-print(data)
+
+x,y = grab_collections_data(db, response, features, unique, label)
+
+pprint.pprint(x.keys())
+ppring.pprint(y.keys())
