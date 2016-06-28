@@ -15,6 +15,7 @@ import pandas as pd
 
 # Helper functions
 import re, pprint
+from datetime import date, timedelta
 
 # For logging errors
 import logging
@@ -56,20 +57,11 @@ def write_statement(vardict):
 	pprint.pprint(conditions)
 	return(conditions)
 
-def demand_wide_data(long_data, features, unique):
-	"""
-	A function that requests a wide representation of a variable from postgres
-	Args
-	  DF LONG_DATA		A pandas dataframe that is now long by the feature variable
-	  DICT FEATURES		A variable to be reshaped from LONG to WIDE
-				e.g., Past 3 days of Feces container percentage full:
-					{'FecesContainer_percent':{'wide':{}}
-	  LIST UNIQUE		A list of unique variables (see: grab_collections_data)
-	Returns
-	  DF WIDE_DATA		A pandas dataframe that is now wide by the feature variable 
+def demand_daily_data(db, days=[], features=[], unique=['ToiletID','Collection_Date'], conditions=None):
 	"""
 	
-	return(wide_data)
+	"""
+	return(data)
 
 def grab_collections_data(db, response, features, unique, label):
 	"""
@@ -118,6 +110,7 @@ def grab_collections_data(db, response, features, unique, label):
 				coerce_float=True, 
 				params=None)
 	# Incorporate RESHAPE datasets (function reuses 'conditions', 'unique' variables, and 'db' 
+	print(demand_daily_data(data=dataset, feature=response['variable'], days=[1], date_variable='Collection_Date'))
 
 
 
@@ -159,4 +152,3 @@ print(y.head())
 print('\nThe FEATURES (x) dataframe includes %i variables, %i rows of data (unique identifiers: %s)' %(len(x.keys()), len(x), ','.join(unique.keys()) ))
 pprint.pprint(x.keys())
 print(x.head())
-"""
