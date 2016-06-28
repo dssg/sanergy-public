@@ -85,6 +85,7 @@ collects = collects.drop('Collection_Route',1)
 # Change outier toilets to none
 collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),'Urine_kg_day']=None
 collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),'Feces_kg_day']=None
+collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),'Total_Waste_kg_day']=None
 
 # Load the toilet data to pandas
 toilets = pd.read_sql('SELECT * FROM input."tblToilet"', conn, coerce_float=True, params=None)
@@ -192,9 +193,9 @@ collect_toilets = collect_toilets.loc[(collect_toilets['Collection_Date'] > date
 print(collect_toilets.shape)
 
 # Update negative weights as zero (See notes from Rosemary meeting 6/21)
-collect_toilets.loc[(collect_toilets['Urine_kg_day'] < 0),['Urine_kg_day']]=0
-collect_toilets.loc[(collect_toilets['Feces_kg_day'] < 0),['Feces_kg_day']]=0
-
+collect_toilets.loc[(collect_toilets['Urine_kg_day'] < 0),['Urine_kg_day']]=None
+collect_toilets.loc[(collect_toilets['Feces_kg_day'] < 0),['Feces_kg_day']]=None
+collect_toilets.loc[(collect_toilets['Total_Waste_kg_day'] < 0),['Total_Waste_kg_day']]=None
 
 # Calculate the percentage of the container full (urine/feces)
 collect_toilets['waste_factor'] = 25.0 # Feces container size is 35 L
@@ -209,6 +210,5 @@ print(collect_toilets.loc[1,['UrineContainer','UrineContainer_percent']])
 conn.execute('DROP TABLE IF EXISTS premodeling."toiletcollection"')
 collect_toilets.to_sql(name='toiletcollection',
 			schema="premodeling",
-			con=engine,
-			chunksize=1000)
+			con=engine)
 print('end');
