@@ -83,6 +83,7 @@ collects = collects.drop('Collection_Route',1)
 # Change outier toilets to none
 collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),'Urine_kg_day']=None
 collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),'Feces_kg_day']=None
+collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),'Total_Waste_kg_day']=None
 
 # Load the toilet data to pandas
 toilets = pd.read_sql('SELECT * FROM input."tblToilet"', conn, coerce_float=True, params=None)
@@ -189,6 +190,5 @@ print(collect_toilets.loc[1,['UrineContainer','UrineContainer_percent']])
 conn.execute('DROP TABLE IF EXISTS premodeling."toiletcollection"')
 collect_toilets.to_sql(name='toiletcollection',
 			schema="premodeling",
-			con=engine,
-			chunksize=1000)
+			con=engine)
 print('end');
