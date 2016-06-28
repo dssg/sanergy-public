@@ -175,7 +175,7 @@ print(collect_toilets.shape)
 # Update negative weights as zero (See notes from Rosemary meeting 6/21)
 collect_toilets.loc[(collect_toilets['Urine_kg_day'] < 0),['Urine_kg_day']]=0
 collect_toilets.loc[(collect_toilets['Feces_kg_day'] < 0),['Feces_kg_day']]=0
-
+collect_toilets.loc[(collect_toilets['Total_Waste_kg_day'] < 0),['Total_Waste_kg_day']]=0
 
 # Calculate the percentage of the container full (urine/feces)
 collect_toilets['waste_factor'] = 25.0 # Feces container size is 35 L
