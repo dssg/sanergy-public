@@ -59,7 +59,17 @@ def write_statement(vardict):
 
 def demand_daily_data(db, days=[], features=[], unique=['ToiletID','Collection_Date'], conditions=None):
 	"""
-	
+	Example of the type of SQL statement to generate
+	------------------------------------------------
+
+	SELECT "Feces_kg_day",
+       		lag("Feces_kg_day", 1, NULL) OVER(order by "ToiletID", "Collection_Date") as Day1,
+       		lag("Feces_kg_day", 2, NULL) OVER(order by "ToiletID", "Collection_Date") as Day2,       
+       		lag("Feces_kg_day", 3, NULL) OVER(order by "ToiletID", "Collection_Date") as Day3,
+       		"Collection_Date",
+       		"ToiletID"
+	FROM premodeling.toiletcollection
+	order by "ToiletID", "Collection_Date"	
 	"""
 	return(data)
 
@@ -110,7 +120,7 @@ def grab_collections_data(db, response, features, unique, label):
 				coerce_float=True, 
 				params=None)
 	# Incorporate RESHAPE datasets (function reuses 'conditions', 'unique' variables, and 'db' 
-	print(demand_daily_data(data=dataset, feature=response['variable'], days=[1], date_variable='Collection_Date'))
+	# wide_data = demand_daily_data()
 
 
 
