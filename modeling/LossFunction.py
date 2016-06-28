@@ -15,27 +15,25 @@ class LossFunction(object):
         * L2
         * ...?
         """
-        super(LossFunction, self).__init__()
         self.type = type
 
     def evaluate_waste_prediction(self, prediction, new_data, type_waste="feces"):
         """
-        Evaluate the prediction against the loss function on new data.
+        Evaluate the prediction against the loss function on new data. Apply the function iteratively for purposes such as crossvalidation.
 
         Args:
-            prediction (Prediction): A prediction object to evaluate
+            prediction (Prediction): A prediction object to evaluate, comprises of a trained model applied to data. See the Prediction class for more info.
             new_data (Dataframe): Data to evaluate the prediction on. It should be already subsetted to the toilets/dates as appropriate.
 
         Returns:
-            loss: Evaluated loss function as a float.
+            loss: Evaluated loss function as a (single) float.
         """
         #Assume feces, for now...
-        predicted_waste = []
-        for ic, collected in new_data.iterrows():
-            predicted_waste.append([collected[COLNAMES.TOILETNAME],collected[COLNAMES.DATE], prediction.get_toilet_waste_estimate(collected[COLNAMES.TOILETNAME],collected[COLNAMES.DATE]) ] )
+        predicted_waste = pd.DataFrame(index=new_data.index, columns = [COLNAMES.TOILETNAME, COLNAMES.DATE, "predicted"])
+        #Append a row with the waste estimate from the prediction, indexed by the toilet name and date.
+        for i, collected in new_data.iterrows(): #collected is a row corresponding to one toilet collection.
+            predicted_waste.loc[len(predicted_waste)] = [collected[COLNAMES.TOILETNAME],collected[COLNAMES.DATE], prediction.get_toilet_waste_estimate(collected[COLNAMES.TOILETNAME],collected[COLNAMES.DATE]) ]
 
-
-        predicted_waste = pd.DataFrame.from_records(predicted_waste,columns = [COLNAMES.TOILETNAME, COLNAMES.DATE, "predicted"])
         waste = pd.merge(predicted_waste, new_data, on = [COLNAMES.TOILETNAME, COLNAMES.DATE])
 
         #print(waste)
@@ -46,9 +44,10 @@ class LossFunction(object):
 
 
 def main():
+    #Random testing code
     L2 = LossFunction("L2")
-    df_test = pd.DataFrame([["a","Tuesday",13.3], ["a","Wednesday",13.3], ["b","Wednesday",13.1]],columns=[COLNAMES.TOILETNAME, COLNAMES.DATE, COLNAMES.FECES])
-    df_test2 = pd.DataFrame([["a","Tuesday",15], ["a","Wednesday",13.2], ["b","Wednesday",13.3]],columns=[COLNAMES.TOILETNAME, COLNAMES.DATE, COLNAMES.FECES])
+    df_test = pd.DataFrame([["Toilet a","Tuesday",13.3], ["Toilet a","Wednesday",13.3], ["Toilet b","Wednesday",13.1]],columns=[COLNAMES.TOILETNAME, COLNAMES.DATE, COLNAMES.FECES])
+    df_test2 = pd.DataFrame([["Toilet a","Tuesday",15], ["Toilet a","Wednesday",13.2], ["Toilet b","Wednesday",13.3]],columns=[COLNAMES.TOILETNAME, COLNAMES.DATE, COLNAMES.FECES])
     pred = Prediction(df_test)
     print(L2.evaluate_waste_prediction(pred,df_test2))
 
