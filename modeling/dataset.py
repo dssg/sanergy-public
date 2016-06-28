@@ -56,27 +56,43 @@ def write_statement(vardict):
 	pprint.pprint(conditions)
 	return(conditions)
 
+def demand_wide_data(long_data, features, unique):
+	"""
+	A function that requests a wide representation of a variable from postgres
+	Args
+	  DF LONG_DATA		A pandas dataframe that is now long by the feature variable
+	  DICT FEATURES		A variable to be reshaped from LONG to WIDE
+				e.g., Past 3 days of Feces container percentage full:
+					{'FecesContainer_percent':{'wide':{}}
+	  LIST UNIQUE		A list of unique variables (see: grab_collections_data)
+	Returns
+	  DF WIDE_DATA		A pandas dataframe that is now wide by the feature variable 
+	"""
+	
+	return(wide_data)
+
 def grab_collections_data(db, response, features, unique, label):
 	"""
-		A function to return a postgres query as a Pandas data frame
-		Args:
-		  DICT DB		A connection objection, database name/table
-		  DICT RESPONSE		The variable to be predicted 
-					e.g., Feces container between 30% and  40% full:
-						{'type':'binary',
-						 'variable':'FecesContainer_percent',
-						 'split':{'and':[('>',30),('<',40)]}
-		  DICT[dict] FEATURES	The variables of interest and any subsets on those variables
-					(e.g., Not the school franchise types:
-						{'and':[('=','school')]}
-						Or school and commercial:
-						{"or":[('=',"school"),('=',"commerical")]}
-		  DICT[dict] UNIQUE	The unique variables for the dataset
-					(e.g., {'Collection_Date':{}}, {'ToiletID':{}}
-		  DICT LABEL		Apply a label to the RESPONSE variable
-	
-		Returns:
-		  Pandas DataFrame based on the query	
+	A function to return a postgres query as a Pandas data frame
+	Args:
+	  DICT DB		A connection objection, database name/table
+	  DICT RESPONSE		The variable to be predicted 
+				e.g., Feces container between 30% and  40% full:
+					{'type':'binary',
+					 'variable':'FecesContainer_percent',
+					 'split':{'and':[('>',30),('<',40)]}
+	  DICT[dict] FEATURES	The variables of interest and any subsets on those variables
+				(e.g., Not the school franchise types:
+					{'and':[('=','school')]}
+					Or school and commercial:
+					{"or":[('=',"school"),('=',"commerical")]}
+	  DICT[dict] UNIQUE	The unique variables for the dataset
+				(e.g., {'Collection_Date':{}}, {'ToiletID':{}}
+	  DICT LABEL		Apply a label to the RESPONSE variable
+
+	Returns:
+	  DF Y_LABELS		Pandas dataframe for the response variables
+	  DF X_FEATURES		Pandas dataframe for the feature variables
 	"""
 	# Create the list of all variables requested from the database
 	list_of_variables = [response['variable']]+features.keys()+unique.keys()
@@ -85,7 +101,6 @@ def grab_collections_data(db, response, features, unique, label):
 
 	# Determine the conditions statement for the data request
 	conditions = []
-	conditions = write_statement(features)
 	conditions.extend(write_statement(unique))
 	if len(conditions)>0:
 		conditions = 'and'.join(conditions)
@@ -102,6 +117,12 @@ def grab_collections_data(db, response, features, unique, label):
 				con=db['connection'], 
 				coerce_float=True, 
 				params=None)
+	# Incorporate RESHAPE datasets (function reuses 'conditions', 'unique' variables, and 'db' 
+
+
+
+
+
 	# Return the response variable
 	if (bool(response['split'])==True):
 		statement = ""
@@ -117,7 +138,7 @@ def grab_collections_data(db, response, features, unique, label):
 	else:
 		dataset['response'] = dataset[response['variable']]
 	# Divide the dataset into a LABELS and FEATURES dataframe so that they link by UNIQUE variables
-	y_labels = dataset[response['variable']+unique.keys()]
+	y_labels = dataset[["response",response['variable']]+unique.keys()]
 	x_features = dataset[unique.keys()+features.keys()]
 	return(y_labels, x_features)
 
@@ -129,7 +150,13 @@ features = {'Urine_kg_day':{'and':[('<=',10),('>',3)],'not':('=',5),'list':['4',
 unique = {'ToiletID':{'list':['a08D000000i1KgnIAE']}, 'Collection_Date':{'and':[('>',"'2012-01-01'"),('<',"'2014-01-01'")]}}
 label = False
 
-x,y = grab_collections_data(db, response, features, unique, label)
+y,x = grab_collections_data(db, response, features, unique, label)
 
+print('\nThe LABELS (y) dataframe, includes both the RESPONSE variable and the original ("%s")' %(response['variable']))
+pprint.pprint(y.keys())
+print(y.head())
+
+print('\nThe FEATURES (x) dataframe includes %i variables, %i rows of data (unique identifiers: %s)' %(len(x.keys()), len(x), ','.join(unique.keys()) ))
 pprint.pprint(x.keys())
-ppring.pprint(y.keys())
+print(x.head())
+"""
