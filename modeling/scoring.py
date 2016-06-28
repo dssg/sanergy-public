@@ -6,8 +6,11 @@ from . import dataset
 
 FULL_PERCENT = 100
 
+
 def compute_confusion(prediction, test_toilets, test_period):
     """
+    This is just an initial draft, probably will change as we go forward.... Will use the new data structures that we will have and the temporal crossvalidation...?
+
     Compute the confusion matrix taking numerical predictions and announcing a "success" if the prediction is lower than full and
     the toilet was less than full OR the prediction is more than full and the toilet was more than full.
     We use the days from the test_period, get the predictions for them

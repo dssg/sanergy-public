@@ -46,10 +46,10 @@ class LossFunction(object):
 def main():
     #Random testing code
     L2 = LossFunction("L2")
-    df_test = pd.DataFrame([["Toilet a","Tuesday",13.3], ["Toilet a","Wednesday",13.3], ["Toilet b","Wednesday",13.1]],columns=[COLNAMES.TOILETNAME, COLNAMES.DATE, COLNAMES.FECES])
-    df_test2 = pd.DataFrame([["Toilet a","Tuesday",15], ["Toilet a","Wednesday",13.2], ["Toilet b","Wednesday",13.3]],columns=[COLNAMES.TOILETNAME, COLNAMES.DATE, COLNAMES.FECES])
-    pred = Prediction(df_test)
-    print(L2.evaluate_waste_prediction(pred,df_test2))
+    df_hat = pd.DataFrame([["Toilet a","Tuesday",13.3], ["Toilet a","Wednesday",13.3], ["Toilet b","Wednesday",13.1]],columns=[COLNAMES.TOILETNAME, COLNAMES.DATE, COLNAMES.FECES])
+    df_test = pd.DataFrame([["Toilet a","Tuesday",15], ["Toilet a","Wednesday",13.2], ["Toilet b","Wednesday",13.3]],columns=[COLNAMES.TOILETNAME, COLNAMES.DATE, COLNAMES.FECES])
+    pred = Prediction(df_hat)
+    print(L2.evaluate_waste_prediction(pred,df_test))
 
 
 

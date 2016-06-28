@@ -41,6 +41,7 @@ class Prediction(object):
 
 
 def main():
+    #Just for testing purposes
     df_test = pd.DataFrame([["a","Tuesday",13.3], ["a","Wednesday",13.3], ["b","Wednesday",13.1]],columns=[COLNAMES.TOILETNAME, COLNAMES.DATE, COLNAMES.FECES])
     pred = Prediction(df_test)
     print(pred.get_toilet_waste_estimate("a","Wednesday"))
