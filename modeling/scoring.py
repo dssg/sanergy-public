@@ -1,14 +1,25 @@
 import numpy as np
 import pandas as pd
 from sklearn import metrics
+<<<<<<< HEAD
 from Prediction import COLNAMES
+=======
+>>>>>>> Issue_33_Validation_Basic
 
 from . import dataset
 
 FULL_PERCENT = 100
 
+<<<<<<< HEAD
 def compute_confusion(prediction, test_toilets, test_period):
     """
+=======
+
+def compute_confusion(prediction, test_toilets, test_period):
+    """
+    This is just an initial draft, probably will change as we go forward.... Will use the new data structures that we will have and the temporal crossvalidation...?
+
+>>>>>>> Issue_33_Validation_Basic
     Compute the confusion matrix taking numerical predictions and announcing a "success" if the prediction is lower than full and
     the toilet was less than full OR the prediction is more than full and the toilet was more than full.
     We use the days from the test_period, get the predictions for them
@@ -39,6 +50,7 @@ def compute_confusion(prediction, test_toilets, test_period):
     cm_urine = metrics.confusion_matrix(train_test_df.UrineContainer_percent > FULL_PERCENT, urine_perc_pred > FULL_PERCENT)
 
     return cm_feces, cm_urine
+<<<<<<< HEAD
 
 
 def temporally_crossvalidate(M, data , L,  w=1, mu = np.mean):
@@ -72,3 +84,5 @@ def temporally_crossvalidate(M, data , L,  w=1, mu = np.mean):
     #Get the best model and return it
     model_best = min(losses, key=losses.get)    
     return(model_best)
+=======
+>>>>>>> Issue_33_Validation_Basic
