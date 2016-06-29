@@ -174,22 +174,41 @@ def grab_collections_data(db, response, features, unique, label):
 	# Divide the dataset into a LABELS and FEATURES dataframe so that they link by UNIQUE variables
 	y_labels = dataset[["response",response['variable']]+unique.keys()]
 	x_features = dataset.drop(["response",response['variable']]+unique.keys(), axis=1)
+	# Insert tables into database
+	db['connection'].execute('DROP TABLE IF EXISTS modeling."labels"')
+	y_labels.to_sql(name='labels',
+			schema="modeling",
+			con=db['connection'],
+			chunksize=1000)
+	db['connection'].execute('DROP TABLE IF EXISTS modeling."features"')
+	x_features.to_sql(name='features',
+			schema="modeling",
+			con=db['connection'],
+			chunksize=1000)
+
 	return(y_labels, x_features)
 
 # Experiments
 #############
-db={'connection':conn, 'table':'toiletcollection', 'database':'premodeling'}
-response = {'variable':'Feces_kg_day','split':{'and':[('>',3),('<',7)]}}
-features = {'Urine_kg_day':{'and':[('<=',10),('>',3)],'not':('=',5),'list':['4','7','8','5']}}
-unique = {'ToiletID':{'list':['a08D000000i1KgnIAE']}, 'Collection_Date':{'and':[('>',"'2012-01-01'"),('<',"'2014-01-01'")]}}
-label = False
+def test():
+	db={'connection':conn, 
+		'table':'toiletcollection',
+		 'database':'premodeling'}
+	response = {'variable':'Feces_kg_day',
+			'split':{'and':[('>',3),('<',7)]}}
+	features = {'Urine_kg_day':{'and':[('<=',10),('>',3)],
+				    'not':('=',5),
+				    'list':['4','7','8','5']}}
+	unique = {'ToiletID':{'list':['a08D000000i1KgnIAE']},
+		  'Collection_Date':{'and':[('>',"'2012-01-01'"),('<',"'2014-01-01'")]}}
+	label = False
 
-y,x = grab_collections_data(db, response, features, unique, label)
+	y,x = grab_collections_data(db, response, features, unique, label)
 
-print('\nThe LABELS (y) dataframe, includes both the RESPONSE variable and the original ("%s")' %(response['variable']))
-pprint.pprint(y.keys())
-print(y.head())
+	print('\nThe LABELS (y) dataframe, includes both the RESPONSE variable and the original ("%s")' %(response['variable']))
+	pprint.pprint(y.keys())
+	print(y.head())
 
-print('\nThe FEATURES (x) dataframe includes %i variables, %i rows of data (unique identifiers: %s)' %(len(x.keys()), len(x), ','.join(unique.keys()) ))
-pprint.pprint(x.keys())
-print(x.head())
+	print('\nThe FEATURES (x) dataframe includes %i variables, %i rows of data (unique identifiers: %s)' %(len(x.keys()), len(x), ','.join(unique.keys()) ))
+	pprint.pprint(x.keys())
+	print(x.head())
