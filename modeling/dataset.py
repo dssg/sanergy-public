@@ -57,21 +57,40 @@ def write_statement(vardict):
 	pprint.pprint(conditions)
 	return(conditions)
 
-def demand_daily_data(db, days=[], features=[], unique=['ToiletID','Collection_Date'], conditions=None):
+def demand_daily_data(db, rows=[], feature='', function='lag', unique=['ToiletID','Collection_Date'], conditions=None):
 	"""
-	Example of the type of SQL statement to generate
-	------------------------------------------------
+	A function to generate by day variables for a feature
 
-	SELECT "Feces_kg_day",
-       		lag("Feces_kg_day", 1, NULL) OVER(order by "ToiletID", "Collection_Date") as Day1,
-       		lag("Feces_kg_day", 2, NULL) OVER(order by "ToiletID", "Collection_Date") as Day2,       
-       		lag("Feces_kg_day", 3, NULL) OVER(order by "ToiletID", "Collection_Date") as Day3,
-       		"Collection_Date",
-       		"ToiletID"
-	FROM premodeling.toiletcollection
-	order by "ToiletID", "Collection_Date"	
+	Args:
+	   DICT DB		Connection object (see grab_collections_data)
+	   LIST ROWS		List of rows
+	   STR FEATURE		A feature name to create daily records for
+	   STR FUNCTION		Apply either the LAG or LEAVE function (in the future, maybe some other functions)
+	   LIST UNIQUE		List of unique identifiers
+	   STR CONDITIONS	Apply the conditions string (see grab_collections_data)
+	Returns:
+	   DF DAILY_DATA	Pandas data frame of daily variables
 	"""
-	return(data)
+	
+	# Reprocess the unique list to account for capitalization
+	unique = ','.join(['"%s"' %(uu) for uu in unique])
+
+	# Construct the sql statement using window functions (e.g., OVER and LAG/LEAVE)	
+	statement = 'SELECT "%s"' %(feature)
+	for rr in rows:
+		statement += ', %s("%s", %i, NULL) OVER(order by %s) as "%s_%s%i" ' %(function, 
+										      feature,
+										      rr,
+										      unique,
+										      feature,
+										      function,
+										      rr)
+	# Complete the statement
+	statement += "FROM %s.%s %s ORDER BY %s" %(db['database'],
+				  		   db['table'],
+					  	   conditions,
+						   unique)
+	return(statement)
 
 def grab_collections_data(db, response, features, unique, label):
 	"""
@@ -120,8 +139,14 @@ def grab_collections_data(db, response, features, unique, label):
 				coerce_float=True, 
 				params=None)
 	# Incorporate RESHAPE datasets (function reuses 'conditions', 'unique' variables, and 'db' 
-	# wide_data = demand_daily_data()
 
+	demand_daily_data(db,
+			rows=[1,2,3], 
+			feature=response['variable'], 
+			function='lag', 
+			unique=unique.keys(), 
+			conditions=conditions)
+	
 
 
 
