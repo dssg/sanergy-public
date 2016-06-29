@@ -2,19 +2,6 @@
 import pandas as pd
 import numpy as np
 
-class COLNAMES(object):
-    #Column names
-    TOILETNAME = "ToiletName" #the name of the toilet / toilet identifier
-    DATE = "Collection_Date" # date / date identifier
-    FECES = "FecesContainer_percent" #How full the container will be
-    URINE = "UrineContainer_percent"
-    WASTE = {"feces": FECES, "urine": URINE} # Either feces or urine
-    FECES_COLLECT = "" #Should the toilet be collected?
-    URINE_COLLECT = ""
-    COLLECT = {"feces": FECES_COLLECT, "urine": URINE_COLLECT}
-
-
-
 class LossFunction(object):
     """
     A class to contain loss functions. Mainly used to take a Prediction object and new y data
