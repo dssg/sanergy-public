@@ -1,0 +1,20 @@
+#####################################################
+#          UChicago Data Science for Social Good:   #
+#              Optimizing Waste Collection          #
+#               from Portable Sanitation            #
+#####################################################
+
+
+############################
+# Database column names    #
+############################
+
+cols:
+    toiletname: "ToiletName" #the name of the toilet / toilet identifier
+    date: "Collection_Date" # date / date identifier
+    feces:"FecesContainer_percent" #How full the container will be
+    urine: "UrineContainer_percent"
+    #WASTE = {"feces": FECES, "urine": URINE} # Either feces or urine
+    feces_collect: "" #Should the toilet be collected?
+    urine_collect: ""
+    #COLLECT = {"feces": FECES_COLLECT, "urine": URINE_COLLECT}
