@@ -76,7 +76,7 @@ def demand_daily_data(db, rows=[], feature='', function='lag', unique=['ToiletID
 	unique = ','.join(['"%s"' %(uu) for uu in unique])
 
 	# Construct the sql statement using window functions (e.g., OVER and LAG/LEAVE)	
-	statement = 'SELECT "%s"' %(feature)
+	statement = 'SELECT %s' %(unique)
 	for rr in rows:
 		statement += ', %s("%s", %i, NULL) OVER(order by %s) as "%s_%s%i" ' %(function, 
 										      feature,
@@ -90,7 +90,13 @@ def demand_daily_data(db, rows=[], feature='', function='lag', unique=['ToiletID
 				  		   db['table'],
 					  	   conditions,
 						   unique)
-	return(statement)
+	# Execute the statement
+	daily_data = pd.read_sql(statement, 
+				con=db['connection'], 
+				coerce_float=True, 
+				params=None)
+	# Return the lagged/leave data
+	return(daily_data)
 
 def grab_collections_data(db, response, features, unique, label):
 	"""
@@ -138,18 +144,18 @@ def grab_collections_data(db, response, features, unique, label):
 				con=db['connection'], 
 				coerce_float=True, 
 				params=None)
-	# Incorporate RESHAPE datasets (function reuses 'conditions', 'unique' variables, and 'db' 
-
-	demand_daily_data(db,
+	# Incorporate DAILY features (function reuses 'conditions', 'unique' variables, and 'db' 
+	daily_data = demand_daily_data(db,
 			rows=[1,2,3], 
 			feature=response['variable'], 
 			function='lag', 
 			unique=unique.keys(), 
 			conditions=conditions)
-	
-
-
-
+	# Merge the DAILY features with DATASET
+	dataset = pd.merge(dataset,
+			   daily_data,
+			   how='inner',
+			   on=unique.keys())
 
 	# Return the response variable
 	if (bool(response['split'])==True):
@@ -167,7 +173,7 @@ def grab_collections_data(db, response, features, unique, label):
 		dataset['response'] = dataset[response['variable']]
 	# Divide the dataset into a LABELS and FEATURES dataframe so that they link by UNIQUE variables
 	y_labels = dataset[["response",response['variable']]+unique.keys()]
-	x_features = dataset[unique.keys()+features.keys()]
+	x_features = dataset.drop(["response",response['variable']]+unique.keys(), axis=1)
 	return(y_labels, x_features)
 
 # Experiments
