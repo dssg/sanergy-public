@@ -38,3 +38,18 @@ def compute_confusion(prediction, test_toilets, test_period):
     cm_urine = metrics.confusion_matrix(train_test_df.UrineContainer_percent > FULL_PERCENT, urine_perc_pred > FULL_PERCENT)
 
     return cm_feces, cm_urine
+
+
+def temporally_crossvalidate(M, data , w=1, Mu = 'mean'):
+    """
+    Given models M, data = [X_t,y_t] for t=1..T, a loss function L, and a prediction window w, do the following:
+    for m in M:
+        for t = 1..T-w:
+             train m on [X_tau, y_tau]_{tau=1..t}
+             use m to predict y_{tau + 1}...y_{tau+w}
+             evaluate the predictions using loss L, yielding the evaluated loss l_t
+             save l_t in a loss vector.
+        Then, evaluate {l_t} using an aggregation measure Mu (function)
+    Args
+    M (list(Model)) - the list of models to be trained and evaluated through cross
+    """
