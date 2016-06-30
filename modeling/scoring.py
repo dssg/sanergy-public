@@ -41,7 +41,7 @@ def compute_confusion(prediction, test_toilets, test_period):
     return cm_feces, cm_urine
 
 
-def temporally_crossvalidate(M, data , L, config,  w=1, mu = np.mean):
+def temporally_crossvalidate(M, features, labels , L, config,  w=1, mu = np.mean):
     """
     Given models M, data = [X_t,y_t] for t=1..T, a loss function L, and a prediction window w, do the following:
     for m in M:
@@ -53,22 +53,24 @@ def temporally_crossvalidate(M, data , L, config,  w=1, mu = np.mean):
         Then, evaluate {l_t} using an aggregation measure Mu (function)
     Args
     M (list(Model)) - the list of models to be trained and evaluated through crossvalidation. We require that models are hashable, hence can index a dict.
-    data - the dataframe comprising [X,y] per time periods
+    features - the dataframe X per time periods
+    labels - the dataframe y per time periods, containing the actual responses and indexed by toilets and times
     L (LossFunction) - to evaluate a single prediction. It should also comprise the metric (e.g., L2 loss on predicted feces... or L2 on predicted uringe... or L1 on predicted feces... or binary loss on "toilet overflows")
     config (dict) - from the YAML file
     w - the time window for prediction
     mu - a function (a probability measure) to weigh the loss vector components
     """
-    time_sequence = data[config['cols']['date']].unique().sort_values() # Get the
+    time_sequence = labels[config['cols']['date']].unique().sort_values() # Get the
     losses = {} #The model indexed vector #TODO: What data structure? Can index by an object?
     models = []
     for model in M:
         lt = []
         for t in time_sequence.loc[range(len(time_sequence)-w)]:
-            data_train = data.loc[data[config['cols']['date']] in time_sequence.loc[range(t)]]
-            data_test = data.loc[data[config['cols']['date']] in time_sequence.loc[range(t,t+m)]]
-            model.train(data_train)
-            lt[t] = L.evaluate(model, data_test)
+            features_train = features.loc[features[config['cols']['date']] in time_sequence.loc[range(t)]]
+            labels_train = labels.loc[labels[config['cols']['date']] in time_sequence.loc[range(t)]]
+            labes_test = labels.loc[labels[config['cols']['date']] in time_sequence.loc[range(t,t+m)]]
+            model.train(features_train, labels_train) #This will need a different interface based on what the model class/function passes.
+            lt[t] = L.evaluate(model, labels_test)
         losses[model] = mu(lt)
     #Get the best model and return it
     model_best = min(losses, key=losses.get)
