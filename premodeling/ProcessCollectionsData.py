@@ -91,7 +91,29 @@ collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),'Total_Waste_kg_day
 toilets = pd.read_sql('SELECT * FROM input."tblToilet"', conn, coerce_float=True, params=None)
 toilets = standardize_variable_names(toilets, RULES)
 
-# Load the toilet data to pandas
+# Load the weather data to pandas
+weather = pd.read_sql('SELECT * FROM input."weather"', conn, coerce_float=True, params=None)
+# Transform some of the variables
+weather['date']=pd.to_datetime(weather[['year','month','day']])
+weather['air_temp'] = weather['air_temp']/float(10) # units are in celsius and scaled by 10
+weather['precipitation_6hr'] = weather['liquid_precipitation_depth_dimension_six_hours'] # annoyingly long variable name
+
+weather = weather.loc[(weather['year']>=2010)] # focus the weather data on 2010 forward
+
+# Aggregate the data by date (year/month/day)
+byTIME = weather.groupby('date')
+# Construct descriptive statistics across the 24hr coverage per day
+aggTIME = byTIME[['air_temp',
+                  'dew_point_temp',
+                  'sea_level_pressure',
+                  'wind_speed_rate',
+                  'precipitation_6hr']].agg({'mean':np.mean,'min':np.min,'max':np.max,'sd':np.std})
+# Rename/flatten the columns
+aggTIME.columns = ['_'.join(col).strip() for col in aggTIME.columns.values]
+# Bring date back into the dataset (bing, bang, boom)
+weather = aggTIME.reset_index()
+
+# Load the schedule data to pandas
 schedule = pd.read_sql('SELECT * FROM input."FLT_Collection_Schedule__c"', conn, coerce_float=True, params=None)
 schedule = standardize_variable_names(schedule, RULES)
 
@@ -170,6 +192,22 @@ print(collect_toilets.loc[(collect_toilets['ToiletID'].isin(list(duplicate_ids))
 collect_toilets = collect_toilets[(collect_toilets['duplicated']==False)]
 print(collect_toilets.shape)
 
+collect_toilets = pd.merge(left=collect_toilets,
+			   right=weather,
+			   how="left",
+			   left_on=['Collection_Date'],
+			   right_on=['date'])
+
+print(collect_toilets.shape)
+collect_toilets['duplicated'] = collect_toilets.duplicated(subset=['Id'])
+print('merge collections and weather: %i' %(len(collect_toilets.loc[(collect_toilets['duplicated']==True)])))
+collect_toilets = collect_toilets.loc[(collect_toilets['duplicated']==False)]
+print(collect_toilets.shape)
+#duplicate_ids = set(collect_toilets.loc[(collect_toilets['duplicated']==True),'ToiletID'])
+#pprint.pprint(duplicate_ids)
+#print(collect_toilets.loc[(collect_toilets['ToiletID'].isin(list(duplicate_ids))),['ToiletID','Id','duplicated','sub-route_name','route_name','open?']])
+
+
 #collect_toilets = pd.merge(left=collect_toilets,
 #					right=schedule_wheelcart,
 #					how="left",
@@ -210,5 +248,6 @@ print(collect_toilets.loc[1,['UrineContainer','UrineContainer_percent']])
 conn.execute('DROP TABLE IF EXISTS premodeling."toiletcollection"')
 collect_toilets.to_sql(name='toiletcollection',
 			schema="premodeling",
-			con=engine)
+			con=engine,
+			chunksize=10000)
 print('end');
