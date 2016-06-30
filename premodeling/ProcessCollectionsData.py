@@ -96,7 +96,7 @@ weather = pd.read_sql('SELECT * FROM input."weather"', conn, coerce_float=True, 
 # Transform some of the variables
 weather['date']=pd.to_datetime(weather[['year','month','day']])
 weather['air_temp'] = weather['air_temp']/float(10) # units are in celsius and scaled by 10
-weather['percipitation_6hr'] = weather['liquid_precipitation_depth_dimension_six_hours'] # annoyingly long variable name
+weather['precipitation_6hr'] = weather['liquid_precipitation_depth_dimension_six_hours'] # annoyingly long variable name
 
 weather = weather.loc[(weather['year']>=2010)] # focus the weather data on 2010 forward
 
@@ -107,7 +107,7 @@ aggTIME = byTIME[['air_temp',
                   'dew_point_temp',
                   'sea_level_pressure',
                   'wind_speed_rate',
-                  'percipitation_6hr']].agg({'mean':np.mean,'min':np.min,'max':np.max,'sd':np.std})
+                  'precipitation_6hr']].agg({'mean':np.mean,'min':np.min,'max':np.max,'sd':np.std})
 # Rename/flatten the columns
 aggTIME.columns = ['_'.join(col).strip() for col in aggTIME.columns.values]
 # Bring date back into the dataset (bing, bang, boom)
