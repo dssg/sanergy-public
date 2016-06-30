@@ -67,8 +67,9 @@ def temporally_crossvalidate(M, features, labels , L, config,  w=1, mu = np.mean
         lt = []
         for t in time_sequence.loc[range(len(time_sequence)-w)]:
             features_train = features.loc[features[config['cols']['date']] in time_sequence.loc[range(t)]]
+            features_test = features.loc[features[config['cols']['date']] in time_sequence.loc[range(t, t+m)]]
             labels_train = labels.loc[labels[config['cols']['date']] in time_sequence.loc[range(t)]]
-            labes_test = labels.loc[labels[config['cols']['date']] in time_sequence.loc[range(t,t+m)]]
+            labels_test = labels.loc[labels[config['cols']['date']] in time_sequence.loc[range(t,t+m)]]
             model.train(features_train, labels_train) #This will need a different interface based on what the model class/function passes.
             lt[t] = L.evaluate(model, labels_test)
         losses[model] = mu(lt)
