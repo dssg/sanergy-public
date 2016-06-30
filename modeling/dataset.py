@@ -98,7 +98,7 @@ def demand_daily_data(db, rows=[], feature='', function='lag', unique=['ToiletID
 	# Return the lagged/leave data
 	return(daily_data)
 
-def grab_collections_data(db, response, features, unique, label):
+def grab_collections_data(db, response, features, unique, lagged):
 	"""
 	A function to return a postgres query as a Pandas data frame
 	Args:
@@ -115,8 +115,10 @@ def grab_collections_data(db, response, features, unique, label):
 					{"or":[('=',"school"),('=',"commerical")]}
 	  DICT[dict] UNIQUE	The unique variables for the dataset
 				(e.g., {'Collection_Date':{}}, {'ToiletID':{}}
-	  DICT LABEL		Apply a label to the RESPONSE variable
-
+	  DICT LAGGED		The variables to be lagged are keys, the direction, and
+				number of rows forward or back are values.
+				(e.g., {'Feces_kg_day':{'function':'lag',
+							'rows':[1,2]}}
 	Returns:
 	  DF Y_LABELS		Pandas dataframe for the response variables
 	  DF X_FEATURES		Pandas dataframe for the feature variables
@@ -144,19 +146,19 @@ def grab_collections_data(db, response, features, unique, label):
 				con=db['connection'], 
 				coerce_float=True, 
 				params=None)
-	# Incorporate DAILY features (function reuses 'conditions', 'unique' variables, and 'db' 
-	daily_data = demand_daily_data(db,
-			rows=[1,2,3], 
-			feature=response['variable'], 
-			function='lag', 
-			unique=unique.keys(), 
-			conditions=conditions)
-	# Merge the DAILY features with DATASET
-	dataset = pd.merge(dataset,
-			   daily_data,
-			   how='inner',
-			   on=unique.keys())
-
+	# Incorporate DAILY features (function reuses 'conditions', 'unique' variables, and 'db'
+	for ll in lagged.keys(): 
+		daily_data = demand_daily_data(db,
+				rows=lagged[ll]['rows'], 
+				feature=ll, 
+				function=lagged[ll]['function'], 
+				unique=unique.keys(), 
+				conditions=conditions)
+		# Merge the DAILY features with DATASET
+		dataset = pd.merge(dataset,
+				   daily_data,
+				   how='inner',
+				   on=unique.keys())
 	# Return the response variable
 	if (bool(response['split'])==True):
 		statement = ""
@@ -201,9 +203,12 @@ def test():
 				    'list':['4','7','8','5']}}
 	unique = {'ToiletID':{'list':['a08D000000i1KgnIAE']},
 		  'Collection_Date':{'and':[('>',"'2012-01-01'"),('<',"'2014-01-01'")]}}
-	label = False
+	lagged = {'Feces_kg_day':{'function':'lag',
+				  'rows':[1,2,3]},
+		  'FecesContainer_percent':{'function':'lag',
+					    'rows':[1,6,12]}}
 
-	y,x = grab_collections_data(db, response, features, unique, label)
+	y,x = grab_collections_data(db, response, features, unique, lagged)
 
 	print('\nThe LABELS (y) dataframe, includes both the RESPONSE variable and the original ("%s")' %(response['variable']))
 	pprint.pprint(y.keys())
