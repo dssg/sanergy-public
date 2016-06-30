@@ -143,6 +143,9 @@ schedule_truck.rename(columns={'"extra_container?"':'"extra_containers"','"open"
 schedule_wheelcart.append(schedule_truck)
 schedule_wheelcart.append(schedule_tuktuk)
 schedule_wheelcart = standardize_variable_names(schedule_wheelcart,RULES)
+schedule_wheelcart['flt-location'] = schedule_wheelcart['flt-location'].str.upper()
+schedule_wheelcart['flt_name'] = schedule_wheelcart['flt_name'].str.upper()
+
 print(schedule_wheelcart.shape)
 
 # Drop columns that are identical between the Collections and FLT Collections records
@@ -231,9 +234,10 @@ collect_toilets = collect_toilets.loc[(collect_toilets['Collection_Date'] > date
 print(collect_toilets.shape)
 
 # Update negative weights as zero (See notes from Rosemary meeting 6/21)
-collect_toilets.loc[(collect_toilets['Urine_kg_day'] < 0),['Urine_kg_day']]=None
-collect_toilets.loc[(collect_toilets['Feces_kg_day'] < 0),['Feces_kg_day']]=None
-collect_toilets.loc[(collect_toilets['Total_Waste_kg_day'] < 0),['Total_Waste_kg_day']]=None
+# Update zero weights as NONE as well (see notes from Lauren meeting 6/30)
+collect_toilets.loc[(collect_toilets['Urine_kg_day'] <= 0),['Urine_kg_day']]=None
+collect_toilets.loc[(collect_toilets['Feces_kg_day'] <= 0),['Feces_kg_day']]=None
+collect_toilets.loc[(collect_toilets['Total_Waste_kg_day'] <= 0),['Total_Waste_kg_day']]=None
 
 # Calculate the percentage of the container full (urine/feces)
 collect_toilets['waste_factor'] = 25.0 # Feces container size is 35 L
