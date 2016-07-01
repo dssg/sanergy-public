@@ -7,7 +7,7 @@ wget_unzip()
 
 extract_shapefiles_fromzip()
         DIRNAME=$(dirname $OUTPUT)
-        BASENAME=$(basename $OUTPUT | sed 's/.shp//')
+        BASENAME=$(basename $OUTPUT | sed 's/.shp//')ls /
         unzip -joDD $INPUT */$BASENAME.* -d $DIRNAME
 
 import_shapefile()
