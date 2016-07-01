@@ -75,6 +75,7 @@ print('connected to postgres')
 
 conn.execute("DROP TABLE IF EXISTS premodeling.toiletcollection")
 
+print('loading collections')
 # Load the collections data to a pandas dataframe
 collects = pd.read_sql('SELECT * FROM input."Collection_Data__c"', conn, coerce_float=True, params=None)
 collects = standardize_variable_names(collects, RULES)
@@ -83,22 +84,31 @@ collects = standardize_variable_names(collects, RULES)
 collects = collects.drop('Collection_Route',1)
 
 # Change outier toilets to none
-collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),'Urine_kg_day']=None
-collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),'Feces_kg_day']=None
-collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),'Total_Waste_kg_day']=None
+print(collects['Feces_kg_day'].describe())
+collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),['Urine_kg_day']]=None
+collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),['Feces_kg_day']]=None
+collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),['Total_Waste_kg_day']]=None
+
+# Change outier toilets to none
+collects.loc[(collects['Urine_kg_day']==0),['Urine_kg_day']]=None
+collects.loc[(collects['Feces_kg_day']==0),['Feces_kg_day']]=None
+collects.loc[(collects['Total_Waste_kg_day']==0),['Total_Waste_kg_day']]=None
+
 
 # Create a variable capturing the assumed days since last collection
 collects = collects.sort_values(by=['ToiletID','Collection_Date'])
 
 collects['Feces_Collected'] = 1
-collects.loc[(collects['Feces_kg_day']==None),'Feces_Collected'] = 0
-collects['Feces_Collected'].value_counts()
+collects.loc[((collects['Feces_kg_day']==None)|(collects['Feces_kg_day']==0)),['Feces_Collected']] = 0
+print(collects['Feces_Collected'].value_counts())
 
 collects['Urine_Collected'] = 1
-collects.loc[(collects['Urine_kg_day']==None),'Urine_Collected'] = 0
-collects['Urine_Collected'].value_counts()
+collects.loc[((collects['Urine_kg_day']==None)|(collects['Urine_kg_day']==0)),['Urine_Collected']] = 0
+print(collects['Urine_Collected'].value_counts())
 
 byGROUP = collects.groupby('ToiletID')
+
+print('applying days since variable')
 
 def apply_function(x):
     count_feces = 0
