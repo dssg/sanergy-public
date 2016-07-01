@@ -49,6 +49,9 @@ data/input/school_by_route.csv <- data/input/Logistics_schedule.xlsx
 	in2csv --sheet "SF_check" $INPUT | tail -n +2 > $OUTPUT
 psql/input/Collection_Schedule_School <- input/CollectionSchedule_input.sql, data/input/school_by_route.csv [method:psql]
 
+;;; Toilet Coordinates ;;;
+psql/input/toilet_coordinates <- input/ToiletCoords_input.sql, data/input/ToiletCoords.csv [method:psql]
+
 ;;; WEATHER ;;;
 data/input/weather/weather_download_jkia <- input/weather/weather_download.sh
         DIRNAME=$(dirname $OUTPUT)
