@@ -87,6 +87,15 @@ collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),'Urine_kg_day']=None
 collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),'Feces_kg_day']=None
 collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),'Total_Waste_kg_day']=None
 
+# Create a variable capturing the assumed days since last collection
+
+
+
+
+
+
+
+
 # Load the toilet data to pandas
 toilets = pd.read_sql('SELECT * FROM input."tblToilet"', conn, coerce_float=True, params=None)
 toilets = standardize_variable_names(toilets, RULES)
