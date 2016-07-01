@@ -8,6 +8,7 @@ drake.log
 
 # ignore database info
 database_profile
+default_profile*
 
 # Ignore nasty R files
 *.Rout
