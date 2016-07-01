@@ -88,7 +88,44 @@ collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),'Feces_kg_day']=None
 collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),'Total_Waste_kg_day']=None
 
 # Create a variable capturing the assumed days since last collection
+collects = collects.sort_values(by=['ToiletID','Collection_Date'])
 
+collects['Feces_Collected'] = 1
+collects.loc[(collects['Feces_kg_day']==None),'Feces_Collected'] = 0
+collects['Feces_Collected'].value_counts()
+
+collects['Urine_Collected'] = 1
+collects.loc[(collects['Urine_kg_day']==None),'Urine_Collected'] = 0
+collects['Urine_Collected'].value_counts()
+
+byGROUP = collects.groupby('ToiletID')
+
+def apply_function(x):
+    count_feces = 0
+    count_urine = 0
+    x['Feces_days_since'] = 0
+    x['Urine_days_since'] = 0
+    for ii in x['Feces_Collected'].keys():
+        count_feces+=1
+        if (x['Feces_Collected'][ii] == 1):
+            x['Feces_days_since'][ii] = 0
+            count_feces = 0
+        else:
+            x['Feces_days_since'][ii] = count_feces
+        count_urine+=1
+        if (x['Urine_Collected'][ii] == 1):
+            x['Urine_days_since'][ii] = 0
+            count_urine = 0
+        else:
+            x['Urine_days_since'][ii] = count_urine
+
+    #print(x['days_since'].describe())
+    return(x)
+
+byGROUP = byGROUP.apply(apply_function)
+collects = byGROUP.reset_index()
+print(collects['Feces_days_since'].describe())
+print(collects['Urine_days_since'].describe())
 
 
 
