@@ -83,18 +83,6 @@ collects = standardize_variable_names(collects, RULES)
 # Drop the route variable from the collections data
 collects = collects.drop('Collection_Route',1)
 
-# Change outier toilets to none
-print(collects['Feces_kg_day'].describe())
-collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),['Urine_kg_day']]=None
-collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),['Feces_kg_day']]=None
-collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),['Total_Waste_kg_day']]=None
-
-# Change outier toilets to none
-collects.loc[(collects['Urine_kg_day']==0),['Urine_kg_day']]=None
-collects.loc[(collects['Feces_kg_day']==0),['Feces_kg_day']]=None
-collects.loc[(collects['Total_Waste_kg_day']==0),['Total_Waste_kg_day']]=None
-
-
 # Create a variable capturing the assumed days since last collection
 collects = collects.sort_values(by=['ToiletID','Collection_Date'])
 
@@ -105,6 +93,17 @@ print(collects['Feces_Collected'].value_counts())
 collects['Urine_Collected'] = 1
 collects.loc[((collects['Urine_kg_day']==None)|(collects['Urine_kg_day']==0)),['Urine_Collected']] = 0
 print(collects['Urine_Collected'].value_counts())
+
+# Change outier toilets to none
+print(collects['Feces_kg_day'].describe())
+collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),['Urine_kg_day']]=None
+collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),['Feces_kg_day']]=None
+collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),['Total_Waste_kg_day']]=None
+
+# Change outier toilets to none
+collects.loc[(collects['Urine_kg_day']==0),['Urine_kg_day']]=None
+collects.loc[(collects['Feces_kg_day']==0),['Feces_kg_day']]=None
+collects.loc[(collects['Total_Waste_kg_day']==0),['Total_Waste_kg_day']]=None
 
 byGROUP = collects.groupby('ToiletID')
 
