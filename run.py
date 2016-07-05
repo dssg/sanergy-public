@@ -27,6 +27,10 @@ def main(config_file_name):
     except:
         log.exception("Failed to get experiment configuration file!")
 
+  # Capture all of the results from all experiments
+  storing_results_from_experiments = [{}]
+    # Pushed to postres regularly, rather than stored in memory
+
   # 1. Generate all experiments [Jan]
   experiments = generate_experiments(config)
   """
@@ -41,22 +45,29 @@ def main(config_file_name):
   
     # Brian will work on the following
     # 2. Create the labels / features data set in Postgres
-    grab_from_dataset(config) #this creates df features and labels in the postgres
+    grab_from_dataset(experiment.config) #this creates df features and labels in the postgres
     
     # 3. The function splits should take in the config file, so that we can train every day / seven days / month, etc.
-    [folds]=splits(config) # this will be a list of date ranges for train and test. Let's imagine that train and test are sets of pairs (start/end date), we pass that list of tuples of models.py and train each of the models on the list tuples.
+    [folds]=splits(experiment.config) # this will be a list of date ranges for train and test. Let's imagine that train and test are sets of pairs (start/end date), we pass that list of tuples of models.py and train each of the models on the list tuples.
     """
         [{"train":(start, end),
           "test":(start, end)}, ... Fold 2 ...]  
     """
     # 4. Folds are passed to models functions
-    run_models_on_folds([folds], config):
+    run_models_on_folds([folds], experiment.config):
       storing_results_from_modeling = [{}]
       for fold in folds
         DF{labels: train, features: train}, DF{labels: test, features: test} = grab_from_features_and_labels(fold)
-      
-      
-  
+        
+        # 5. Run the models
+        models_result = run ( labels.train, features.train, features.test, experiment.model, experiment.parameters)
+        
+        # 6. From the loss function
+        evaluate (models_result, labels.test)
+
+        """
+          We have to save the model results and the evaluation in postgres
+        """
   
   
 
