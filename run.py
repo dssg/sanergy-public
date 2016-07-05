@@ -31,7 +31,7 @@ def main(config_file_name):
   storing_results_from_experiments = [{}]
     # Pushed to postres regularly, rather than stored in memory
 
-  # 1. Generate all experiments [Jan]
+  # 1. Generate all experiments [TODO: Jan]
   experiments = generate_experiments(config)
   """
       loop through the config variables to generate a list of experiments to run
@@ -42,43 +42,49 @@ def main(config_file_name):
 
   # Loop through each of the experiments
   for experiment in experiments:
-  
-    # Brian will work on the following
+
+    # TODO: Brian  
     # 2. Create the labels / features data set in Postgres
     grab_from_dataset(experiment.config) #this creates df features and labels in the postgres
     
+    # TODO: Brian  
     # 3. The function splits should take in the config file, so that we can train every day / seven days / month, etc.
     [folds]=splits(experiment.config) # this will be a list of date ranges for train and test. Let's imagine that train and test are sets of pairs (start/end date), we pass that list of tuples of models.py and train each of the models on the list tuples.
     """
         [{"train":(start, end),
           "test":(start, end)}, ... Fold 2 ...]  
     """
+    # TODO: Ivana  
     # 4. Folds are passed to models functions
     run_models_on_folds([folds], experiment.config):
       storing_results_from_modeling = [{}]
       for fold in folds
         DF{labels: train, features: train}, DF{labels: test, features: test} = grab_from_features_and_labels(fold)
         
+        # TODO: Ivana  
         # 5. Run the models
         models_result = run ( labels.train, features.train, features.test, experiment.model, experiment.parameters)
         
+        # TODO: All  
         # 6. From the loss function
         evaluate (models_result, labels.test)
 
         """
+          TODO: All  
           7. We have to save the model results and the evaluation in postgres
              Experiment x Fold, long file
         """
-        
         #return([...list of loss...])
             
 # 8. Evaluate the losses
 compare_models_by_loss_functions()
+  # TODO: All 
   for experiment in experiments:
     # evaluate ([...list of loss...])
   return(...best model...)
   
 # 9. Rerun best model on whole dataset
 run_best_model_on_all_data(experiment_for_best_model, test)
+  # Write the results to postgres
 
 
