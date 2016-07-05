@@ -87,23 +87,23 @@ collects = collects.drop('Collection_Route',1)
 collects = collects.sort_values(by=['ToiletID','Collection_Date'])
 
 collects['Feces_Collected'] = 1
-collects.loc[((collects['Feces_kg_day']==None)|(collects['Feces_kg_day']==0)),['Feces_Collected']] = 0
+collects.loc[((collects['Feces_kg_day']==None)|(collects['Feces_kg_day']<=0)),['Feces_Collected']] = 0
 print(collects['Feces_Collected'].value_counts())
 
 collects['Urine_Collected'] = 1
-collects.loc[((collects['Urine_kg_day']==None)|(collects['Urine_kg_day']==0)),['Urine_Collected']] = 0
+collects.loc[((collects['Urine_kg_day']==None)|(collects['Urine_kg_day']<=0)),['Urine_Collected']] = 0
 print(collects['Urine_Collected'].value_counts())
 
 # Change outier toilets to none
-print(collects['Feces_kg_day'].describe())
 collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),['Urine_kg_day']]=None
 collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),['Feces_kg_day']]=None
 collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),['Total_Waste_kg_day']]=None
 
 # Change outier toilets to none
-collects.loc[(collects['Urine_kg_day']==0),['Urine_kg_day']]=None
-collects.loc[(collects['Feces_kg_day']==0),['Feces_kg_day']]=None
-collects.loc[(collects['Total_Waste_kg_day']==0),['Total_Waste_kg_day']]=None
+collects.loc[(collects['Urine_kg_day']<=0),['Urine_kg_day']]=None
+collects.loc[(collects['Feces_kg_day']<=0),['Feces_kg_day']]=None
+collects.loc[(collects['Total_Waste_kg_day']<=0),['Total_Waste_kg_day']]=None
+print(collects['Feces_kg_day'].describe())
 
 byGROUP = collects.groupby('ToiletID')
 
@@ -135,12 +135,6 @@ byGROUP = byGROUP.apply(apply_function)
 collects = byGROUP.reset_index()
 print(collects['Feces_days_since'].describe())
 print(collects['Urine_days_since'].describe())
-
-
-
-
-
-
 
 # Load the toilet data to pandas
 toilets = pd.read_sql('SELECT * FROM input."tblToilet"', conn, coerce_float=True, params=None)
