@@ -59,7 +59,7 @@ def temporal_split(start_date, end_date, train_on, test_on, day_of_week=None):
 	train_window = timedelta(days=train_on['days'], weeks=train_on['weeks'])
 	test_window = timedelta(days=test_on['days'], weeks=test_on['weeks'])
 	# Compute the full window size
-	window_size = train_window + timedelta(days=1) + test_window
+	window_size = train_window + test_window
 	# Compute the full date range (in days)
 	start_date = datetime.strptime(start_date,'%Y-%m-%d')
 	end_date = datetime.strptime(end_date,'%Y-%m-%d')
@@ -71,27 +71,26 @@ def temporal_split(start_date, end_date, train_on, test_on, day_of_week=None):
 		day = start_date+timedelta(days=day)
 		fold = {}
 		if (bool(day_of_week)==True):
-			if (day_of_week == day.weekday()):
+			if (day.weekday() == day_of_week):
 				fold = {'train_start':day,
 					'train_end':day + train_window,
-					'test_start':(day+train_window) + timedelta(days=1),
-					'test_end':(day+train_window) + timedelta(days=1) + test_window,
+					'test_start':(day+train_window),
+					'test_end': (day+train_window) + test_window,
 					'window_start': day,
-					'window_end': day + window_size}	
-				
-				print(fold['test_start'].weekday())
+					'window_end': day + window_size}
+			#	print((fold['train_start'].weekday(), fold['test_start'].weekday()))
 		else:
 			fold = {'train_start':day,
-				'train_end':day + train_window - timedelta(days=1),
-				'test_start':(day+train_window)+ timedelta(days=1),
-				'test_end': (day+train_window) - timedelta(days=1) + test_window,				
+				'train_end':day + train_window,
+				'test_start':(day+train_window),
+				'test_end': (day+train_window) + test_window,
 				'window_start': day,
 				'window_end': day + window_size}
 		if bool(fold)==True:
-			if (end_date > fold['window_end']):
+			# Do not extend past the dataset
+			if (end_date >= fold['window_end']):
 				list_of_dates.append(fold)
-		
-	pprint.pprint(list_of_dates)
+	return(list_of_dates)
 
 
 def write_statement(vardict):
@@ -281,9 +280,10 @@ def test():
 	pprint.pprint(x.keys())
 	print(x.head())
 
-	temporal_split(start_date='2014-01-01', 
+	splits=temporal_split(start_date='2014-01-01', 
 			end_date='2014-05-05', 
-			train_on={'days':0, 'weeks':4}, 
+			train_on={'days':0, 'weeks':3}, 
 			test_on={'days':0, 'weeks':1},
-			day_of_week=6)	
+			day_of_week=6)
+	pprint.pprint(splits)	
 test()
