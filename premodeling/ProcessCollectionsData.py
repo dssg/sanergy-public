@@ -4,8 +4,6 @@ A script that performs the following tasks:
 2. Rename primary variables (e.g., Toilet__c to ToiletId)
 3. Recode primary variables (e.g., OpenTime to numeric)
 4. Remove potential erroneous observations (e.g., Collection dates in 1900)
-5. Produce summary statistics based on primary variables, export results
-6. Return the cleaned Collections data to a research table in postgres
 """
 
 # Connect to the database
@@ -75,6 +73,7 @@ print('connected to postgres')
 
 conn.execute("DROP TABLE IF EXISTS premodeling.toiletcollection")
 
+print('loading collections')
 # Load the collections data to a pandas dataframe
 collects = pd.read_sql('SELECT * FROM input."Collection_Data__c"', conn, coerce_float=True, params=None)
 collects = standardize_variable_names(collects, RULES)
@@ -82,10 +81,69 @@ collects = standardize_variable_names(collects, RULES)
 # Drop the route variable from the collections data
 collects = collects.drop('Collection_Route',1)
 
+# Create a variable capturing the assumed days since last collection
+collects = collects.sort_values(by=['ToiletID','Collection_Date'])
+
+collects['Feces_Collected'] = 1
+collects.loc[((collects['Feces_kg_day']==None)|(collects['Feces_kg_day']<=0)),['Feces_Collected']] = 0
+print(collects['Feces_Collected'].value_counts())
+
+collects['Urine_Collected'] = 1
+collects.loc[((collects['Urine_kg_day']==None)|(collects['Urine_kg_day']<=0)),['Urine_Collected']] = 0
+print(collects['Urine_Collected'].value_counts())
+
 # Change outier toilets to none
-collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),'Urine_kg_day']=None
-collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),'Feces_kg_day']=None
-collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),'Total_Waste_kg_day']=None
+collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),['Urine_kg_day']]=None
+collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),['Feces_kg_day']]=None
+collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),['Total_Waste_kg_day']]=None
+
+# Change outier toilets to none
+collects.loc[(collects['Urine_kg_day']<=0),['Urine_kg_day']]=None
+collects.loc[(collects['Feces_kg_day']<=0),['Feces_kg_day']]=None
+collects.loc[(collects['Total_Waste_kg_day']<=0),['Total_Waste_kg_day']]=None
+print(collects['Feces_kg_day'].describe())
+
+byGROUP = collects.groupby('ToiletID')
+
+print('applying days since variable')
+
+def countDaysSinceWeight(x):
+    """
+    A function to count the number of days since the last
+    recorded weight, either in Feces or in Urine, from the
+    collections data.
+    Args:
+	DF X:	The Collections Data, reindexed with a groupby
+	on the ToiletID variable.
+    Return:
+	DF X:	Returns the Collections Data, with the days_since
+	variable for each waste type.
+    """
+    count_feces = 0
+    count_urine = 0
+    x['Feces_days_since'] = 0
+    x['Urine_days_since'] = 0
+    for ii in x['Feces_Collected'].keys():
+        count_feces+=1
+        if (x['Feces_Collected'][ii] == 1):
+            x['Feces_days_since'][ii] = 0
+            count_feces = 0
+        else:
+            x['Feces_days_since'][ii] = count_feces
+        count_urine+=1
+        if (x['Urine_Collected'][ii] == 1):
+            x['Urine_days_since'][ii] = 0
+            count_urine = 0
+        else:
+            x['Urine_days_since'][ii] = count_urine
+
+    #print(x['days_since'].describe())
+    return(x)
+
+byGROUP = byGROUP.apply(countDaysSinceWeight)
+collects = byGROUP.reset_index()
+print(collects['Feces_days_since'].describe())
+print(collects['Urine_days_since'].describe())
 
 # Load the toilet data to pandas
 toilets = pd.read_sql('SELECT * FROM input."tblToilet"', conn, coerce_float=True, params=None)
@@ -143,6 +201,9 @@ schedule_truck.rename(columns={'"extra_container?"':'"extra_containers"','"open"
 schedule_wheelcart.append(schedule_truck)
 schedule_wheelcart.append(schedule_tuktuk)
 schedule_wheelcart = standardize_variable_names(schedule_wheelcart,RULES)
+schedule_wheelcart['flt-location'] = schedule_wheelcart['flt-location'].str.upper()
+schedule_wheelcart['flt_name'] = schedule_wheelcart['flt_name'].str.upper()
+
 print(schedule_wheelcart.shape)
 
 # Drop columns that are identical between the Collections and FLT Collections records
@@ -231,9 +292,10 @@ collect_toilets = collect_toilets.loc[(collect_toilets['Collection_Date'] > date
 print(collect_toilets.shape)
 
 # Update negative weights as zero (See notes from Rosemary meeting 6/21)
-collect_toilets.loc[(collect_toilets['Urine_kg_day'] < 0),['Urine_kg_day']]=None
-collect_toilets.loc[(collect_toilets['Feces_kg_day'] < 0),['Feces_kg_day']]=None
-collect_toilets.loc[(collect_toilets['Total_Waste_kg_day'] < 0),['Total_Waste_kg_day']]=None
+# Update zero weights as NONE as well (see notes from Lauren meeting 6/30)
+collect_toilets.loc[(collect_toilets['Urine_kg_day'] <= 0),['Urine_kg_day']]=None
+collect_toilets.loc[(collect_toilets['Feces_kg_day'] <= 0),['Feces_kg_day']]=None
+collect_toilets.loc[(collect_toilets['Total_Waste_kg_day'] <= 0),['Total_Waste_kg_day']]=None
 
 # Calculate the percentage of the container full (urine/feces)
 collect_toilets['waste_factor'] = 25.0 # Feces container size is 35 L
