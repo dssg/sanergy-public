@@ -79,6 +79,6 @@ compare_models_by_loss_functions()
   return(...best model...)
   
 # 9. Rerun best model on whole dataset
-run_best_model_on_all_data(experiment_for_best_model, test, features)
+run_best_model_on_all_data(experiment_for_best_model, test)
 
 
