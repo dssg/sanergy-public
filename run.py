@@ -26,10 +26,15 @@ def main(config_file_name):
         log.info("Loaded experiment file")
     except:
         log.exception("Failed to get experiment configuration file!")
-  # Brian will work on the following 
+  # Brian will work on the following
+  # 1. Create the labels / features data set in Postgres
   grab_from_dataset(config) #this creates df features and labels in the postgres
-  [train,test]=splits(features, labels) # this 
-  
+  # 2. The function splits should take in the config file, so that we can train every day / seven days / month, etc.
+  [folds]=splits(config) # this will be a list of date ranges for train and test. Let's imagine that train and test are sets of pairs (start/end date), we pass that list of tuples of models.py and train each of the models on the list tuples.
+"""
+    [{"train":(start, end),
+      "test":(start, end)}, ... Fold 2 ...]  
+"""
   
   
   
