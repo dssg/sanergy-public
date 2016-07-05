@@ -4,8 +4,6 @@ A script that performs the following tasks:
 2. Rename primary variables (e.g., Toilet__c to ToiletId)
 3. Recode primary variables (e.g., OpenTime to numeric)
 4. Remove potential erroneous observations (e.g., Collection dates in 1900)
-5. Produce summary statistics based on primary variables, export results
-6. Return the cleaned Collections data to a research table in postgres
 """
 
 # Connect to the database
@@ -109,7 +107,18 @@ byGROUP = collects.groupby('ToiletID')
 
 print('applying days since variable')
 
-def apply_function(x):
+def countDaysSinceWeight(x):
+    """
+    A function to count the number of days since the last
+    recorded weight, either in Feces or in Urine, from the
+    collections data.
+    Args:
+	DF X:	The Collections Data, reindexed with a groupby
+	on the ToiletID variable.
+    Return:
+	DF X:	Returns the Collections Data, with the days_since
+	variable for each waste type.
+    """
     count_feces = 0
     count_urine = 0
     x['Feces_days_since'] = 0
@@ -131,7 +140,7 @@ def apply_function(x):
     #print(x['days_since'].describe())
     return(x)
 
-byGROUP = byGROUP.apply(apply_function)
+byGROUP = byGROUP.apply(countDaysSinceWeight)
 collects = byGROUP.reset_index()
 print(collects['Feces_days_since'].describe())
 print(collects['Urine_days_since'].describe())
