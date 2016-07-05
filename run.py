@@ -66,8 +66,19 @@ def main(config_file_name):
         evaluate (models_result, labels.test)
 
         """
-          We have to save the model results and the evaluation in postgres
+          7. We have to save the model results and the evaluation in postgres
+             Experiment x Fold, long file
         """
+        
+        #return([...list of loss...])
+            
+# 8. Evaluate the losses
+compare_models_by_loss_functions()
+  for experiment in experiments:
+    # evaluate ([...list of loss...])
+  return(...best model...)
   
-  
+# 9. Rerun best model on whole dataset
+run_best_model_on_all_data(experiment_for_best_model, test, features)
+
 
