@@ -159,6 +159,10 @@ def grab_collections_data(db, response, features, unique, lagged):
 				   daily_data,
 				   how='inner',
 				   on=unique.keys())
+		dataset['duplicated']=dataset[unique.keys()].duplicated()
+		print(dataset['duplicated'].value_counts())
+		dataset = dataset.loc[dataset['duplicated']==False]
+		dataset = dataset.drop(["duplicated"], axis=1)
 	# Return the response variable
 	if (bool(response['split'])==True):
 		statement = ""
@@ -174,8 +178,8 @@ def grab_collections_data(db, response, features, unique, lagged):
 	else:
 		dataset['response'] = dataset[response['variable']]
 	# Divide the dataset into a LABELS and FEATURES dataframe so that they link by UNIQUE variables
+	x_features = dataset.drop(['response',response['variable']], axis=1)
 	y_labels = dataset[["response",response['variable']]+unique.keys()]
-	x_features = dataset.drop(["response",response['variable']]+unique.keys(), axis=1)
 	# Insert tables into database
 	db['connection'].execute('DROP TABLE IF EXISTS modeling."labels"')
 	y_labels.to_sql(name='labels',
