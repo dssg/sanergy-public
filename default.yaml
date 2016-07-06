@@ -50,3 +50,4 @@ parameters:
 implementation:
   loss: ["L2","L1"]
   prediction_horizon: [1] #How many days
+  aggregation_measure: "mean" #A measure to use to aggregate the losses across different folds. Since different experiments may have different numbers of folds, should be a probability measure.
