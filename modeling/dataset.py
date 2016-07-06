@@ -46,7 +46,7 @@ def temporal_split(start_date, end_date, train_on, test_on, day_of_week=None, fl
 	   NUM DAY_OF_WEEK	Corresponds to the Day of Week value (Monday to Sunday, 0-6),
 				 that each fold should start from.
 	   BOOL FLOATING_WINDOW	Should the splits reflect a floating window or training on 
-				 all data to the fake today, testing on the periods after?
+				 all data to the fake today - test window, testing on the test window?
 	Returns
 	   LIST[dict]	List of test and train time ranges per fold
 	"""
