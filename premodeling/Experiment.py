@@ -18,6 +18,16 @@ class Experiment(object):
         self.parameters = parameters
 
 
+    def __hash__(self):
+        """
+        Adding the hashing and equals functions, so that we can use the Experiment objects as dictionary keys.
+        """
+        return hash((self.model, hash(frozenset(self.parameters.items())) ) )
+
+    def __eq__(self, other):
+        models_are_the_same = (self.model == other.model)
+        items_are_the_same =  (len(set(self.parameters.items()) ^ set(other.parameters.items())) == 0) #Take the symmetric difference of the sets of two items and check that the symmetric difference is empty.
+        return (   models_are_the_same & items_are_the_same )
 
 def generate_experiments(yaml_config):
     """
