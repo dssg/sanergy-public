@@ -77,7 +77,6 @@ def demand_daily_data(db, rows=[], feature='', function='lag', unique=['ToiletID
 
 	# Construct the sql statement using window functions (e.g., OVER and LAG/LEAVE)	
 	statement = 'SELECT %s' %(unique)
-	statement += ',"%s"' %(feature)
 	for rr in rows:
 		statement += ', %s("%s", %i, NULL) OVER(order by %s) as "%s_%s%i" ' %(function, 
 										      feature,
@@ -179,6 +178,7 @@ def grab_collections_data(db, response, features, unique, lagged):
 	else:
 		dataset['response'] = dataset[response['variable']]
 	# Divide the dataset into a LABELS and FEATURES dataframe so that they link by UNIQUE variables
+	dataset = dataset.sort_values(by=unique.keys())
 	x_features = dataset.drop(['response',response['variable']], axis=1)
 	y_labels = dataset[["response",response['variable']]+unique.keys()]
 	# Insert tables into database
