@@ -15,7 +15,7 @@ import pandas as pd
 
 # Helper functions
 import re, pprint
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 
 # For logging errors
 import logging
@@ -30,6 +30,69 @@ try:
 	print('connected to postgres')
 except:
 	log.warning('Failure to connect to postgres')
+
+def temporal_split(start_date, end_date, train_on, test_on, day_of_week=None, floating_window=False):
+	"""
+	A function to produce a list of temporal folds for modeling.
+	Args
+	   DATE START_DATE	The start date for the experiment
+	   DATE END_DATE	... end date for the experiment
+	   DICT TRAIN_ON	Dictionary specifying the amount of time to train on per fold.
+				 The function uses the date.timedelta function, here the keys
+				 will correspond to units of time, and the value will be the
+				 delta. (e.g., {'microseconds':500, 'days':5})
+	   DICT TEST_ON		Dictionary specifying the amount of time to test on per fold.
+				 Identical to the train_on variable.
+	   NUM DAY_OF_WEEK	Corresponds to the Day of Week value (Monday to Sunday, 0-6),
+				 that each fold should start from.
+	   BOOL FLOATING_WINDOW	Should the splits reflect a floating window or training on 
+				 all data to the fake today - test window, testing on the test window?
+	Returns
+	   LIST[dict]	List of test and train time ranges per fold
+	"""
+
+	# Check to see if the days and weeks values are set
+	for unit in ['days','weeks']:
+		if train_on.has_key(unit)==False:
+			train_on[unit] = 0
+		if test_on.has_key(unit)==False:
+			test_on[unit] = 0
+	# Compute the time delta for the training and testing windows
+	train_window = timedelta(days=train_on['days'], weeks=train_on['weeks'])
+	test_window = timedelta(days=test_on['days'], weeks=test_on['weeks'])
+	# Compute the full window size
+	window_size = train_window + test_window
+	# Compute the full date range (in days)
+	start_date = datetime.strptime(start_date,'%Y-%m-%d')
+	end_date = datetime.strptime(end_date,'%Y-%m-%d')
+	date_range = end_date - start_date
+	
+	list_of_dates = []
+	for day in range(date_range.days + 1):
+		day = start_date+timedelta(days=day)
+		fold = {'train_start':day,
+			'train_end':day + train_window,
+			'test_start':(day+train_window),		
+			'test_end': (day+train_window) + test_window,
+			'window_start': day,
+			'window_end': day + window_size}
+		# Adjust the training window
+		if floating_window==False:
+			fold['window_start'] = start_date
+			fold['train_start'] = start_date
+		# Test whether the day is the right day
+		if bool(day_of_week):
+			if (day.weekday() != day_of_week):
+				fold = {}
+		if bool(fold):
+			# Do not extend past the dataset
+			if (end_date >= fold['window_end']):
+				list_of_dates.append(fold)
+	print('Total %i folds from %s to %s' %(len(list_of_dates),
+						start_date.strftime('%Y-%m-%d'),
+						end_date.strftime('%Y-%m-%d')))
+	return(list_of_dates)
+
 
 def write_statement(vardict):
 	"""
@@ -217,3 +280,11 @@ def test():
 	print('\nThe FEATURES (x) dataframe includes %i variables, %i rows of data (unique identifiers: %s)' %(len(x.keys()), len(x), ','.join(unique.keys()) ))
 	pprint.pprint(x.keys())
 	print(x.head())
+
+	splits=temporal_split(start_date='2014-01-01', 
+			end_date='2014-05-05', 
+			train_on={'days':0, 'weeks':5}, 
+			test_on={'days':0, 'weeks':1},
+			day_of_week=6,
+			floating_window=False)
+	pprint.pprint(splits)
