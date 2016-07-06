@@ -16,8 +16,25 @@ class LossFunction(object):
         self.type = type
         self.config = config
 
+    def evaluate(self, yhat, y):
+        """
+        Given predicted yhat, evaluate it against observed y, using the loss function.
+
+        Args:
+            yhat, y (array(float)): The predicted, respectively observed values.
+
+        Returns:
+            loos: Evaluated loss as a float.
+        """
+        if self.type == "L2":
+            loss = (1/len(yhat))*np.linalg.norm(yhat-y, ord=2)
+        elif self.type == "L1":
+            loss = (1/len(yhat))*np.linalg.norm(yhat-y, ord=1)
+
+
     def evaluate_waste_prediction(self, trained_model, new_data, type_waste="feces"):
         """
+        !!! Probably invalid currently. We don't currently have the Model.predict() function.
         Evaluate the prediction against the loss function on new data. Apply the function iteratively for purposes such as crossvalidation.
 
         Args:
