@@ -280,5 +280,4 @@ def test():
 			train_on={'days':0, 'weeks':5}, 
 			test_on={'days':0, 'weeks':1},
 			day_of_week=6)
-	pprint.pprint(splits)	
-test()
+	pprint.pprint(splits)
