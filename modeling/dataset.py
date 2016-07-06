@@ -77,6 +77,7 @@ def demand_daily_data(db, rows=[], feature='', function='lag', unique=['ToiletID
 
 	# Construct the sql statement using window functions (e.g., OVER and LAG/LEAVE)	
 	statement = 'SELECT %s' %(unique)
+	statement += ',%s' %(feature)
 	for rr in rows:
 		statement += ', %s("%s", %i, NULL) OVER(order by %s) as "%s_%s%i" ' %(function, 
 										      feature,
@@ -126,7 +127,7 @@ def grab_collections_data(db, response, features, unique, lagged):
 	# Create the list of all variables requested from the database
 	list_of_variables = [response['variable']]+features.keys()+unique.keys()
 	list_of_variables = ['"'+lv+'"' for lv in list_of_variables]
-	log.info('Requestion variable(s): %s' %(','.join(list_of_variables)))
+	log.info('Request variable(s): %s' %(','.join(list_of_variables)))
 
 	# Determine the conditions statement for the data request
 	conditions = []
