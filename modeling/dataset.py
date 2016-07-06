@@ -64,32 +64,27 @@ def temporal_split(start_date, end_date, train_on, test_on, day_of_week=None):
 	start_date = datetime.strptime(start_date,'%Y-%m-%d')
 	end_date = datetime.strptime(end_date,'%Y-%m-%d')
 	date_range = end_date - start_date
-	print(date_range)
 	
 	list_of_dates = []
 	for day in range(date_range.days + 1):
 		day = start_date+timedelta(days=day)
-		fold = {}
-		if (bool(day_of_week)==True):
-			if (day.weekday() == day_of_week):
-				fold = {'train_start':day,
-					'train_end':day + train_window,
-					'test_start':(day+train_window),
-					'test_end': (day+train_window) + test_window,
-					'window_start': day,
-					'window_end': day + window_size}
-			#	print((fold['train_start'].weekday(), fold['test_start'].weekday()))
-		else:
-			fold = {'train_start':day,
-				'train_end':day + train_window,
-				'test_start':(day+train_window),
-				'test_end': (day+train_window) + test_window,
-				'window_start': day,
-				'window_end': day + window_size}
-		if bool(fold)==True:
+		fold = {'train_start':day,
+			'train_end':day + train_window,
+			'test_start':(day+train_window),		
+			'test_end': (day+train_window) + test_window,
+			'window_start': day,
+			'window_end': day + window_size}
+		# Test whether the day is the right day
+		if bool(day_of_week):
+			if (day.weekday() != day_of_week):
+				fold = {}
+		if bool(fold):
 			# Do not extend past the dataset
 			if (end_date >= fold['window_end']):
 				list_of_dates.append(fold)
+	print('Total %i folds from %s to %s' %(len(list_of_dates),
+						start_date.strftime('%Y-%m-%d'),
+						end_date.strftime('%Y-%m-%d')))
 	return(list_of_dates)
 
 
@@ -282,7 +277,7 @@ def test():
 
 	splits=temporal_split(start_date='2014-01-01', 
 			end_date='2014-05-05', 
-			train_on={'days':0, 'weeks':3}, 
+			train_on={'days':0, 'weeks':5}, 
 			test_on={'days':0, 'weeks':1},
 			day_of_week=6)
 	pprint.pprint(splits)	
