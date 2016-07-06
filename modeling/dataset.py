@@ -77,7 +77,7 @@ def demand_daily_data(db, rows=[], feature='', function='lag', unique=['ToiletID
 
 	# Construct the sql statement using window functions (e.g., OVER and LAG/LEAVE)	
 	statement = 'SELECT %s' %(unique)
-	statement += ',%s' %(feature)
+	statement += ',"%s"' %(feature)
 	for rr in rows:
 		statement += ', %s("%s", %i, NULL) OVER(order by %s) as "%s_%s%i" ' %(function, 
 										      feature,
