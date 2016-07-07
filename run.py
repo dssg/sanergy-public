@@ -49,6 +49,7 @@ def main(config_file_name):
   for experiment in experiments:
      #Initialize the loss function.
     loss = LossFunction(experiment.config)
+
     # TODO: Brian
     # 2. Create the labels / features data set in Postgres
     grab_from_dataset(experiment.config) #this creates df features and labels in the postgres
