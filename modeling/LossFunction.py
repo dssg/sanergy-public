@@ -7,17 +7,43 @@ class LossFunction(object):
     A class to contain loss functions. Mainly used to take a Prediction object and new y data
     and return the evaluated loss, for different loss functions.
     """
-    def __init__(self, type, config):
+    def __init__(self, config):
         """
         Available evaluation types:
         * ['L2']
         * ...?
         """
-        self.type = type
+        self.loss = config["implementation"]["loss"]
+        self.aggregation = config["implementation"]["aggregation_measure"]
         self.config = config
+
+    def evaluate(self, yhat, y):
+        """
+        Given predicted yhat, evaluate it against observed y, using the loss function.
+
+        Args:
+            yhat, y (array(float)): The predicted, respectively observed values.
+
+        Returns:
+            loos: Evaluated loss as a float.
+        """
+        if self.type == "L2":
+            loss = (1/len(yhat))*np.linalg.norm(yhat-y, ord=2)
+        elif self.type == "L1":
+            loss = (1/len(yhat))*np.linalg.norm(yhat-y, ord=1)
+
+    def aggregate(self, losses):
+        """
+        Aggregate the array of losses for this experiment.
+        """
+        if self.aggregation == "mean":
+            aggregated_loss = np.mean(losses)
+
+        return(aggregated_loss)
 
     def evaluate_waste_prediction(self, trained_model, new_data, type_waste="feces"):
         """
+        !!! Probably invalid currently. We don't currently have the Model.predict() function.
         Evaluate the prediction against the loss function on new data. Apply the function iteratively for purposes such as crossvalidation.
 
         Args:
@@ -41,6 +67,15 @@ class LossFunction(object):
 
         return(loss)
 
+    
+def compare_models_by_loss_functions(results_from_experiments):
+    aggregated_losses = {}
+    for experiment, losses in results_from_experiments.iteritems():
+        loss_function = LossFunction(experiment.config)
+        aggregated_losses[experiment] = loss_function.aggregate(losses)
+    best_experiment = min(aggregated_losses.iterkeys(), key=(lamda key: aggregated_losses[key]))
+    best_aggregated_loss = aggregated_losses[best_experiment]
+    return best_experiment, best_aggregated_loss
 
 def main():
     """
