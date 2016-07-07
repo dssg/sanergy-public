@@ -93,14 +93,14 @@ collects.loc[((collects['Urine_kg_day']==None)|(collects['Urine_kg_day']<=0)),['
 print(collects['Urine_Collected'].value_counts())
 
 # Change outier toilets to none
-collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),['Urine_kg_day']]=None
-collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),['Feces_kg_day']]=None
-collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),['Total_Waste_kg_day']]=None
+#collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),['Urine_kg_day']]=None
+#collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),['Feces_kg_day']]=None
+#collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),['Total_Waste_kg_day']]=None
 
 # Change outier toilets to none
-collects.loc[(collects['Urine_kg_day']<=0),['Urine_kg_day']]=None
-collects.loc[(collects['Feces_kg_day']<=0),['Feces_kg_day']]=None
-collects.loc[(collects['Total_Waste_kg_day']<=0),['Total_Waste_kg_day']]=None
+#collects.loc[(collects['Urine_kg_day']<=0),['Urine_kg_day']]=None
+#collects.loc[(collects['Feces_kg_day']<=0),['Feces_kg_day']]=None
+#collects.loc[(collects['Total_Waste_kg_day']<=0),['Total_Waste_kg_day']]=None
 print(collects['Feces_kg_day'].describe())
 
 byGROUP = collects.groupby('ToiletID')
