@@ -20,13 +20,13 @@ class Model(object):
     a class for the model
     """
 
-    def __init__(self, modeltype,params=None)
-    """
-    Args:
-    """
-    self.params=params
-    self.modeltype=modeltype
-    self.trained_model=None
+    def __init__(self, modeltype,params=None):
+        """
+        Args:
+        """
+        self.params=params
+        self.modeltype=modeltype
+        self.trained_model=None
 
 
 
