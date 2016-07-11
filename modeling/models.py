@@ -58,14 +58,17 @@ class Model(object):
         log.info("Training {} with {}".format(model, parameters))
         modelobj = define_model(model, parameters)
         modelobj.fit(train_x, train_y)
-        result_y = modelobj.predict_proba(test_x)
+        result_y = modelobj.predict(test_x)
 
-        return result_y[:, 1], modelobj
+        return result_y, modelobj
 
 
     def define_model(model, parameters):
         if model == "AR":
             return statsmodels.tsa.ar_model.AR(
                 max_order=parameters['max_order'])
+        if model == "RandomForest":
+            return ensemble.RandomForestClassifier(
+                n_estimators=parameters['n_estimators'])
         else:
             raise ConfigError("Unsupported model {}".format(model))
