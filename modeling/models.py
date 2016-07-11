@@ -63,5 +63,8 @@ class Model(object):
         if model == "AutoregssiveModel":
             return statsmodels.tsa.ar_model.AR(
                 max_order=parameters['max_order'])
+        if model == "RandomForest":
+        return ensemble.RandomForestClassifier(
+            n_estimators=parameters['n_estimators'])
         else:
             raise ConfigError("Unsupported model {}".format(model))
