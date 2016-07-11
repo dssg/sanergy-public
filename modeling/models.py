@@ -32,7 +32,11 @@ class Model(object):
 
     def run(train_x, train_y, test_x, model, parameters):
 
-        results, modelobj = gen_model(train_x, train_y, test_x, model,
+        if model == "AR":
+
+        else:
+
+            results, modelobj = gen_model(train_x, train_y, test_x, model,
                                       parameters)
 
         return results, modelobj
@@ -60,7 +64,7 @@ class Model(object):
 
 
     def define_model(model, parameters):
-        if model == "AutoregssiveModel":
+        if model == "AR":
             return statsmodels.tsa.ar_model.AR(
                 max_order=parameters['max_order'])
         else:
