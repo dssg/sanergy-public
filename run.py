@@ -50,9 +50,9 @@ def main(config_file_name):
      #Initialize the loss function.
     loss = LossFunction(experiment.config)
 
-    # TODO: Brian
+    
     # 2. Create the labels / features data set in Postgres
-    grab_from_dataset(experiment.config) #this creates df features and labels in the postgres
+    features, responses=grab_from_dataset(db, response, features, unique, lagged) #this creates df features and labels in the postgres
 
     # TODO: Brian
     # 3. The function splits should take in the config file, so that we can train every day / seven days / month, etc.
