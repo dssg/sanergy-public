@@ -305,6 +305,15 @@ collect_toilets['UrineContainer_percent'] = ((collect_toilets['Urine_kg_day']/UR
 collect_toilets['FecesContainer_percent'] = ((collect_toilets['Feces_kg_day']/FECES_DENSITY)/collect_toilets['waste_factor'])*100
 print(collect_toilets[['FecesContainer_percent','UrineContainer_percent']].describe())
 
+# Incorporating the school closure variable
+collect_toilets['year'] = collect_toilets['Collection_Date'].dt.year
+collect_toilets['month'] = collect_toilets['Collection_Date'].dt.month
+collect_toilets['day'] = collect_toilets['Collection_Date'].dt.day
+
+collect_toilets['School_Closure'] = False
+collect_toilets.loc[(collect_toilets['month'].isin([4,8,12])),'School_Closure'] = True
+print(collect_toilets['School_Closure'].value_counts())
+
 # Push merged collection and toilet data to postgres
 print(collect_toilets.loc[1,['UrineContainer','UrineContainer_percent']])
 conn.execute('DROP TABLE IF EXISTS premodeling."toiletcollection"')
