@@ -69,7 +69,7 @@ def main(config_file_name):
             losses = []
             # TODO: Ivana
             # 5. Run the models
-            yhat, trained_model = model.gen_model( labels.train, features.train, features.test, experiment.model, experiment.parameters)
+            yhat, trained_model = model.run( labels.train, features.train, features.test, experiment.model, experiment.parameters)
 
             # DONE
             # 6. From the loss function
