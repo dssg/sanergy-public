@@ -1,4 +1,4 @@
-def grab_from_features_and_labels(fold)
+def grab_from_features_and_labels(fold):
 
 	"""
 	A function that subsets the features df and labels df stored in the Postgres, into train and test features and labels, based on the fold info (train start, train end, test start, test end )
