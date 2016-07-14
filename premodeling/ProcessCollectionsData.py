@@ -29,6 +29,7 @@ import copy
 URINE_DENSITY = 1.0
 FECES_DENSITY = 1.0
 OUTLIER_KG_DAY = 400
+MONTHS_WITH_SCHOOL_HOLIDAYS = [4,8,12]
 
 COLUMNS_COLLECTION_SCHEDULE1 = ['"flt_name"','"flt-location"','"responsible_wc"','"crew_lead"','"field_officer"','"franchise_type"','"route_name"','"sub-route_number"',
 '"mon"','"tue"','"wed"','"thur"','"fri"','"sat"','"sun"','"extra_containers"','"open?"']
@@ -311,7 +312,7 @@ collect_toilets['month'] = collect_toilets['Collection_Date'].dt.month
 collect_toilets['day'] = collect_toilets['Collection_Date'].dt.day
 
 collect_toilets['School_Closure'] = False
-collect_toilets.loc[(collect_toilets['month'].isin([4,8,12])),'School_Closure'] = True
+collect_toilets.loc[(collect_toilets['month'].isin(MONTHS_WITH_SCHOOL_HOLIDAYS)),'School_Closure'] = True
 print(collect_toilets['School_Closure'].value_counts())
 
 # Push merged collection and toilet data to postgres
