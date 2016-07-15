@@ -113,3 +113,5 @@ CREATE TABLE input.Collection_Schedule_School (
 \copy input.Collection_Schedule_Wheelbarrow from 'data/input/wheelCut.csv' with csv header;
 \copy input.Collection_Schedule_Truck from 'data/input/truckCut.csv' with csv header;
 \copy input.Collection_Schedule_Tuktuk from 'data/input/tukCut.csv' with csv header;
+\copy input.Collection_Schedule_School from 'data/input/school_by_route.csv' with csv header;
+
