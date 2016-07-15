@@ -4,7 +4,7 @@ import yaml
 import LossFunction, AggregationFunction from LossFunction
 #Import external modules
 
-import . from datasets
+from . import datasets
 
 #Import the internal modules
 
