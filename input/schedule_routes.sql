@@ -27,3 +27,4 @@ CREATE TABLE input.schedule_routes (
 	_unnamed VARCHAR(32)
 );
 
+\copy input.schedule_routes from 'data/input/Route_Master_All_Dates.csv' with csv header;
