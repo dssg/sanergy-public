@@ -50,10 +50,9 @@ def main(config_file_name):
      #Initialize the loss function.
     loss = LossFunction(experiment.config)
 
-    
+
     # 2. Create the labels / features data set in Postgres
-    grab_from_dataset(experiment.config['db'], experiment.config['response'], experiment.config['features'], experiment.config['unique'], experiment.config['lagged']) #this creates df features and labels in the postgres
-  
+    features, responses=grab_from_dataset(db, response, features, unique, lagged) #this creates df features and labels in the postgres
 
     # 3. The function splits should take in the config file, so that we can train every day / seven days / month, etc.
     folds=temporal_split(experiment.config) # this will be a list of date ranges for train and test. Let's imagine that train and test are sets of pairs (start/end date), we pass that list of tuples of models.py and train each of the models on the list tuples.
