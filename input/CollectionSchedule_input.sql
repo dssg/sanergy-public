@@ -106,8 +106,7 @@ CREATE TABLE input.Collection_Schedule_School (
 	if_non_commercial_potential_user_population VARCHAR(4), 
 	"if_non_commercial_%%_of_potential_pop_using_flt" VARCHAR(7), 
 	"who_owns_the_toilet?" VARCHAR(20), 
-	"who_operates_or_manages_the_flt_on_a_daily_basis?" VARCHAR(24), 
-	_unnamed VARCHAR(32)
+	"who_operates_or_manages_the_flt_on_a_daily_basis?" VARCHAR(24) 
 );
 
 \copy input.Collection_Schedule_Wheelbarrow from 'data/input/wheelCut.csv' with csv header;
