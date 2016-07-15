@@ -72,11 +72,11 @@ def main(config_file_name):
             losses = []
             # TODO: Ivana
             # 5. Run the models
-            yhat, trained_model = model.run( labels.train, features.train, features.test, experiment.model, experiment.parameters)
+            yhat, trained_model = model.run( labels_train, features_train, features_test, experiment.model, experiment.parameters)
 
             # DONE
             # 6. From the loss function
-            losses.append(loss.evaluate(yhat, labels.test))
+            losses.append(loss.evaluate(yhat, labels_test))
 
             """
               TODO: All
