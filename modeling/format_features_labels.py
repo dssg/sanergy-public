@@ -19,7 +19,7 @@ def format_features_labels(features_big,labels_big):
 	Will have to update this function to be able to deal with later, more general, features table sizes.
 	"""
 
-			  labels=labels_big.iloc[:, [1]]
+	      labels=labels_big.iloc[:, [1]]
               labels=labels.fillna(0); # put zeros in place of NaN
               features=features_big.iloc[:,[4,5,6]]
               features=features.fillna(0);
