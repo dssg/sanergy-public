@@ -45,7 +45,7 @@ def temporal_split(start_date, end_date, train_on, test_on, day_of_week=None, fl
 				 Identical to the train_on variable.
 	   NUM DAY_OF_WEEK	Corresponds to the Day of Week value (Monday to Sunday, 0-6),
 				 that each fold should start from.
-	   BOOL FLOATING_WINDOW	Should the splits reflect a floating window or training on 
+	   BOOL FLOATING_WINDOW	Should the splits reflect a floating window or training on
 				 all data to the fake today - test window, testing on the test window?
 	Returns
 	   LIST[dict]	List of test and train time ranges per fold
@@ -66,13 +66,13 @@ def temporal_split(start_date, end_date, train_on, test_on, day_of_week=None, fl
 	start_date = datetime.strptime(start_date,'%Y-%m-%d')
 	end_date = datetime.strptime(end_date,'%Y-%m-%d')
 	date_range = end_date - start_date
-	
+
 	list_of_dates = []
 	for day in range(date_range.days + 1):
 		day = start_date+timedelta(days=day)
 		fold = {'train_start':day,
 			'train_end':day + train_window,
-			'test_start':(day+train_window),		
+			'test_start':(day+train_window),
 			'test_end': (day+train_window) + test_window,
 			'window_start': day,
 			'window_end': day + window_size}
@@ -108,7 +108,7 @@ def write_statement(vardict):
 			# Dictionary is not empty, parse the split values into a statement
 			for split in vardict[feat]:
 				if ((split=='and')|(split=="or")):
-					statement = split.join(['("%s"%s%s)' %(feat,sp[0],sp[1]) 
+					statement = split.join(['("%s"%s%s)' %(feat,sp[0],sp[1])
 							for sp in vardict[feat][split]])
 				elif (split=='not'):
 					statement = split + ' "%s"%s%s' %(feat,
@@ -116,7 +116,7 @@ def write_statement(vardict):
 							vardict[feat][split][1])
 				elif (split=='list'):
 					statement = '"%s"' %(feat) + "=any('{%s}')" %(','.join(vardict[feat][split]))
-				conditions.append('('+statement+')')  
+				conditions.append('('+statement+')')
 	pprint.pprint(conditions)
 	return(conditions)
 
@@ -134,14 +134,14 @@ def demand_daily_data(db, rows=[], feature='', function='lag', unique=['ToiletID
 	Returns:
 	   DF DAILY_DATA	Pandas data frame of daily variables
 	"""
-	
+
 	# Reprocess the unique list to account for capitalization
 	unique = ','.join(['"%s"' %(uu) for uu in unique])
 
-	# Construct the sql statement using window functions (e.g., OVER and LAG/LEAVE)	
+	# Construct the sql statement using window functions (e.g., OVER and LAG/LEAVE)
 	statement = 'SELECT %s' %(unique)
 	for rr in rows:
-		statement += ', %s("%s", %i, NULL) OVER(order by %s) as "%s_%s%i" ' %(function, 
+		statement += ', %s("%s", %i, NULL) OVER(order by %s) as "%s_%s%i" ' %(function,
 										      feature,
 										      rr,
 										      unique,
@@ -154,9 +154,9 @@ def demand_daily_data(db, rows=[], feature='', function='lag', unique=['ToiletID
 					  	   conditions,
 						   unique)
 	# Execute the statement
-	daily_data = pd.read_sql(statement, 
-				con=db['connection'], 
-				coerce_float=True, 
+	daily_data = pd.read_sql(statement,
+				con=db['connection'],
+				coerce_float=True,
 				params=None)
 	# Return the lagged/leave data
 	return(daily_data)
@@ -166,7 +166,7 @@ def grab_collections_data(db, response, features, unique, lagged):
 	A function to return a postgres query as a Pandas data frame
 	Args:
 	  DICT DB		A connection objection, database name/table
-	  DICT RESPONSE		The variable to be predicted 
+	  DICT RESPONSE		The variable to be predicted
 				e.g., Feces container between 30% and  40% full:
 					{'type':'binary',
 					 'variable':'FecesContainer_percent',
@@ -198,24 +198,24 @@ def grab_collections_data(db, response, features, unique, lagged):
 		conditions = 'and'.join(conditions)
 		conditions = 'where '+conditions
 	else:
-		conditions = ""				
+		conditions = ""
 	# Create the SQL statement requesting the data
 	statement = "select %s from %s.%s %s" %(','.join(list_of_variables),
 						db['database'],
 						db['table'],
 						conditions)
 	# Retrieve the dataset from postgres
-	dataset = pd.read_sql(statement, 
-				con=db['connection'], 
-				coerce_float=True, 
+	dataset = pd.read_sql(statement,
+				con=db['connection'],
+				coerce_float=True,
 				params=None)
 	# Incorporate DAILY features (function reuses 'conditions', 'unique' variables, and 'db'
-	for ll in lagged.keys(): 
+	for ll in lagged.keys():
 		daily_data = demand_daily_data(db,
-				rows=lagged[ll]['rows'], 
-				feature=ll, 
-				function=lagged[ll]['function'], 
-				unique=unique.keys(), 
+				rows=lagged[ll]['rows'],
+				feature=ll,
+				function=lagged[ll]['function'],
+				unique=unique.keys(),
 				conditions=conditions)
 		# Merge the DAILY features with DATASET
 		dataset = pd.merge(dataset,
@@ -231,10 +231,10 @@ def grab_collections_data(db, response, features, unique, lagged):
 		statement = ""
 		for split in response['split']:
 			if (split=='and'):
-				statement = '&'.join(['(dataset["%s"]%s%s)' %(response['variable'],sp[0],sp[1]) 
+				statement = '&'.join(['(dataset["%s"]%s%s)' %(response['variable'],sp[0],sp[1])
 						for sp in response['split'][split]])
 			elif (split=='or'):
-				statement = '|'.join(['(dataset["%s"]%s%s)' %(response['variable'],sp[0],sp[1]) 
+				statement = '|'.join(['(dataset["%s"]%s%s)' %(response['variable'],sp[0],sp[1])
 						for sp in response['split'][split]])
 		dataset['response'] = False
 		dataset.loc[(eval(statement)),"response"] = True
@@ -258,10 +258,65 @@ def grab_collections_data(db, response, features, unique, lagged):
 
 	return(y_labels, x_features)
 
+def grab_from_features_and_labels(fold):
+
+	"""
+	A function that subsets the features df and labels df stored in the Postgres, into train and test features and labels, based on the fold info (train start, train end, test start, test end )
+
+	Args
+		DICT FOLD start and end date for both train and test set, in the fomat{"train":(start, end),"test":(start, end)}
+	Returns
+		df features train
+		df labels train
+		df features test
+		df labels test
+	"""
+
+	import dataset
+	features=pd.read_sql('SELECT * FROM modeling."features"', dataset.conn, coerce_float=True, params=None)
+	labels=pd.read_sql('SELECT * FROM modeling."labels"', dataset.conn, coerce_float=True, params=None)
+
+	features_train = features.loc[((features['Collection_Date']>=fold["train_start"]) & (features['Collection_Date']<=fold["train_end"]))]
+    	features_test = features.loc[((features['Collection_Date']>=fold["test_start"]) & (features['Collection_Date']<=fold["test_end"]))]
+    	labels_train = labels.loc[((labels['Collection_Date']>=fold["train_start"]) & (labels['Collection_Date']<=fold["train_end"]))]
+    	labels_test = labels.loc[((labels['Collection_Date']>=fold["test_start"]) & (labels['Collection_Date']<=fold["test_end"]))]
+
+    	return(features_train, labels_train, features_test, labels_test)
+
+def format_features_labels(features_big,labels_big):
+
+	"""
+	A function that takes in the features and labels df as created in the function
+	grab_from_features_and_labels. It drops the unnecessary columns in the features
+	and labels dataframes, and it changes NaN values to 0,
+	so that the final dataframes features and labels can be used by models in sklearn.
+
+
+	Args
+		df features_big
+		df labels_big
+	Returns
+		df features
+		df labels
+
+
+	NOTE: this is written specifically for the very first pass through the pipeline.
+	Will have to update this function to be able to deal with later, more general, features table sizes.
+	"""
+
+	      labels=labels_big.iloc[:, [1]]
+              labels=labels.fillna(0); # put zeros in place of NaN
+              features=features_big.iloc[:,[4,5,6]]
+              features=features.fillna(0);
+
+              return(features,labels)
+
+
+
 # Experiments
 #############
 def test():
-	db={'connection':conn, 
+	db={'connection':conn,
 		'table':'toiletcollection',
 		 'database':'premodeling'}
 	response = {'variable':'Feces_kg_day',
@@ -286,9 +341,9 @@ def test():
 	pprint.pprint(x.keys())
 	print(x.head())
 
-	splits=temporal_split(start_date='2014-01-01', 
-			end_date='2014-05-05', 
-			train_on={'days':0, 'weeks':5}, 
+	splits=temporal_split(start_date='2014-01-01',
+			end_date='2014-05-05',
+			train_on={'days':0, 'weeks':5},
 			test_on={'days':0, 'weeks':1},
 			day_of_week=6,
 			floating_window=False)
