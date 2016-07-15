@@ -52,6 +52,9 @@ psql/input/Collection_Schedule_School <- input/CollectionSchedule_input.sql, dat
 ;;; Toilet Coordinates ;;;
 psql/input/toilet_coordinates <- input/ToiletCoords_input.sql, data/input/ToiletCoords.csv [method:psql]
 
+;;; Route Schedule Since Feb 2016 ;;;
+psql/input/schedule_routes <- input/schedule_routes.sql, data/input/Route_Master_All_Dates.csv [method:psql]
+
 ;;; WEATHER ;;;
 data/input/weather/weather_download_jkia <- input/weather/weather_download.sh
         DIRNAME=$(dirname $OUTPUT)
