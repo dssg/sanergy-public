@@ -6,7 +6,7 @@ A script that is imported by run.py to manage dataset extraction and writing res
 """
 
 # Connect to the database
-import dbconfig
+import sanergy.input.dbconfig as dbconfig
 import psycopg2
 from sqlalchemy import create_engine
 
@@ -277,11 +277,11 @@ def grab_from_features_and_labels(fold):
 	labels=pd.read_sql('SELECT * FROM modeling."labels"', dataset.conn, coerce_float=True, params=None)
 
 	features_train = features.loc[((features['Collection_Date']>=fold["train_start"]) & (features['Collection_Date']<=fold["train_end"]))]
-    	features_test = features.loc[((features['Collection_Date']>=fold["test_start"]) & (features['Collection_Date']<=fold["test_end"]))]
-    	labels_train = labels.loc[((labels['Collection_Date']>=fold["train_start"]) & (labels['Collection_Date']<=fold["train_end"]))]
-    	labels_test = labels.loc[((labels['Collection_Date']>=fold["test_start"]) & (labels['Collection_Date']<=fold["test_end"]))]
+	features_test = features.loc[((features['Collection_Date']>=fold["test_start"]) & (features['Collection_Date']<=fold["test_end"]))]
+	labels_train = labels.loc[((labels['Collection_Date']>=fold["train_start"]) & (labels['Collection_Date']<=fold["train_end"]))]
+	labels_test = labels.loc[((labels['Collection_Date']>=fold["test_start"]) & (labels['Collection_Date']<=fold["test_end"]))]
 
-    	return(features_train, labels_train, features_test, labels_test)
+	return(features_train, labels_train, features_test, labels_test)
 
 def format_features_labels(features_big,labels_big):
 
@@ -304,47 +304,9 @@ def format_features_labels(features_big,labels_big):
 	Will have to update this function to be able to deal with later, more general, features table sizes.
 	"""
 
-	      labels=labels_big.iloc[:, [1]]
-              labels=labels.fillna(0); # put zeros in place of NaN
-              features=features_big.iloc[:,[4,5,6]]
-              features=features.fillna(0);
+	labels=labels_big.iloc[:, [1]]
+	labels=labels.fillna(0); # put zeros in place of NaN
+	features=features_big.iloc[:,[4,5,6]]
+	features=features.fillna(0);
 
-              return(features,labels)
-
-
-
-# Experiments
-#############
-def test():
-	db={'connection':conn,
-		'table':'toiletcollection',
-		 'database':'premodeling'}
-	response = {'variable':'Feces_kg_day',
-			'split':{'and':[('>',3),('<',7)]}}
-	features = {'Urine_kg_day':{'and':[('<=',10),('>',3)],
-				    'not':('=',5),
-				    'list':['4','7','8','5']}}
-	unique = {'ToiletID':{'list':['a08D000000i1KgnIAE']},
-		  'Collection_Date':{'and':[('>',"'2012-01-01'"),('<',"'2014-01-01'")]}}
-	lagged = {'Feces_kg_day':{'function':'lag',
-				  'rows':[1,2,3]},
-		  'FecesContainer_percent':{'function':'lag',
-					    'rows':[1,6,12]}}
-
-	y,x = grab_collections_data(db, response, features, unique, lagged)
-
-	print('\nThe LABELS (y) dataframe, includes both the RESPONSE variable and the original ("%s")' %(response['variable']))
-	pprint.pprint(y.keys())
-	print(y.head())
-
-	print('\nThe FEATURES (x) dataframe includes %i variables, %i rows of data (unique identifiers: %s)' %(len(x.keys()), len(x), ','.join(unique.keys()) ))
-	pprint.pprint(x.keys())
-	print(x.head())
-
-	splits=temporal_split(start_date='2014-01-01',
-			end_date='2014-05-05',
-			train_on={'days':0, 'weeks':5},
-			test_on={'days':0, 'weeks':1},
-			day_of_week=6,
-			floating_window=False)
-	pprint.pprint(splits)
+	return(features,labels)

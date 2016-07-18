@@ -1,7 +1,14 @@
 import unittest
 import yaml
+import re, pprint
+import sqlalchemy
+from datetime import datetime, date, timedelta
+
+
 from sanergy.premodeling.Experiment import generate_experiments, Experiment
 from sanergy.modeling.LossFunction import LossFunction
+from sanergy.modeling.dataset import grab_collections_data, temporal_split
+import sanergy.input.dbconfig as dbconfig
 #from premodeling.Experiment import generate_experiments
 
 class ExperimentTest(unittest.TestCase):
@@ -33,6 +40,55 @@ class ExperimentTest(unittest.TestCase):
         experiments = generate_experiments(cfg_default)
         self.assertIsInstance(experiments[0],Experiment)
 
+
+class datasetTest(unittest.TestCase):
+     def test_grab_collections_data(self):
+         pass
+    #     #TODO: Have a test dataset on which we can do a proper unit test.
+    #     # Real data are not good for testing because they change as we get new data.
+    #     engine = sqlalchemy.create_engine('postgresql+psycopg2://%s:%s@%s:%s' %(dbconfig.config['user'],
+    #     dbconfig.config['password'],
+    #     dbconfig.config['host'],
+    #     dbconfig.config['port']))
+    #     try:
+    #         conn = engine.connect()
+    #     except:
+    #         pass
+    #
+    #     db={'connection':conn,
+    #     'table':'toiletcollection',
+    #     'database':'premodeling'}
+    #     response = {'variable':'Feces_kg_day',
+    #     'split':{'and':[('>',3),('<',7)]}}
+    #     features = {'Urine_kg_day':{'and':[('<=',10),('>',3)],
+    #     'not':('=',5),
+    #     'list':['4','7','8','5']}}
+    #     unique = {'ToiletID':{'list':['a08D000000i1KgnIAE']},
+    #     'Collection_Date':{'and':[('>',"'2012-01-01'"),('<',"'2014-01-01'")]}}
+    #     lagged = {'Feces_kg_day':{'function':'lag',
+    #     'rows':[1,2,3]},
+    #     'FecesContainer_percent':{'function':'lag',
+    #     'rows':[1,6,12]}}
+    #
+    #     y,x = grab_collections_data(db, response, features, unique, lagged)
+    #
+    #     print('\nThe LABELS (y) dataframe, includes both the RESPONSE variable and the original ("%s")' %(response['variable']))
+    #     pprint.pprint(y.keys())
+    #     print(y.head())
+    #
+    #     print('\nThe FEATURES (x) dataframe includes %i variables, %i rows of data (unique identifiers: %s)' %(len(x.keys()), len(x), ','.join(unique.keys()) ))
+    #     pprint.pprint(x.keys())
+    #     print(x.head())
+
+    def test_temporal_split(self):
+        splits=temporal_split(start_date='2014-01-01',
+        end_date='2014-05-05',
+        train_on={'days':0, 'weeks':5},
+        test_on={'days':0, 'weeks':1},
+        day_of_week=6,
+        floating_window=False)
+        #Checked by Brian
+        self.assertEqual(len(splits),12)
 
 class LossFunctionTest(unittest.TestCase):
     def setUp(self):
