@@ -24,21 +24,29 @@ cols:
 # Feature generation parameters #
 #################################
 
- # db={'connection':dataset.conn,
- #     'table':'toiletcollection',
- #     'database':'premodeling'}
- # response = {'variable':'Feces_kg_day','split':{}}
- # features = {'Total_Waste_kg_day':{}}
- # unique = {'ToiletID':{},'Collection_Date':{}}
- # lagged = {'Feces_kg_day':{'function':'lag', 'rows':[1,2,3]}}
- #
- #
+db:
+    connection: 'dataset.conn'
+    table: 'toiletcollection'
+    database: 'premodeling'
+response:
+    variable: 'Feces_kg_day'
+    split: []
+features:
+    Total_Waste_kg_day: []
+unique:
+    ToiletID: []
+    Collection_Date: []
+lagged:
+    Feces_kg_day:
+        function: 'lag'
+        rows: [1,2,3]
+
 
 ############################
 # Model parameters         #
 ############################
 #model: ["LinearRegression", "RandomForest", "Autoregression", "SimpleModel"]
-model: ["LinearRegression", "RandomForest", "Autoregression"]
+model: ["RandomForest"] # "LinearRegression", "Autoregression"]
 
 parameters:
   RandomForest:
@@ -47,10 +55,10 @@ parameters:
     max_features: ['sqrt', 'log2']  # [2, 4, 8, 16, "auto"]
     criterion: ['gini', 'entropy']
     min_samples_split: [2, 5, 10]
-  Autoregression:
-    maxlag: [5, 10]
-  LinearRegression:
-    dummy: [1] #A fake parameter making sure that we loop over this model.
+#  Autoregression:
+#    maxlag: [5, 10]
+#  LinearRegression:
+#    dummy: [1] #A fake parameter making sure that we loop over this model.
 
 
 #############################
@@ -59,5 +67,5 @@ parameters:
 implementation:
   loss: ["L2","L1"]
   prediction_horizon: [7] #How many days
-  prediction_weekday_start: 0 #Which day of the week do we recompute the schedule? 0=Mon, 7=Sun. Applicable for weekly or multiple-thereof schedules.
-  aggregation_measure: "mean" #A measure to use to aggregate the losses across different folds. Since different experiments may have different numbers of folds, should be a probability measure.
+  prediction_weekday_start: [0] #Which day of the week do we recompute the schedule? 0=Mon, 7=Sun. Applicable for weekly or multiple-thereof schedules.
+  aggregation_measure: ["mean"] #A measure to use to aggregate the losses across different folds. Since different experiments may have different numbers of folds, should be a probability measure.
