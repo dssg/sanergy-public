@@ -28,18 +28,7 @@ db:
     connection: 'dataset.conn'
     table: 'toiletcollection'
     database: 'premodeling'
-response:
-    variable: 'Feces_kg_day'
-    split: []
-features:
-    Total_Waste_kg_day: []
-unique:
-    ToiletID: []
-    Collection_Date: []
-lagged:
-    Feces_kg_day:
-        function: 'lag'
-        rows: [1,2,3]
+
 
 
 ############################

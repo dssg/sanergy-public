@@ -49,7 +49,7 @@ Xy:
 # Model parameters         #
 ############################
 #model: ["LinearRegression", "RandomForest", "Autoregression", "SimpleModel"]
-model: ["LinearRegression", "RandomForest", "Autoregression"]
+model: ["RandomForest"]
 
 parameters:
   RandomForest:

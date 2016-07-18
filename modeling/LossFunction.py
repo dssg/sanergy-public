@@ -67,13 +67,13 @@ class LossFunction(object):
 
         return(loss)
 
-    
+
 def compare_models_by_loss_functions(results_from_experiments):
     aggregated_losses = {}
     for experiment, losses in results_from_experiments.iteritems():
         loss_function = LossFunction(experiment.config)
         aggregated_losses[experiment] = loss_function.aggregate(losses)
-    best_experiment = min(aggregated_losses.iterkeys(), key=(lamda key: aggregated_losses[key]))
+    best_experiment = min(aggregated_losses.iterkeys(), key=(lambda key: aggregated_losses[key]))
     best_aggregated_loss = aggregated_losses[best_experiment]
     return best_experiment, best_aggregated_loss
 

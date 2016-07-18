@@ -1,33 +1,39 @@
 #The first draft of the enveloping script that runs the pipeline.
+#Import external modules
 import logging
 import yaml
-import LossFunction, AggregationFunction from LossFunction
-#Import external modules
+import sys
+
+#Import our modules
+from sanergy.modeling.LossFunction import LossFunction
+from sanergy.premodeling.Experiment import generate_experiments
+
 
 #
-import sanergy.preprocessing from datasets
+#import sanergy.preprocessing from datasets
 
 #Import the internal modules
 
-def main(config_file_name):
+def main(config_file_name="default.yaml"):
   #Set up the Logger
   # define logging
   logging.basicConfig(format="%(asctime)s %(message)s",
-                 filename="default.log", level=logging.INFO)
-    log = logging.getLogger("Sanergy Collection Optimizer")
+  filename="default.log", level=logging.INFO)
+  log = logging.getLogger("Sanergy Collection Optimizer")
 
-    screenlog = logging.StreamHandler(sys.stdout)
-    screenlog.setLevel(logging.DEBUG)
-    formatter = logging.Formatter("%(asctime)s - %(name)s: %(message)s")
-    screenlog.setFormatter(formatter)
-    log.addHandler(screenlog)
-      #Load the yaml file.
-    try:
-        with open(config_file_name, 'r') as f:
-            config = yaml.load(f)
-        log.info("Loaded experiment file")
-    except:
-        log.exception("Failed to get experiment configuration file!")
+  screenlog = logging.StreamHandler(sys.stdout)
+  screenlog.setLevel(logging.DEBUG)
+  formatter = logging.Formatter("%(asctime)s - %(name)s: %(message)s")
+  screenlog.setFormatter(formatter)
+  log.addHandler(screenlog)
+  #Load the yaml file.
+  log.debug("Testing logger.")
+  try:
+      with open(config_file_name, 'r') as f:
+          config = yaml.load(f)
+          log.info("Loaded experiment file")
+  except:
+      log.exception("Failed to get experiment configuration file!")
 
   # Capture all of the results from all experiments
   # Save results in a dict of lists: {Exp 1: [cv_loss_per_fold_0, cv_loss_per_fold_1, ...], Exp 2:[...], ...}.
@@ -36,7 +42,10 @@ def main(config_file_name):
   results_from_experiments = {} #A dict keyed by experiments and valued by a list of cv-losses for that experiment.
 
   # 1. Generate all experiments
+  log.info("Generate experiments from default.yaml...")
   experiments = generate_experiments(config)
+  log.info("Generated {0} experiments.".format(len(experiments)))
+  exit()
   """
       loop through the config variables to generate a list of experiments to run
       [{model: "randomForest",
@@ -48,7 +57,6 @@ def main(config_file_name):
   for experiment in experiments:
      #Initialize the loss function.
     loss = LossFunction(experiment.config)
-
 
     # 2. Create the labels / features data set in Postgres
     features, responses=grab_from_dataset(db, response, features, unique, lagged) #this creates df features and labels in the postgres
@@ -62,27 +70,27 @@ def main(config_file_name):
     # TODO: Ivana
     # 4. Folds are passed to models functions
     #results_from_experiments[experiment] = run_models_on_folds([folds], experiment.config) #See below the structure. Return a list of losses per fold.
-        for i_fold, fold in enumerate(folds):
-            (features_train_big, labels_train_big, features_test_big, labels_test_big) = grab_from_features_and_labels(fold)
-            (features_train,labels_train)=format_features_labels(features_train_big,labels_train_big)
-            (features_test,labels_test)=format_features_labels(features_test_big,labels_test_big)
+    for i_fold, fold in enumerate(folds):
+        (features_train_big, labels_train_big, features_test_big, labels_test_big) = grab_from_features_and_labels(fold)
+        (features_train,labels_train)=format_features_labels(features_train_big,labels_train_big)
+        (features_test,labels_test)=format_features_labels(features_test_big,labels_test_big)
 
 
-            losses = []
-            # TODO: Ivana
-            # 5. Run the models
-            yhat, trained_model = model.run( labels_train, features_train, features_test, experiment.model, experiment.parameters)
+        losses = []
+        # TODO: Ivana
+        # 5. Run the models
+        yhat, trained_model = model.run( labels_train, features_train, features_test, experiment.model, experiment.parameters)
 
-            # DONE
-            # 6. From the loss function
-            losses.append(loss.evaluate(yhat, labels_test))
+        # DONE
+        # 6. From the loss function
+        losses.append(loss.evaluate(yhat, labels_test))
 
-            """
-              TODO: All
-              7. We have to save the model results and the evaluation in postgres
-                 Experiment x Fold, long file
-            """
-            #return([...list of loss...])
+        """
+        TODO: All
+        7. We have to save the model results and the evaluation in postgres
+        Experiment x Fold, long file
+        """
+        #return([...list of loss...])
         #return(losses)
 
     # 8. Evaluate the losses
@@ -92,3 +100,6 @@ def main(config_file_name):
     # 9. Rerun best model on whole dataset
     run_best_model_on_all_data(best_experiment, test)
     # Write the results to postgres
+
+if __name__ == '__main__':
+    main()
