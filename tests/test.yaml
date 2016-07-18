@@ -1,0 +1,63 @@
+#####################################################
+#          UChicago Data Science for Social Good:   #
+#              Optimizing Waste Collection          #
+#               from Portable Sanitation            #
+#####################################################
+
+
+
+############################
+# Database column names    #
+############################
+
+cols:
+  toiletname: "ToiletName" #the name of the toilet / toilet identifier
+  date: "Collection_Date" # date / date identifier
+  feces: "FecesContainer_percent" #How full the container will be
+  urine: "UrineContainer_percent"
+  feces_collect: "" #Should the toilet be collected?
+  urine_collect: ""
+  #WASTE = {"feces": FECES, "urine": URINE} # Either feces or urine
+  #COLLECT = {"feces": FECES_COLLECT, "urine": URINE_COLLECT}
+
+#################################
+# Feature generation parameters #
+#################################
+
+ # db={'connection':dataset.conn,
+ #     'table':'toiletcollection',
+ #     'database':'premodeling'}
+ # response = {'variable':'Feces_kg_day','split':{}}
+ # features = {'Total_Waste_kg_day':{}}
+ # unique = {'ToiletID':{},'Collection_Date':{}}
+ # lagged = {'Feces_kg_day':{'function':'lag', 'rows':[1,2,3]}}
+ #
+ #
+
+############################
+# Model parameters         #
+############################
+#model: ["LinearRegression", "RandomForest", "Autoregression", "SimpleModel"]
+model: ["LinearRegression", "RandomForest", "Autoregression"]
+
+parameters:
+  RandomForest:
+    n_estimators: [1, 10, 25, 50, 100]  # [1000, 10000]
+    max_depth: [1, 3, 5, 10, 20]  # 50, 100
+    max_features: ['sqrt', 'log2']  # [2, 4, 8, 16, "auto"]
+    criterion: ['gini', 'entropy']
+    min_samples_split: [2, 5, 10]
+  Autoregression:
+    maxlag: [5, 10]
+  LinearRegression:
+    dummy: [1] #A fake parameter making sure that we loop over this model.
+
+
+#############################
+# Implementation parameters #
+#############################
+implementation:
+  loss: ["L2","L1"]
+  prediction_horizon: [7] #How many days
+  prediction_weekday_start: 0 #Which day of the week do we recompute the schedule? 0=Mon, 7=Sun. Applicable for weekly or multiple-thereof schedules.
+  aggregation_measure: "mean" #A measure to use to aggregate the losses across different folds. Since different experiments may have different numbers of folds, should be a probability measure.

@@ -4,7 +4,8 @@ import yaml
 import LossFunction, AggregationFunction from LossFunction
 #Import external modules
 
-import . from datasets
+#
+import sanergy.preprocessing from datasets
 
 #Import the internal modules
 
@@ -13,7 +14,7 @@ def main(config_file_name):
   # define logging
   logging.basicConfig(format="%(asctime)s %(message)s",
                  filename="default.log", level=logging.INFO)
-    log = logging.getLogger("Police EIS")
+    log = logging.getLogger("Sanergy Collection Optimizer")
 
     screenlog = logging.StreamHandler(sys.stdout)
     screenlog.setLevel(logging.DEBUG)
@@ -34,9 +35,7 @@ def main(config_file_name):
   # In the aggregate evaluation, we may need to interpret losses from folds with different windows differently.
   results_from_experiments = {} #A dict keyed by experiments and valued by a list of cv-losses for that experiment.
 
-    # Pushed to postres regularly, rather than stored in memory
-
-  # 1. Generate all experiments [DONE]
+  # 1. Generate all experiments
   experiments = generate_experiments(config)
   """
       loop through the config variables to generate a list of experiments to run
