@@ -4,7 +4,7 @@ import yaml
 import LossFunction, AggregationFunction from LossFunction
 #Import external modules
 
-import . from datasets
+from . import datasets
 
 #Import the internal modules
 
@@ -64,20 +64,19 @@ def main(config_file_name):
     # 4. Folds are passed to models functions
     #results_from_experiments[experiment] = run_models_on_folds([folds], experiment.config) #See below the structure. Return a list of losses per fold.
         for i_fold, fold in enumerate(folds):
-            DF{labels: train, features: train}, DF{labels: test, features: test} = grab_from_features_and_labels(fold)
-              labels=labels.iloc[:, [1]]
-              labels=labels.fillna(0); # put zeros in place of NaN
-              features=features.iloc[:,[4,5,6]]
-              features=features.fillna(0);
+            (features_train_big, labels_train_big, features_test_big, labels_test_big) = grab_from_features_and_labels(fold)
+            (features_train,labels_train)=format_features_labels(features_train_big,labels_train_big)
+            (features_test,labels_test)=format_features_labels(features_test_big,labels_test_big)
+
 
             losses = []
             # TODO: Ivana
             # 5. Run the models
-            yhat, trained_model = model.run( labels.train, features.train, features.test, experiment.model, experiment.parameters)
+            yhat, trained_model = model.run( labels_train, features_train, features_test, experiment.model, experiment.parameters)
 
             # DONE
             # 6. From the loss function
-            losses.append(loss.evaluate(yhat, labels.test))
+            losses.append(loss.evaluate(yhat, labels_test))
 
             """
               TODO: All
