@@ -11,7 +11,7 @@
 ############################
 
 cols:
-  toiletname: "ToiletName" #the name of the toilet / toilet identifier
+  toiletname: "ToiletID" #the name of the toilet / toilet identifier
   date: "Collection_Date" # date / date identifier
   feces: "FecesContainer_percent" #How full the container will be
   urine: "UrineContainer_percent"
@@ -27,7 +27,7 @@ cols:
 
 #Connection parameters
 db:
-    connection: 'dataset.conn'
+    #connection: conn
     table: 'toiletcollection'
     database: 'premodeling'
 #The model matrix
@@ -44,6 +44,7 @@ Xy:
       Feces_kg_day:
           function: 'lag'
           rows: [1,2,3]
+          #rows: [1,2,3]
 
 ############################
 # Model parameters         #
@@ -69,12 +70,21 @@ parameters:
   LinearRegression:
     dummy: [1] #A fake parameter making sure that we loop over this model.
 
+cv:
+  start_date: '2014-01-01'
+  end_date: '2014-03-01'
+  train_on:
+    days: 0
+    weeks: 5
+  test_on:
+    days: 0
+    weeks: 1
 
 #############################
 # Implementation parameters #
 #############################
 implementation:
-  loss: ["L2","L1"]
+  loss: ["L2", "L1"]
   prediction_horizon: [7] #How many days
   prediction_weekday_start: [0] #Which day of the week do we recompute the schedule? 0=Mon, 7=Sun. Applicable for weekly or multiple-thereof schedules.
   aggregation_measure: ["mean"] #A measure to use to aggregate the losses across different folds. Since different experiments may have different numbers of folds, should be a probability measure.
