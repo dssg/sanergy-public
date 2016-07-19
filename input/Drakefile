@@ -44,9 +44,8 @@ psql/input/Collection_Schedule_Wheelbarrow, psql/input/Collection_Schedule_Truck
 
 ;;; School by Route ;;;
 ;data/input/school_by_route.csv <- input/extract_school.sh, data/input/Logistics_schedule.xlsx
-;	bash $INPUT0
-data/input/school_by_route.csv <- data/input/Logistics_schedule.xlsx
-	in2csv --sheet "SF_check" $INPUT | tail -n +2 > $OUTPUT
+;in2csv --sheet "SF_check" data/input/Logistics_schedule.xlsx | csvcut -c 1-25 > data/input/school_by_route.csv
+
 psql/input/Collection_Schedule_School <- input/CollectionSchedule_input.sql, data/input/school_by_route.csv [method:psql]
 
 ;;; Toilet Coordinates ;;;
