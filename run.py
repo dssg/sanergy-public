@@ -64,26 +64,26 @@ def main(config_file_name="default.yaml"):
   "test":(start, end)}, ... Fold 2 ...]
   """
 
-  # Loop through each of the experiments
-  # for i_exp, experiment in enumerate(experiments):
-  #     log.debug("Running experiment #{0}".format(i_exp))
-  #     #Initialize the loss function.
-  #     lf = LossFunction(experiment.config, experiment.parameters['loss'], experiment.parameters['aggregation_measure'])
-  #
-  #     # 2. Create the labels / features data set in Postgres
-  #     #TODO: grab_collections_data needs a unittest
-  #     #features, responses=grab_collections_data(db, experiment.config['Xy'], log) #this creates df features and labels in the postgres
-  #     log.debug("Generated features in the database.")
-  #
-  #
-  #     # 4. Folds are passed to models functions
-  #     # 5. Run the models
-  #     # 6. Calculate and save the losses
-  #     losses_from_experiments[experiment] = run_models_on_folds(folds, lf, db, experiment) #See below the structure. Return a list of losses per fold.
-  #     # 8. Evaluate the losses
-  #     # Have results_from_experiments ready or load it from the db
-  # log.info("Crossvalidated the experiments.")
-  # best_experiment, best_loss = compare_models_by_loss_functions(losses_from_experiments)
+  #Loop through each of the experiments
+  for i_exp, experiment in enumerate(experiments):
+      log.debug("Running experiment #{0}".format(i_exp))
+      #Initialize the loss function.
+      lf = LossFunction(experiment.config, experiment.parameters['loss'], experiment.parameters['aggregation_measure'])
+
+      # 2. Create the labels / features data set in Postgres
+      #TODO: grab_collections_data needs a unittest
+      features, responses=grab_collections_data(db, experiment.config['Xy'], log) #this creates df features and labels in the postgres
+      log.debug("Generated features in the database.")
+
+
+      # 4. Folds are passed to models functions
+      # 5. Run the models
+      # 6. Calculate and save the losses
+      losses_from_experiments[experiment] = run_models_on_folds(folds, lf, db, experiment) #See below the structure. Return a list of losses per fold.
+      # 8. Evaluate the losses
+      # Have results_from_experiments ready or load it from the db
+  log.info("Crossvalidated the experiments.")
+  best_experiment, best_loss = compare_models_by_loss_functions(losses_from_experiments)
   best_experiment = experiments[0]
   # 9. Rerun best model on whole dataset
   #TODO: What is test?
