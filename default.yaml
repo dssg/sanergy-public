@@ -33,8 +33,12 @@ db:
 #The model matrix
 Xy:
     response:
-      variable: 'Feces_kg_day'
-      split: []
+      #variable: 'Feces_kg_day'
+      #split: []
+      type: 'binary'
+      variable: 'FecesContainer_percent'
+      split:
+        and: [['>','100']]
     features:
       Total_Waste_kg_day: []
     unique:
@@ -84,7 +88,7 @@ cv:
 # Implementation parameters #
 #############################
 implementation:
-  loss: ["L2", "L1"]
-  prediction_horizon: [7] #How many days
+  loss: ['0-1'] #["L2", "L1"]
+  prediction_horizon: [1] #How many days
   prediction_weekday_start: [0] #Which day of the week do we recompute the schedule? 0=Mon, 7=Sun. Applicable for weekly or multiple-thereof schedules.
   aggregation_measure: ["mean"] #A measure to use to aggregate the losses across different folds. Since different experiments may have different numbers of folds, should be a probability measure.

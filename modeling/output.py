@@ -76,6 +76,7 @@ def present_schedule(predicted, day_toilet_data, config):
     timed_predictions = timed_predictions[[config['cols']['toiletname'],'wday','predicted']]
     schedule = timed_predictions.pivot(index = config['cols']['toiletname'], columns = 'wday' ,values='predicted')
     #Reorder the schedule so that the closest days are on the left. For this to work, the prediction window must be less or equal to 7 days
-    wday_ordering = range(config['implementation']['prediction_weekday_start'][0],(WDAY_SUNDAY+1)) + range(WDAY_MONDAY, config['implementation']['prediction_weekday_start'][0])
-    schedule = schedule[wday_ordering]
+    if config['implementation']['prediction_horizon'][0] == 7:
+        wday_ordering = range(config['implementation']['prediction_weekday_start'][0],(WDAY_SUNDAY+1)) + range(WDAY_MONDAY, config['implementation']['prediction_weekday_start'][0])
+        schedule = schedule[wday_ordering]
     return(schedule)

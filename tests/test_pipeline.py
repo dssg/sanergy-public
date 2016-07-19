@@ -169,12 +169,19 @@ class LossFunctionTest(unittest.TestCase):
         lf = LossFunction(self.config)
         self.assertIsInstance(lf,LossFunction)
 
-    def test_evaluate(self):
+    def test_L2_loss(self):
         lf = LossFunction(self.config, self.config['implementation']['loss'], self.config['implementation']['aggregation_measure'])
         yhat = [1,0,0]
         y = [0,2,0]
         loss = lf.evaluate(yhat,y)
         self.assertEqual(loss, np.sqrt(5)/3)
+
+    def test_01_loss(self):
+        lf = LossFunction(self.config, '0-1')
+        yhat = [1,0,0]
+        y = [0,1,0]
+        loss = lf.evaluate(yhat,y)
+        self.assertEqual(loss, 2.0/3)
 
 class outputTest(unittest.TestCase):
     pass

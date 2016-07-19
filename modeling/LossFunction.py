@@ -32,7 +32,8 @@ class LossFunction(object):
             evaluated_loss = (1.0/len(yhat))*np.linalg.norm(np.asarray(yhat)-np.asarray(y), ord=2)
         elif self.loss == "L1":
             evaluated_loss = (1.0/len(yhat))*np.linalg.norm(np.asarray(yhat)-np.asarray(y), ord=1)
-
+        elif self.loss == '0-1':
+            evaluated_loss = np.mean(np.asarray(yhat) != np.asarray(y))
         return(evaluated_loss)
 
     def aggregate(self, losses):

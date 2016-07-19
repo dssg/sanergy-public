@@ -67,10 +67,10 @@ class Model(object):
             return statsmodels.tsa.ar_model.AR(
                 max_order=self.parameters['max_order'])
         if self.modeltype == "RandomForest":
-            return ensemble.RandomForestRegressor(
-                n_estimators=self.parameters['n_estimators'])
-            #return ensemble.RandomForestClassifier(
+            #return ensemble.RandomForestRegressor(
             #    n_estimators=self.parameters['n_estimators'])
+            return ensemble.RandomForestClassifier(
+                n_estimators=self.parameters['n_estimators'])
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
@@ -88,7 +88,6 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         #print(labels_train.shape)
         model = Model(experiment.model,experiment.parameters)
         yhat, trained_model = model.run(features_train, labels_train, features_test)
-        print(yhat[0:5])
 
         # 6. From the loss function
         losses.append(loss_function.evaluate(yhat, labels_test))

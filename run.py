@@ -84,7 +84,8 @@ def main(config_file_name="default.yaml"):
       # Have results_from_experiments ready or load it from the db
   log.info("Crossvalidated the experiments.")
   best_experiment, best_loss = compare_models_by_loss_functions(losses_from_experiments)
-  best_experiment = experiments[0]
+  log.info("Mean loss for the best experiment:{0}".format(best_loss))
+
   # 9. Rerun best model on whole dataset
   #TODO: What is test?
   run_best_model_on_all_data(best_experiment, db, folds)
