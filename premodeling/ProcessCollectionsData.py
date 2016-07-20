@@ -26,8 +26,7 @@ from pandas import Series, Panel
 import copy
 
 # Constants
-URINE_DENSITY = 1.0
-FECES_DENSITY = 1.0
+URINE_CAPACITY = 22.0
 OUTLIER_KG_DAY = 400
 MONTHS_WITH_SCHOOL_HOLIDAYS = [4,8,12]
 
@@ -94,14 +93,10 @@ collects.loc[((collects['Urine_kg_day']==None)|(collects['Urine_kg_day']<=0)),['
 print(collects['Urine_Collected'].value_counts())
 
 # Change outier toilets to none
-#collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),['Urine_kg_day']]=None
-#collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),['Feces_kg_day']]=None
-#collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),['Total_Waste_kg_day']]=None
+collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),['Urine_kg_day']]=None
+collects.loc[(collects['Feces_kg_day']>OUTLIER_KG_DAY),['Feces_kg_day']]=None
+collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),['Total_Waste_kg_day']]=None
 
-# Change outier toilets to none
-#collects.loc[(collects['Urine_kg_day']<=0),['Urine_kg_day']]=None
-#collects.loc[(collects['Feces_kg_day']<=0),['Feces_kg_day']]=None
-#collects.loc[(collects['Total_Waste_kg_day']<=0),['Total_Waste_kg_day']]=None
 print(collects['Feces_kg_day'].describe())
 
 byGROUP = collects.groupby('ToiletID')
@@ -265,28 +260,6 @@ collect_toilets['duplicated'] = collect_toilets.duplicated(subset=['Id'])
 print('merge collections and weather: %i' %(len(collect_toilets.loc[(collect_toilets['duplicated']==True)])))
 collect_toilets = collect_toilets.loc[(collect_toilets['duplicated']==False)]
 print(collect_toilets.shape)
-#duplicate_ids = set(collect_toilets.loc[(collect_toilets['duplicated']==True),'ToiletID'])
-#pprint.pprint(duplicate_ids)
-#print(collect_toilets.loc[(collect_toilets['ToiletID'].isin(list(duplicate_ids))),['ToiletID','Id','duplicated','sub-route_name','route_name','open?']])
-
-
-#collect_toilets = pd.merge(left=collect_toilets,
-#					right=schedule_wheelcart,
-#					how="left",
-#					left_on=["ToiletExID"],
-#					right_on=["flt_name"])
-
-#print(collect_toilets.shape)
-#print(schedule_wheelcart.keys())
-#collect_toilets['duplicated'] = collect_toilets.duplicated(subset=['Id'])
-#print('merge collections and schedule wheelcart: %i' %(len(collect_toilets.loc[(collect_toilets['duplicated']==True)])))
-#collect_toilets = collect_toilets.loc[(collect_toilets['duplicated']==False)]
-#print(collect_toilets.shape)
-#duplicate_ids = set(collect_toilets.loc[(collect_toilets['duplicated']==True),'ToiletID'])
-#pprint.pprint(duplicate_ids)
-#print(collect_toilets.loc[(collect_toilets['ToiletID'].isin(list(duplicate_ids))),['ToiletID','Id','duplicated','sub-route_name','route_name','open?']])
-#print(collect_toilets.loc[(collect_toilets['Id']=='a0AD000000TcGuGMAV')])
-
 
 # Removing observations that are outside of the time range (See notes from Rosemary meeting 6/21)
 collect_toilets = collect_toilets.loc[(collect_toilets['Collection_Date'] > datetime.datetime(2011,11,20)),]
@@ -295,16 +268,16 @@ print(collect_toilets.shape)
 # Update negative weights as zero (See notes from Rosemary meeting 6/21)
 # Update zero weights as NONE as well (see notes from Lauren meeting 6/30)
 # Update keep the zero weights (see zero weight investigation)
-#collect_toilets.loc[(collect_toilets['Urine_kg_day'] <= 0),['Urine_kg_day']]=None
-#collect_toilets.loc[(collect_toilets['Feces_kg_day'] <= 0),['Feces_kg_day']]=None
-#collect_toilets.loc[(collect_toilets['Total_Waste_kg_day'] <= 0),['Total_Waste_kg_day']]=None
+collect_toilets.loc[((collect_toilets['Urine_kg_day'] <= 0)&(collect_toilets['Missed_Collection_Code'].isnull()==False)),['Urine_kg_day']]=None
+collect_toilets.loc[((collect_toilets['Feces_kg_day'] <= 0)&(collect_toilets['Missed_Collection_Code'].isnull()==False)),['Feces_kg_day']]=None
+collect_toilets.loc[((collect_toilets['Total_Waste_kg_day'] <= 0)&(collect_toilets['Missed_Collection_Code'].isnull()==False)),['Total_Waste_kg_day']]=None
 
 # Calculate the percentage of the container full (urine/feces)
-collect_toilets['waste_factor'] = 25.0 # Feces container size is 35 L
-collect_toilets.loc[(collect_toilets['FecesContainer']==45),['waste_factor']]=37.0 # Feces container size is 45 L
+collect_toilets['waste_factor'] = 29.0 # Feces container size is 35 L
+collect_toilets.loc[(collect_toilets['FecesContainer'].isin([40,45])),'waste_factor']=37.0 # Feces container size is 45 L
 
-collect_toilets['UrineContainer_percent'] = ((collect_toilets['Urine_kg_day']/URINE_DENSITY)/collect_toilets['UrineContainer'])*100
-collect_toilets['FecesContainer_percent'] = ((collect_toilets['Feces_kg_day']/FECES_DENSITY)/collect_toilets['waste_factor'])*100
+collect_toilets['UrineContainer_percent'] = ((collect_toilets['Urine_kg_day'])/URINE_CAPACITY)*100
+collect_toilets['FecesContainer_percent'] = ((collect_toilets['Feces_kg_day'])/collect_toilets['waste_factor'])*100
 print(collect_toilets[['FecesContainer_percent','UrineContainer_percent']].describe())
 
 # Incorporating the school closure variable
