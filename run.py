@@ -11,8 +11,6 @@ from sanergy.modeling.dataset import grab_collections_data, get_db, temporal_spl
 from sanergy.modeling.models import run_models_on_folds
 from sanergy.modeling.output import run_best_model_on_all_data
 
-#
-#import sanergy.preprocessing from datasets
 
 #Import the internal modules
 
