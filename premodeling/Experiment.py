@@ -55,19 +55,3 @@ def generate_experiments(yaml_config):
                 experiments.append(exp)
 
     return(experiments)
-
-
-def main():
-    """
-    Testing code.
-    """
-    with open("default.yaml", 'r') as f:
-            config = yaml.load(f)
-    #Random testing code
-    experiments = generate_experiments(config)
-    print(len(experiments))
-    print(experiments[23].parameters)
-
-
-if __name__ == '__main__':
-    main()

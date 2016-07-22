@@ -7,14 +7,14 @@ class LossFunction(object):
     A class to contain loss functions. Mainly used to take a Prediction object and new y data
     and return the evaluated loss, for different loss functions.
     """
-    def __init__(self, config):
+    def __init__(self, config, type_loss="L2", type_agg="mean"):
         """
         Available evaluation types:
         * ['L2']
         * ...?
         """
-        self.loss = config["implementation"]["loss"]
-        self.aggregation = config["implementation"]["aggregation_measure"]
+        self.loss = type_loss
+        self.aggregation = type_agg
         self.config = config
 
     def evaluate(self, yhat, y):
@@ -27,10 +27,14 @@ class LossFunction(object):
         Returns:
             loos: Evaluated loss as a float.
         """
-        if self.type == "L2":
-            loss = (1/len(yhat))*np.linalg.norm(yhat-y, ord=2)
-        elif self.type == "L1":
-            loss = (1/len(yhat))*np.linalg.norm(yhat-y, ord=1)
+
+        if self.loss == "L2":
+            evaluated_loss = (1.0/len(yhat))*np.linalg.norm(np.asarray(yhat)-np.asarray(y), ord=2)
+        elif self.loss == "L1":
+            evaluated_loss = (1.0/len(yhat))*np.linalg.norm(np.asarray(yhat)-np.asarray(y), ord=1)
+        elif self.loss == '0-1':
+            evaluated_loss = np.mean(np.asarray(yhat) != np.asarray(y))
+        return(evaluated_loss)
 
     def aggregate(self, losses):
         """
@@ -62,34 +66,20 @@ class LossFunction(object):
         waste = pd.merge(predicted_waste, new_data, on = [self.config['cols']['toiletname'], self.config['cols']['date']])
 
         #print(waste)
-        if self.type == "L2":
+        if self.loss == "L2":
             loss = np.mean((waste["predicted"]-waste[self.config['cols'][type_waste]])**2)
 
         return(loss)
 
-    
+
 def compare_models_by_loss_functions(results_from_experiments):
     aggregated_losses = {}
     for experiment, losses in results_from_experiments.iteritems():
-        loss_function = LossFunction(experiment.config)
+        loss_function = LossFunction(experiment.config, experiment.parameters['loss'], experiment.parameters['aggregation_measure'])
         aggregated_losses[experiment] = loss_function.aggregate(losses)
-    best_experiment = min(aggregated_losses.iterkeys(), key=(lamda key: aggregated_losses[key]))
+    best_experiment = min(aggregated_losses.iterkeys(), key=(lambda key: aggregated_losses[key]))
     best_aggregated_loss = aggregated_losses[best_experiment]
     return best_experiment, best_aggregated_loss
-
-def main():
-    """
-    Testing code, but it doesn't work at the moment. Need to wait until we have the Model class interface.
-    """
-    with open("default.yaml", 'r') as f:
-            config = yaml.load(f)
-    #Random testing code
-    L2 = LossFunction("L2",config)
-    df_hat = pd.DataFrame([["Toilet a","Tuesday",13.3], ["Toilet a","Wednesday",13.3], ["Toilet b","Wednesday",13.1]],columns=[config['cols']['toiletname'], config['cols']['date'], config['cols']['feces']])
-    df_test = pd.DataFrame([["Toilet a","Tuesday",15], ["Toilet a","Wednesday",13.2], ["Toilet b","Wednesday",13.3]],columns=[config['cols']['toiletname'], config['cols']['date'], config['cols']['feces']])
-    trained_model = Model()
-    L2.evaluate_waste_prediction(trained_model, df_test)
-    print(L2.evaluate_waste_prediction(pred,df_test))
 
 
 
