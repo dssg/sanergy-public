@@ -326,7 +326,9 @@ def format_features_labels(features_big,labels_big):
 
 def create_enveloping_fold(folds):
 	"""
-	Create a fold that subsumes all folds in [folds]. Make the test and train folds of the enveloping fold the same.
+	Create a fold that subsumes all folds in [folds], that is, it starts where the first fold starts and ends where the last fold ends. Make the test and train folds of the enveloping fold the same.
+	Warning: This assumes that the folds form a contiguous block. If it's not contiguous, the enveloping fold takes 
+	essentially the convex hull, in 1D that means the smallest interval that comprises all folds.
 	"""
 	all_start = min([fold['train_start'] for fold in folds] + [fold['test_start'] for fold in folds])
 	all_end = max([fold['train_end'] for fold in folds] + [fold['test_end'] for fold in folds])
@@ -341,6 +343,11 @@ def create_enveloping_fold(folds):
 	return(enveloping_fold)
 
 def create_future(fold, features_old, cfg_parameters):
+	"""
+	Just for testing purposes.
+	Sets up a replicate of the last day(s) data to create new data for testing. But in reality, 
+	we should be able to create features for the upcoming days from past data, so this would not be needed???
+	"""
 	last_day = fold['window_end']
 	next_days = [last_day + timedelta(days=i) for i in xrange(1,(cfg_parameters['prediction_horizon'] +1 ))]
 	old_features_unique = features_old.drop_duplicates(subset='ToiletID')
