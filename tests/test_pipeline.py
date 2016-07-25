@@ -186,5 +186,8 @@ class LossFunctionTest(unittest.TestCase):
 class outputTest(unittest.TestCase):
     pass
 
+class StaffingTest(unittest.TestCase):
+    pass
+
 if __name__ == '__main__':
     unittest.main()
