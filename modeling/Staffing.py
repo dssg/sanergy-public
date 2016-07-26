@@ -2,13 +2,15 @@ import pyscipopt as scip
 
 class Staffing(object):
     N_DAYS = 7
+    COL_ROUTE = 'Area'
+    COL_DAYS = [str(d) for d in range(0,N_DAYS)]
     """
     Provide a workforce schedule for a given collection schedule.
 
     Given: the collection schedule (toilets and every day whether to collect or not and how much waste they accumulate) and (initially) which route/area they belong to
     Output: A list of workers per route/area-day
     """
-    def __init__(self, schedule, waste, staffing_parameters):
+    def __init__(self, schedule, waste, staffing_parameters, config):
         """
 
         Args:
@@ -18,10 +20,13 @@ class Staffing(object):
             W: weight limit per worker per day
             D: day limit of workdays per week per worker
             N: number of available workers
+            NR: minimum worker per route (assume 2, but in fact some need 3 -> fix later)
         """
         self.schedule = schedule
         self.waste = waste
         self.parameters = staffing_parameters
+        self.config
+
 
     def preprocess(self):
         """
@@ -29,6 +34,8 @@ class Staffing(object):
         T: number of toilets (from schedule)
         routes: ... (from schedule)
         """
+        self.routes = self.schedule[COL_ROUTE].unique()
+        self.route_waste = {(d,r) : self.waste.groupby(['Area',d])[config['cols']['feces']].sum() for d in COL_DAYS for r in self.routes} #TODO
 
     def staff(self):
         """
@@ -76,17 +83,37 @@ class Staffing(object):
         s.setMinimize()
 
         #Vars: z_crd: collector c assigned to route r for day d
+        assign_vars = {}
         for c in range(0,self.parameters['N']):
             for i_r, r in enumerate(self.routes):
                 for d in range(0, N_DAYS):
-                    v_name = 'z' + c + i_r + d
+                    v_name = 'z' + str(c) + str(i_r) + str(d)
                     #This also handles the objective function...
-                    s.addVar(v_name, vtype='B', obj=1.0)
+                    assign_vars[c,i_r,d] = s.addVar(v_name, vtype='B', obj=1.0)
 
         #Constraints
-
+        for c in range(0,self.parameters['N']):
+            #1) Collector workday limits
+            w_name = 'Worker_' + str(c)
+            coeffs_worker = {assign_vars[(c,i_r,d)] : 1 for d in range(0,N_DAYS) for i_r,r in enumerate(self.routes)}
+            s.addCons(coeffs = coeffs_worker , rhs=self.parameters['D'] name=w_name)
+        for d in range(0,N_DAYS):
+            for i_r,r in enumerate(self.routes):
+                 #2) Collector weight limits on routes. For each route: assign 2+ workers and also more than the predicted weight per the route
+                 #3) Assign n+ workers on the route
+                 route_weight_name = 'Route_Weight_' + str(i_r) + "_" + str(d)
+                 route_collector_minimum_name = 'Route_Minimum_' + str(i_r) + "_" + str(d)
+                 coeffs_weight = {assign_vars[(c,i_r,d)] : 1 for c in range(0,self.parameters['N'])} #sum_c z_crd >= w_rd / W
+                 coeffs_collectors = {assign_vars[(c,i_r,d)] : 1 for c in range(0,self.parameters['N'])}
+                 s.addCons(coeffs = coeffs_weight, lhs = self.route_waste[d, r] / self.parameters['W'], rhs=None, name= route_weight_name)
+                 s.addCons(coeffs = coeffs_collectors, lhs = self.parameters['WR'], rhs=None, name= route_collector_minimum_name)
 
         #Objective function
         #Done: See in Vars
 
         s.optimize()
+
+        s.printStatistics()
+        # retrieving the best solution
+        solution = s.getBestSol()
+        return(s)
