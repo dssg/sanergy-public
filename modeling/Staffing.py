@@ -1,4 +1,5 @@
 import pyscipopt as scip
+import pandas as pd
 
 class Staffing(object):
     N_DAYS = 7
@@ -111,7 +112,7 @@ class Staffing(object):
                 coeffs_collectors = {assign_vars[(c,r,d)] : 1 for c in range(0,self.parameters['N'])}
 
                 weight_limit =  self.is_the_route_collected_on_day[d,r]  * self.route_waste[d, r] / self.parameters['W']
-
+                collect_limit =  self.is_the_route_collected_on_day[d,r]  * self.parameters['NR']
                 s.addCons(coeffs = coeffs_weight, lhs =weight_limit, rhs=None, name= route_weight_name)
                 s.addCons(coeffs = coeffs_collectors, lhs = collect_limit, rhs=None, name= route_collector_minimum_name)
 
@@ -120,12 +121,12 @@ class Staffing(object):
         #Objective function
         #Done: See in Vars
         s.optimize()
-        self.createRoster(s)
+        roster = self.createRoster(s,assign_vars)
         #.printStatistics()
         return(roster, s, assign_vars)
 
 
-    def createRoster(optimizedModel):
+    def createRoster(self, optimizedModel, vars):
         """
         Create a roster per route/area, currently only giving the number of people needed per day.
 
@@ -135,4 +136,9 @@ class Staffing(object):
         returns:
           DataFrame roster: a row for each route, a column for each day, the value indicates how many collectors are needed for that day and route
         """
-        #TODO
+        roster = pd.DataFrame(index = self.routes, columns = self.COL_DAYS)
+        for r in self.routes:
+            for d in self.COL_DAYS:
+                roster.loc[r,d] = reduce(lambda x,y: x+y, [optimizedModel.getVal(vars[i_worker,r,d]) for i_worker in range(0,self.parameters['N'])])
+
+        return(roster)

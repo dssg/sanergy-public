@@ -219,7 +219,7 @@ class StaffingTest(unittest.TestCase):
 
     def test_staff(self):
         staffing = Staffing(self.dfs, self.dfw, self.staffing_parameters,self.config)
-        s, vars =staffing.staff()
+        roster, s, vars =staffing.staff()
         collectors_day0 =  reduce(lambda x,y: x+y, [s.getVal(vars[i,'DSSG','0']) for i in range(0,self.staffing_parameters['N'])])
         collectors_day1 =  reduce(lambda x,y: x+y, [s.getVal(vars[i,'DSSG','1']) for i in range(0,self.staffing_parameters['N'])])
         collectors_day2 =  reduce(lambda x,y: x+y, [s.getVal(vars[i,'DSSG','2']) for i in range(0,self.staffing_parameters['N'])])
@@ -229,6 +229,8 @@ class StaffingTest(unittest.TestCase):
         self.assertEqual(collectors_day1, 3)
         self.assertEqual(collectors_day2, 2)
         self.assertEqual(collectors_day5, 0)
+        self.assertEqual(roster.shape[0], 1)
+        self.assertEqual( list(roster.loc['DSSG',['0','1','2']].values), [collectors_day0,collectors_day1,collectors_day2])
 
 
 
