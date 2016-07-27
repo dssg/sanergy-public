@@ -115,9 +115,24 @@ class Staffing(object):
                 s.addCons(coeffs = coeffs_weight, lhs =weight_limit, rhs=None, name= route_weight_name)
                 s.addCons(coeffs = coeffs_collectors, lhs = collect_limit, rhs=None, name= route_collector_minimum_name)
 
+        #Write down the formulation to make sure it was formulated correctly.
+        #s.writeProblem()
         #Objective function
         #Done: See in Vars
         s.optimize()
-
+        self.createRoster(s)
         #.printStatistics()
-        return(s, assign_vars)
+        return(roster, s, assign_vars)
+
+
+    def createRoster(optimizedModel):
+        """
+        Create a roster per route/area, currently only giving the number of people needed per day.
+
+        args:
+          optimizedModel: Passed from the staffing model.
+
+        returns:
+          DataFrame roster: a row for each route, a column for each day, the value indicates how many collectors are needed for that day and route
+        """
+        #TODO
