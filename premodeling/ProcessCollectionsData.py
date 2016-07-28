@@ -196,8 +196,8 @@ for tt in TOILETS:
 
 	neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 100.0)&(gt!=tt))]
 	gdf.loc[tt,'100m'] = len(neighbors)
-    if toilet_done % total_to_do == 0:
-    	print((toilet_done/total_to_do,len(neighbors)))
+	if toilet_done % total_to_do == 0:
+		print((toilet_done/total_to_do,len(neighbors)))
 print(gdf[['5m','100m']].describe())
 toilets = pd.merge(toilets,
 		   gdf[['ToiletID','5m','25m','50m','100m']],
