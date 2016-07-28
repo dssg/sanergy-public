@@ -4,6 +4,8 @@ import re, pprint
 import sqlalchemy
 import pandas as pd
 import numpy as np
+import logging
+import sys
 from datetime import datetime, date, timedelta
 from functools import reduce
 
@@ -151,7 +153,7 @@ class datasetTest(unittest.TestCase):
 
         #Now replicate the original features
 
-        print(next_days)
+        #print(next_days)
 
 
     def test_format_features_labels(self):
@@ -216,6 +218,15 @@ class StaffingTest(unittest.TestCase):
         }
         self.dfw = pd.DataFrame(d_waste)
         self.dfs = pd.DataFrame(d_schedule)
+        logging.basicConfig(format="%(asctime)s %(message)s",
+        filename="default.log", level=logging.DEBUG)
+        self.log = logging.getLogger("Sanergy Collection Optimizer")
+
+        screenlog = logging.StreamHandler(sys.stdout)
+        screenlog.setLevel(logging.DEBUG)
+        formatter = logging.Formatter("%(asctime)s - %(name)s: %(message)s")
+        screenlog.setFormatter(formatter)
+        self.log.addHandler(screenlog)
 
     def test_staff(self):
         staffing = Staffing(self.dfs, self.dfw, self.staffing_parameters,self.config)
@@ -232,6 +243,10 @@ class StaffingTest(unittest.TestCase):
         self.assertEqual(roster.shape[0], 1)
         self.assertEqual( list(roster.loc['DSSG',['0','1','2']].values), [collectors_day0,collectors_day1,collectors_day2])
 
+    def test_emptyStaffing(self):
+        staffing = Staffing(None, None, self.staffing_parameters, self.config)
+        output_roster = staffing.staff()[0]
+        self.assertEqual(output_roster, None)
 
 
 if __name__ == '__main__':

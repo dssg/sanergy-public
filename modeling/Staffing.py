@@ -1,5 +1,6 @@
 import pyscipopt as scip
 import pandas as pd
+import logging
 
 class Staffing(object):
     N_DAYS = 7
@@ -28,6 +29,7 @@ class Staffing(object):
         self.waste = waste
         self.parameters = staffing_parameters
         self.config = config
+        self.log = logging.getLogger("Sanergy Collection Optimizer")
 
 
     def preprocess(self):
@@ -80,10 +82,15 @@ class Staffing(object):
         Step 4: Other constraints/objectives
           * Training (have workers rotate through different areas)
         """
+        if self.schedule is None or self.waste is None:
+            self.log.warning("The staffing routine has not received scheduling or waste prediction data. The workforce schedule will not be created.")
+            return( [None, None, None] )
+
         self.preprocess()
 
+
         s = scip.Model("Staffing")
-        #s.hideOutput()
+        s.hideOutput()
         s.setMinimize()
 
         #Vars: z_crd: collector c assigned to route r for day d
@@ -122,7 +129,7 @@ class Staffing(object):
         #Done: See in Vars
         s.optimize()
         roster = self.createRoster(s,assign_vars)
-        #.printStatistics()
+        self.log.debug(s.printStatistics())
         return(roster, s, assign_vars)
 
 
