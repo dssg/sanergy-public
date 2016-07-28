@@ -32,6 +32,7 @@ COORD_WGS = "4326"
 
 # Timeseries data
 from pandas import Series, Panel
+from tqdm import tqdm
 
 import copy
 
@@ -83,6 +84,35 @@ print('connected to postgres')
 
 conn.execute("DROP TABLE IF EXISTS premodeling.toiletcollection")
 
+# Load the weather data to pandas
+weather = pd.read_sql('SELECT * FROM input."weather"', conn, coerce_float=True, params=None)
+# Transform some of the variables
+weather['year'] =weather['year'].apply(str)
+weather['year'] =weather['year'].replace(to_replace=',',value="")
+weather['day'] =weather['day'].apply(str)
+weather['month']=weather['month'].apply(str)
+weather['date_str']=weather['year']+weather['month']+weather['day']
+
+print(weather[['year','month','day','date_str']].head())
+weather['date']=pd.to_datetime(weather['date_str'], format='%Y%m%d')
+weather['air_temp'] = weather['air_temp']/float(10) # units are in celsius and scaled by 10
+weather['precipitation_6hr'] = weather['liquid_precipitation_depth_dimension_six_hours'] # annoyingly long variable name
+
+weather = weather.loc[(weather['year']>=2010)] # focus the weather data on 2010 forward
+
+# Aggregate the data by date (year/month/day)
+byTIME = weather.groupby('date')
+# Construct descriptive statistics across the 24hr coverage per day
+aggTIME = byTIME[['air_temp',
+                  'dew_point_temp',
+                  'sea_level_pressure',
+                  'wind_speed_rate',
+                  'precipitation_6hr']].agg({'mean':np.mean,'min':np.min,'max':np.max,'sd':np.std})
+# Rename/flatten the columns
+aggTIME.columns = ['_'.join(col).strip() for col in aggTIME.columns.values]
+# Bring date back into the dataset (bing, bang, boom)
+weather = aggTIME.reset_index()
+
 print('loading collections')
 # Load the collections data to a pandas dataframe
 collects = pd.read_sql('SELECT * FROM input."Collection_Data__c"', conn, coerce_float=True, params=None)
@@ -91,7 +121,7 @@ collects = standardize_variable_names(collects, RULES)
 # Several days are missing from the data, we append those and sort the data :-p
 ADD_ROWS = {'ToiletID':[], 'Collection_Date':[]}
 ToiletID = list(set(collects['ToiletID'].tolist()))
-for tt in ToiletID:
+for tt in tqdm(ToiletID):
 	temp = collects.loc[(collects['ToiletID']==tt)]
 	min_days = min(temp['Collection_Date'])
 	max_days = max(temp['Collection_Date'])
@@ -126,9 +156,9 @@ collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),['Total_Waste_kg_da
 
 print(collects['Feces_kg_day'].describe())
 
-byGROUP = collects.groupby('ToiletID')
+#byGROUP = collects.groupby('ToiletID')
 
-print('applying days since variable')
+#print('applying days since variable')
 
 def countDaysSinceWeight(x):
     """
@@ -146,27 +176,29 @@ def countDaysSinceWeight(x):
     count_urine = 0
     x['Feces_days_since'] = 0
     x['Urine_days_since'] = 0
-    for ii in x['Feces_Collected'].keys():
-        count_feces+=1
-        if (x['Feces_Collected'][ii] == 1):
-            x['Feces_days_since'][ii] = 0
+    for ii in x['Feces_Collected'].index:
+	#print(x.loc[ii,'Feces_Collected'])
+        if (x.loc[ii,'Feces_Collected'] == 1):
+            x.loc[ii,'Feces_days_since'] = 0
             count_feces = 0
         else:
-            x['Feces_days_since'][ii] = count_feces
-        count_urine+=1
-        if (x['Urine_Collected'][ii] == 1):
-            x['Urine_days_since'][ii] = 0
+            x.loc[ii,'Feces_days_since'] = count_feces
+        if (x.loc[ii,'Urine_Collected'] == 1):
+            x.loc[ii,'Urine_days_since'] = 0
             count_urine = 0
         else:
-            x['Urine_days_since'][ii] = count_urine
+            x.loc[ii,'Urine_days_since'] = count_urine
+        count_feces+=1
+        count_urine+=1
 
     #print(x['days_since'].describe())
     return(x)
 
-byGROUP = byGROUP.apply(countDaysSinceWeight)
-collects = byGROUP.reset_index()
-print(collects['Feces_days_since'].describe())
-print(collects['Urine_days_since'].describe())
+# Error that needs to be addressed
+#byGROUP = byGROUP.apply(countDaysSinceWeight)
+#collects = byGROUP.reset_index()
+#print(collects['Feces_days_since'].describe())
+#print(collects['Urine_days_since'].describe())
 
 # Load the toilet data to pandas
 toilets = pd.read_sql('SELECT * FROM input."tblToilet"', conn, coerce_float=True, params=None)
@@ -181,49 +213,24 @@ gdf.to_crs(epsg=COORD_SYSTEM,inplace=True)
 #BaseGeometry.distance(gdf.loc[109].geometry, gdf.loc[217].geometry)
 TOILETS = gToilets['ToiletID'].index
 
-print('Looping through the ID list: i%' %(len(TOILETS)))
-total_to_do = len(TOILETS)
-toilet_done = 0
-for tt in TOILETS:
+print('Looping through the ID list: %i' %(len(TOILETS)))
+for tt in tqdm(TOILETS):
 	neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 5.0)&(gt!=tt))]
 	gdf.loc[tt,'5m'] = len(neighbors)
 
-	neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 25.0)&(gt!=tt))]
-	gdf.loc[tt,'25m'] = len(neighbors)
+	#neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 25.0)&(gt!=tt))]
+	#gdf.loc[tt,'25m'] = len(neighbors)
     
 	neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 50.0)&(gt!=tt))]
 	gdf.loc[tt,'50m'] = len(neighbors)
 
-	neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 100.0)&(gt!=tt))]
-	gdf.loc[tt,'100m'] = len(neighbors)
-	if toilet_done % total_to_do == 0:
-		print((toilet_done/total_to_do,len(neighbors)))
-print(gdf[['5m','100m']].describe())
+	#neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 100.0)&(gt!=tt))]
+	#gdf.loc[tt,'100m'] = len(neighbors)
+
+print(gdf[['5m','50m']].describe())
 toilets = pd.merge(toilets,
-		   gdf[['ToiletID','5m','25m','50m','100m']],
+		   gdf[['ToiletID','5m','50m']],
 		   on='ToiletID')
-
-# Load the weather data to pandas
-weather = pd.read_sql('SELECT * FROM input."weather"', conn, coerce_float=True, params=None)
-# Transform some of the variables
-weather['date']=pd.to_datetime(weather[['year','month','day']])
-weather['air_temp'] = weather['air_temp']/float(10) # units are in celsius and scaled by 10
-weather['precipitation_6hr'] = weather['liquid_precipitation_depth_dimension_six_hours'] # annoyingly long variable name
-
-weather = weather.loc[(weather['year']>=2010)] # focus the weather data on 2010 forward
-
-# Aggregate the data by date (year/month/day)
-byTIME = weather.groupby('date')
-# Construct descriptive statistics across the 24hr coverage per day
-aggTIME = byTIME[['air_temp',
-                  'dew_point_temp',
-                  'sea_level_pressure',
-                  'wind_speed_rate',
-                  'precipitation_6hr']].agg({'mean':np.mean,'min':np.min,'max':np.max,'sd':np.std})
-# Rename/flatten the columns
-aggTIME.columns = ['_'.join(col).strip() for col in aggTIME.columns.values]
-# Bring date back into the dataset (bing, bang, boom)
-weather = aggTIME.reset_index()
 
 # Load the schedule data to pandas
 schedule = pd.read_sql('SELECT * FROM input."FLT_Collection_Schedule__c"', conn, coerce_float=True, params=None)
