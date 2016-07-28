@@ -20,6 +20,16 @@ import pprint, re, datetime
 import numpy as np
 from scipy import stats
 
+# Geospatial magic
+import geopandas as gp
+from shapely.geometry import Point
+from shapely.geometry.base import BaseGeometry
+from geopandas import GeoSeries, GeoDataFrame
+
+COORD_SYSTEM = "21037" #One of the 4 systems in Kenya..., the one that contains Nairobi, apparently
+#4326 is WGS84, but that one is not linear but spherical -> difficult to compute distances
+COORD_WGS = "4326"
+
 # Timeseries data
 from pandas import Series, Panel
 
@@ -77,6 +87,23 @@ print('loading collections')
 # Load the collections data to a pandas dataframe
 collects = pd.read_sql('SELECT * FROM input."Collection_Data__c"', conn, coerce_float=True, params=None)
 collects = standardize_variable_names(collects, RULES)
+
+# Several days are missing from the data, we append those and sort the data :-p
+ADD_ROWS = {'ToiletID':[], 'Collection_Date':[]}
+ToiletID = list(set(collects['ToiletID'].tolist()))
+for tt in ToiletID:
+	temp = collects.loc[(collects['ToiletID']==tt)]
+	min_days = min(temp['Collection_Date'])
+	max_days = max(temp['Collection_Date'])
+	all_days = list(set(pd.date_range(start=min_days, end=max_days, freq="D").tolist()) - set(temp['Collection_Date'].tolist()))
+	ADD_ROWS['ToiletID'].extend([tt]*len(all_days))
+	ADD_ROWS['Collection_Date'].extend(all_days)
+ADDING_ROWS = pd.DataFrame(ADD_ROWS)
+ADDING_ROWS.head()
+print('With missing days: %i' %(len(collects)))
+collects = collects.append(ADDING_ROWS)
+print('Adding in the missing days: %i' %(len(collects)))
+collects = collects.sort_values(by=['ToiletID','Collection_Date'])
 
 # Drop the route variable from the collections data
 collects = collects.drop('Collection_Route',1)
@@ -144,6 +171,37 @@ print(collects['Urine_days_since'].describe())
 # Load the toilet data to pandas
 toilets = pd.read_sql('SELECT * FROM input."tblToilet"', conn, coerce_float=True, params=None)
 toilets = standardize_variable_names(toilets, RULES)
+
+# Add in the density of Sanergy toilets surrounding a toilet (by meters)
+gToilets = toilets.loc[(toilets.duplicated(subset='ToiletID')==False),['ToiletID','Latitude','Longitude']]
+geometry = [Point(xy) for xy in zip(gToilets.Longitude, gToilets.Latitude)]
+crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+gdf = gp.GeoDataFrame(gToilets[['ToiletID','Longitude','Latitude']], crs=crs, geometry=geometry)
+gdf.to_crs(epsg=COORD_SYSTEM,inplace=True)
+#BaseGeometry.distance(gdf.loc[109].geometry, gdf.loc[217].geometry)
+TOILETS = gToilets['ToiletID'].index
+
+print('Looping through the ID list: i%' %(len(TOILETS)))
+total_to_do = len(TOILETS)
+toilet_done = 0
+for tt in TOILETS:
+	neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 5.0)&(gt!=tt))]
+	gdf.loc[tt,'5m'] = len(neighbors)
+
+	neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 25.0)&(gt!=tt))]
+	gdf.loc[tt,'25m'] = len(neighbors)
+    
+	neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 50.0)&(gt!=tt))]
+	gdf.loc[tt,'50m'] = len(neighbors)
+
+	neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 100.0)&(gt!=tt))]
+	gdf.loc[tt,'100m'] = len(neighbors)
+    if toilet_done % total_to_do == 0:
+    	print((toilet_done/total_to_do,len(neighbors)))
+print(gdf[['5m','100m']].describe())
+toilets = pd.merge(toilets,
+		   gdf[['ToiletID','5m','25m','50m','100m']],
+		   on='ToiletID')
 
 # Load the weather data to pandas
 weather = pd.read_sql('SELECT * FROM input."weather"', conn, coerce_float=True, params=None)
