@@ -10,6 +10,7 @@ from sqlalchemy import create_engine
 import datetime as dt
 import pandas as pd
 
+
 import sanergy.input.dbconfig as dbconfig
 from sanergy.modeling.models import Model
 from sanergy.modeling.dataset import create_enveloping_fold, grab_from_features_and_labels, create_future, format_features_labels
@@ -40,6 +41,11 @@ def run_best_model_on_all_data(experiment, db, folds):
 
     #TODO: Need to transform yhat (a probability?) into 1/0 for collect vs not collect. Probably should happen within the Model class?
     output_schedule = present_schedule(yhat, features_future_big, experiment.config)
+    #output_waste = ...
+
+    #Workforce scheduling
+    staffing = Staffing(output_schedule, None, None, experiment.config)
+    output_roster = staffing.staff()[0]
 
 
     # Write the results to postgres
@@ -54,6 +60,15 @@ def run_best_model_on_all_data(experiment, db, folds):
     schema="output",
     con=db['connection'],
     chunksize=1000)
+
+    #If we created the output roster, save it into the db too
+    if output_roster:
+        db['connection'].execute('DROP TABLE IF EXISTS output."workforce_schedule"')
+        pd.DataFrame(output_roster).to_sql(name='workforce_schedule',
+        schema="output",
+        con=db['connection'],
+        chunksize=1000)
+
 
     return(best_model)
 

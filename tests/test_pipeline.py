@@ -4,13 +4,16 @@ import re, pprint
 import sqlalchemy
 import pandas as pd
 import numpy as np
+import logging
+import sys
 from datetime import datetime, date, timedelta
-
+from functools import reduce
 
 from sanergy.premodeling.Experiment import generate_experiments, Experiment
 from sanergy.modeling.LossFunction import LossFunction, compare_models_by_loss_functions
 from sanergy.modeling.dataset import grab_collections_data, temporal_split, format_features_labels, create_enveloping_fold
 import sanergy.input.dbconfig as dbconfig
+from sanergy.modeling.Staffing import Staffing
 #from premodeling.Experiment import generate_experiments
 
 class ExperimentTest(unittest.TestCase):
@@ -150,7 +153,7 @@ class datasetTest(unittest.TestCase):
 
         #Now replicate the original features
 
-        print(next_days)
+        #print(next_days)
 
 
     def test_format_features_labels(self):
@@ -185,6 +188,66 @@ class LossFunctionTest(unittest.TestCase):
 
 class outputTest(unittest.TestCase):
     pass
+
+class StaffingTest(unittest.TestCase):
+    def setUp(self):
+        self.config = {
+        'cols':{'feces':"FecesContainer_percent"}
+        }
+        self.staffing_parameters = {'N':5, 'W':10.0, 'NR':2,'D':5}
+        d_waste = {
+        'ToiletID' : pd.Series(['T1', 'T2','T3'], index=[0,1,2]),
+        '0' : pd.Series([5,6,11], index=[0,1,2]),
+        '1' : pd.Series([5,6,11], index=[0,1,2]),
+        '2' : pd.Series([5,6,11], index=[0,1,2]),
+        '3' : pd.Series([5,6,11], index=[0,1,2]),
+        '4' : pd.Series([5,6,11], index=[0,1,2]),
+        '5' : pd.Series([5,6,11], index=[0,1,2]),
+        '6' : pd.Series([5,6,11], index=[0,1,2])
+        }
+        d_schedule = {
+        'ToiletID' : pd.Series(['T1', 'T2','T3'], index=[0,1,2]),
+        '0' : pd.Series([1,1,0], index=[0,1,2]),
+        '1' : pd.Series([1,1,1], index=[0,1,2]),
+        '2' : pd.Series([1,0,0], index=[0,1,2]),
+        '3' : pd.Series([0,0,0], index=[0,1,2]),
+        '4' : pd.Series([0,0,0], index=[0,1,2]),
+        '5' : pd.Series([0,0,0], index=[0,1,2]),
+        '6' : pd.Series([0,0,0], index=[0,1,2]),
+        'Area' : pd.Series(['DSSG','DSSG','DSSG'], index=[0,1,2])
+        }
+        self.dfw = pd.DataFrame(d_waste)
+        self.dfs = pd.DataFrame(d_schedule)
+        logging.basicConfig(format="%(asctime)s %(message)s",
+        filename="default.log", level=logging.DEBUG)
+        self.log = logging.getLogger("Sanergy Collection Optimizer")
+
+        screenlog = logging.StreamHandler(sys.stdout)
+        screenlog.setLevel(logging.DEBUG)
+        formatter = logging.Formatter("%(asctime)s - %(name)s: %(message)s")
+        screenlog.setFormatter(formatter)
+        self.log.addHandler(screenlog)
+
+    def test_staff(self):
+        staffing = Staffing(self.dfs, self.dfw, self.staffing_parameters,self.config)
+        roster, s, vars =staffing.staff()
+        collectors_day0 =  reduce(lambda x,y: x+y, [s.getVal(vars[i,'DSSG','0']) for i in range(0,self.staffing_parameters['N'])])
+        collectors_day1 =  reduce(lambda x,y: x+y, [s.getVal(vars[i,'DSSG','1']) for i in range(0,self.staffing_parameters['N'])])
+        collectors_day2 =  reduce(lambda x,y: x+y, [s.getVal(vars[i,'DSSG','2']) for i in range(0,self.staffing_parameters['N'])])
+        collectors_day5 =  reduce(lambda x,y: x+y, [s.getVal(vars[i,'DSSG','5']) for i in range(0,self.staffing_parameters['N'])])
+        #Need 2 people on Monday, 3 people on Tuesday, and 1 (-> 2) people on Wednesday. Zero on other days.
+        self.assertEqual(collectors_day0, 2)
+        self.assertEqual(collectors_day1, 3)
+        self.assertEqual(collectors_day2, 2)
+        self.assertEqual(collectors_day5, 0)
+        self.assertEqual(roster.shape[0], 1)
+        self.assertEqual( list(roster.loc['DSSG',['0','1','2']].values), [collectors_day0,collectors_day1,collectors_day2])
+
+    def test_emptyStaffing(self):
+        staffing = Staffing(None, None, self.staffing_parameters, self.config)
+        output_roster = staffing.staff()[0]
+        self.assertEqual(output_roster, None)
+
 
 if __name__ == '__main__':
     unittest.main()
