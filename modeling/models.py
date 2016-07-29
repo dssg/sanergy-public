@@ -2,6 +2,7 @@
 import logging
 import pdb
 import numpy as np
+import datetime
 
 from sklearn import svm, ensemble, tree, linear_model, neighbors, naive_bayes
 from sklearn.feature_selection import SelectKBest
@@ -20,59 +21,106 @@ class ConfigError(NameError):
 
 class Model(object):
     """
-    a class for the model
+    A class for collection scheduling model(s)
     """
 
-    def __init__(self, modeltype,parameters=None):
+    def __init__(self, modeltype_waste, modeltype_schedule, parameters_waste=None, parameters_schedule=None, config):
         """
         Args:
         """
-        self.parameters=parameters
-        self.modeltype=modeltype
-        self.trained_model=None
-
+        self.parameters_waste=parameters_waste
+        self.parameters_schedule=parameters_schedule
+        self.modeltype_waste=modeltype_waste
+        self.modeltype_schedule=modeltype_schedule
+        self.config = config
 
 
     def run(self, train_x, train_y, test_x):
-        if self.modeltype == "AR":
-            pass
-        else:
-            results, modelobj = self.gen_model(train_x, train_y, test_x)
-            return results, modelobj
+        waste_model = WasteModel(train_x, train_y, self.modeltype_waste, self.parameters_waste, config) #Includes gen_model?
+        waste_matrix = waste_model.predict(test_x)[0]
+        schedule_model = ScheduleModel(waste_matrix, self.modeltype_schedule, self.parameters_schedule, train_x, train_y, confgi) #For simpler models, can ignore train_x and train_y?
+        collection_matrix = schedule_model.compute(waste_matrix, test_x) #Again, might be able to ignore test_x
+        return collection_matrix, schedule_model
 
 
-    def gen_model(self, train_x, train_y, test_x):
-        """Trains a model and generates risk scores.
+class WasteModel(object):
+    """
+    Predict the waste matrix: a dataframe with toilets in rows and days in columns. Values are predicted waste weights.
+    Args:
+      train_x: training features
+      train_y: training target variable
+      test_x: testing features
+      model (str): model type
+      parameters: hyperparameters for model
+    Returns:
+      result_y: predictions on test set
+      modelobj: trained model object
+    """
+    def __init__(self, modeltype, parameters, train_x = None, train_y = None, config):
+        self.parameters = parameters
+        self.modeltype = modeltype
+        self.config = config
+        if !(train_x is None | train_y is None):
+            self.gen_model(train_x, train_y)
+
+    def predict(self, test_x):
+        features = test_x.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
+        result_y = self.trained_model.predict(test_x)
+        waste_matrix = self.form_the_waste_matrix(test_x[[self.config['cols']['toiletname'], self.config['cols']['date']]], result_y, self.config['implementation']['prediction_horizon'][0] )
+
+        return waste_matrix, result_y
+
+    def form_the_waste_matrix(self, indices, y, horizon):
+        """
         Args:
-            train_x: training features
-            train_y: training target variable
-            test_x: testing features
-            model (str): model type
-            parameters: hyperparameters for model
-       Returns:
-            result_y: predictions on test set
-            modelobj: trained model object
+          indices (DataFrame): Includes the date and toilet_id
+          y (vector?): a vector of predictions, each index correpsonding to the toilet and date from indices
+          horizon (int): how long in the future should the  waste_matrix go?
         """
 
+        #Take the next prediction horizon days, extract them from features.
+        today = indices[self.config['cols']['date']].min() #The first day in the features
+        #7 (or horizon) days from today
+        next_days = [today + datetime.timedelta(days=delta) for delta in range(0,horizon)]
+        #Append y to indices
+        waste_matrix = indices.copy()
+        waste_matrix['y'] = y
+        #Sort the indices and only include the ones within the following days
+        waste_matrix.sort(by=self.config['cols']['date'], inplace=True)
+        waste_matrix = waste_matrix[waste_matrix[self.config['cols']['date'].isin(next_days)]]
+        #Pivot the waste matrix
+        waste_matrix = waste_matrix.pivot(index = self.config['cols']['toiletname'], columns = self.config['cols']['date'],values='y')
+
+        return waste_matrix
+
+    def gen_model(self, train_x, train_y):
         log.info("Training {0} with {1}".format(self.modeltype, self.parameters))
         self.trained_model = self.define_model()
-        self.trained_model.fit(train_x, train_y)
-        result_y = self.trained_model.predict(test_x)
+        #Strip the index parameters (e.g., toilet id and day) from the train data
+        labels=train_y['response'].fillna(0).values
+        #For features, assume they have already been subsetted, use everything except toilet_id, day...
+        features = train_x.drop([config['cols']['toiletname'], config['cols']['date']], axis=1)
 
-        return result_y, self.trained_model
-
+        #fit the model...
+        self.trained_model.fit(features, labels)
+        return self.trained_model
 
     def define_model(self):
         if self.modeltype == "AR":
             return statsmodels.tsa.ar_model.AR(
                 max_order=self.parameters['max_order'])
         if self.modeltype == "RandomForest":
-            #return ensemble.RandomForestRegressor(
-            #    n_estimators=self.parameters['n_estimators'])
-            return ensemble.RandomForestClassifier(
+            return ensemble.RandomForestRegressor(
                 n_estimators=self.parameters['n_estimators'])
+            #return ensemble.RandomForestClassifier(
+            #    n_estimators=self.parameters['n_estimators'])
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
+
+class ScheduleModel(object):
+    """
+    Based on the waste matrix, create the collection schedule. The same format as the waste matrix, but values are 0/1 (skip/collect)
+    """
 
 def run_models_on_folds(folds, loss_function, db, experiment):
     losses = []
