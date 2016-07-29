@@ -168,18 +168,35 @@ class modelsTest(unittest.TestCase):
         self.dates = [self.today + timedelta(days=delta) for delta in range(0,self.horizon)] * 2
         self.toilets = ['toilet1'] * self.horizon + ['toilet2'] * self.horizon
         self.config = {
-        'cols':{'toiletname':'ToiletID', 'date':'Collection_Date'}
+        'cols':{'toiletname':'ToiletID', 'date':'Collection_Date'},
+        'implementation':{'prediction_horizon':[7]}
         }
-        self.y = range(0,2*self.horizon)
-        self.indices = pd.DataFrame.from_dict({'ToiletID':self.toilets, 'Collection_Date':self.dates, 'something':self.fake_col})
-        self.wm =WasteModel("",{},self.config)
-        
+        self.y = pd.DataFrame.from_dict({'response':range(0,2*self.horizon)})
+        self.x = -self.y['response'] + 5.0
+
+        self.z = np.repeat([-1.0,1.0],self.horizon)
+        self.df = pd.DataFrame.from_dict({'ToiletID':self.toilets, 'Collection_Date':self.dates, 'w':self.fake_col,
+        'x':self.x, 'z' : self.z})
+        self.dftest  = pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t2','t2','t3','t3'],
+         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,5,2), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
+          'w':[3,5,8,7,8,9,10],'x':[0,1,1, 2, 3,4,5], 'z' : [-5,3,6,0,0,0,0]})
+        self.wm =WasteModel("LinearRegression",{},self.config)
+
     def test_form_the_waste_matrix(self):
-        waste_matrix = self.wm.form_the_waste_matrix(self.indices,self.y, self.horizon)
+        waste_matrix = self.wm.form_the_waste_matrix(self.df[[0,1]],self.y, self.horizon)
         self.assertIsInstance(waste_matrix, pd.DataFrame)
         self.assertEqual(waste_matrix.loc['toilet1', datetime(2011,11,17)], 6)
         self.assertEqual(waste_matrix.loc['toilet2', datetime(2011,11,15)], 11)
         self.assertEqual(waste_matrix.shape, (2,7))
+
+    def test_run(self):
+        self.wm.gen_model(self.df, self.y)
+        waste, y = self.wm.predict(self.dftest)
+        
+        self.assertEqual(waste.shape, (3,2))
+        self.assertEqual(np.linalg.norm(y  + self.dftest['x'] - 5.0) < 1.0e-9,True)
+
+
 
 class LossFunctionTest(unittest.TestCase):
     def setUp(self):

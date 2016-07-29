@@ -65,7 +65,7 @@ class WasteModel(object):
 
     def predict(self, test_x):
         features = test_x.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
-        result_y = self.trained_model.predict(test_x)
+        result_y = self.trained_model.predict(features)
         waste_matrix = self.form_the_waste_matrix(test_x[[self.config['cols']['toiletname'], self.config['cols']['date']]], result_y, self.config['implementation']['prediction_horizon'][0] )
 
         return waste_matrix, result_y
@@ -99,8 +99,7 @@ class WasteModel(object):
         #Strip the index parameters (e.g., toilet id and day) from the train data
         labels=train_y['response'].fillna(0).values
         #For features, assume they have already been subsetted, use everything except toilet_id, day...
-        features = train_x.drop([config['cols']['toiletname'], config['cols']['date']], axis=1)
-
+        features = train_x.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
         #fit the model...
         self.trained_model.fit(features, labels)
         return self.trained_model
@@ -109,11 +108,13 @@ class WasteModel(object):
         if self.modeltype == "AR":
             return statsmodels.tsa.ar_model.AR(
                 max_order=self.parameters['max_order'])
-        if self.modeltype == "RandomForest":
+        elif self.modeltype == "RandomForest":
             return ensemble.RandomForestRegressor(
                 n_estimators=self.parameters['n_estimators'])
             #return ensemble.RandomForestClassifier(
             #    n_estimators=self.parameters['n_estimators'])
+        elif self.modeltype == "LinearRegression":
+            return linear_model.LinearRegression()
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
