@@ -32,6 +32,7 @@ COORD_WGS = "4326"
 
 # Timeseries data
 from pandas import Series, Panel
+# A progress bar library
 from tqdm import tqdm
 
 import copy
