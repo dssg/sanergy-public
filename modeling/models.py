@@ -24,7 +24,7 @@ class Model(object):
     A class for collection scheduling model(s)
     """
 
-    def __init__(self, modeltype_waste, modeltype_schedule, config, parameters_waste=None, parameters_schedule=None, ):
+    def __init__(self, config, modeltype_waste, modeltype_schedule="simple", parameters_waste=None, parameters_schedule=None, ):
         """
         Args:
         """
@@ -35,10 +35,14 @@ class Model(object):
         self.config = config
 
 
-    def run(self, train_x, train_y, test_x):
+    def run(self, train_x, train_y, test_x, waste_past = None):
+        """
+        Args:
+          waste_past: A past waste matrix. Currently not used?
+        """
         waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
         waste_matrix = waste_model.predict(test_x)[0]
-        schedule_model = ScheduleModel(waste_matrix, self.modeltype_schedule, self.parameters_schedule, train_x, train_y, confgi) #For simpler models, can ignore train_x and train_y?
+        schedule_model = ScheduleModel(self.modeltype_schedule, self.parameters_schedule, self.config, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
         collection_matrix = schedule_model.compute(waste_matrix, test_x) #Again, might be able to ignore test_x
         return collection_matrix, schedule_model
 
@@ -122,6 +126,25 @@ class ScheduleModel(object):
     """
     Based on the waste matrix, create the collection schedule. The same format as the waste matrix, but values are 0/1 (skip/collect)
     """
+    def __init__(self, config, modeltype='simple', parameters=None, waste_past = None, train_x=None, train_y=None):
+        self.config = config
+        self.modeltype = modeltype
+        self.parameters = parameters
+        self.waste_past = waste_past
+        self.train_x = train_x
+        self.train_y = train_y
+
+    def compute(self, waste_matrix):
+        """
+        Returns:
+          collection_schedule (DataFrame): The same format as
+        """
+        if self.modeltype == 'simple':
+            #TODO
+        else:
+            raise ConfigError("Unsupported model {0}".format(self.modeltype))
+
+
 
 def run_models_on_folds(folds, loss_function, db, experiment):
     losses = []
