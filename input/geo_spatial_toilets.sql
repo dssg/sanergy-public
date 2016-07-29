@@ -36,7 +36,11 @@ select sub.* into premodeling.toiletdistances from
 --  the distances between each toilet
 	(select z."ToiletID",
 			s."ToiletID"  as "NeighborToiletID", 
-			ST_Distance(z."Point", s."Point") as "Distance" from premodeling.toiletdensity z,
+			ST_Distance(z."Point", s."Point") as "Distance",
+			ST_DWithin(z."Point", s."Point", 5.0) as "5m",
+			ST_DWithin(z."Point", s."Point", 25.0) as "25m",
+			ST_DWithin(z."Point", s."Point", 50.0) as "50m",
+			ST_DWithin(z."Point", s."Point", 100.0) as "100m" from premodeling.toiletdensity z,
 --  First, merge the toilet density table onto itself, where ID != ID
 		(select * from premodeling.toiletdensity) s
 			where (s."ToiletID" != z."ToiletID")) sub;
