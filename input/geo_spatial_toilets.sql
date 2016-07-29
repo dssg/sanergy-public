@@ -37,10 +37,10 @@ select sub.* into premodeling.toiletdistances from
 	(select z."ToiletID",
 			s."ToiletID"  as "NeighborToiletID", 
 			ST_Distance(z."Point", s."Point") as "Distance",
-			ST_DWithin(z."Point", s."Point", 5.0) as "5m",
-			ST_DWithin(z."Point", s."Point", 25.0) as "25m",
-			ST_DWithin(z."Point", s."Point", 50.0) as "50m",
-			ST_DWithin(z."Point", s."Point", 100.0) as "100m" from premodeling.toiletdensity z,
+			CAST(ST_DWithin(z."Point", s."Point", 5.0) as INT) as "5m",
+			CAST(ST_DWithin(z."Point", s."Point", 25.0) as INT) as "25m",
+			CAST(ST_DWithin(z."Point", s."Point", 50.0) as INT) as "50m",
+			CAST(ST_DWithin(z."Point", s."Point", 100.0) as INT) as "100m" from premodeling.toiletdensity z,
 --  First, merge the toilet density table onto itself, where ID != ID
 		(select * from premodeling.toiletdensity) s
 			where (s."ToiletID" != z."ToiletID")) sub;
@@ -48,7 +48,22 @@ select sub.* into premodeling.toiletdistances from
 -- Delete the density table just for the hell of it
 DROP TABLE IF EXISTS premodeling.toiletdensity;
 
+-- Create the toilet density
+select "ToiletID",
+-- Second, sum over the toilets that existed during the same time periods
+	   sum("5m") as "5m",
+	   sum("25m") as "25m",
+	   sum("50m") as "50m",
+	   sum("100m") as "100m"
+		into premodeling.toiletdensity
+		from premodeling.toiletdistances
+-- First, subquery for the toilets and neighbors that existed within the same time periods
+			where ("ToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" > {d '2014-01-01'})and("LastCollection" < {d '2016-07-01'})))
+				and ("NeighborToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" > {d '2014-01-01'})and("LastCollection" < {d '2016-07-01'})))
+					group by "ToiletID";
 /**
  * The following count should equal 780,572 = ((884*884)-884)
  * select count(*) from premodeling.toiletdistances
  */
+
+
