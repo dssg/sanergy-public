@@ -24,7 +24,7 @@ class Model(object):
     A class for collection scheduling model(s)
     """
 
-    def __init__(self, modeltype_waste, modeltype_schedule, parameters_waste=None, parameters_schedule=None, config):
+    def __init__(self, modeltype_waste, modeltype_schedule, config, parameters_waste=None, parameters_schedule=None, ):
         """
         Args:
         """
@@ -36,7 +36,7 @@ class Model(object):
 
 
     def run(self, train_x, train_y, test_x):
-        waste_model = WasteModel(train_x, train_y, self.modeltype_waste, self.parameters_waste, config) #Includes gen_model?
+        waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
         waste_matrix = waste_model.predict(test_x)[0]
         schedule_model = ScheduleModel(waste_matrix, self.modeltype_schedule, self.parameters_schedule, train_x, train_y, confgi) #For simpler models, can ignore train_x and train_y?
         collection_matrix = schedule_model.compute(waste_matrix, test_x) #Again, might be able to ignore test_x
@@ -56,11 +56,11 @@ class WasteModel(object):
       result_y: predictions on test set
       modelobj: trained model object
     """
-    def __init__(self, modeltype, parameters, train_x = None, train_y = None, config):
+    def __init__(self, modeltype, parameters, config, train_x = None, train_y = None):
         self.parameters = parameters
         self.modeltype = modeltype
         self.config = config
-        if !(train_x is None | train_y is None):
+        if (train_x is not None) and (train_y is not None):
             self.gen_model(train_x, train_y)
 
     def predict(self, test_x):
@@ -86,8 +86,8 @@ class WasteModel(object):
         waste_matrix = indices.copy()
         waste_matrix['y'] = y
         #Sort the indices and only include the ones within the following days
-        waste_matrix.sort(by=self.config['cols']['date'], inplace=True)
-        waste_matrix = waste_matrix[waste_matrix[self.config['cols']['date'].isin(next_days)]]
+        waste_matrix.sort_values(by=self.config['cols']['date'], inplace=True)
+        waste_matrix = waste_matrix[waste_matrix[self.config['cols']['date']].isin(next_days)]
         #Pivot the waste matrix
         waste_matrix = waste_matrix.pivot(index = self.config['cols']['toiletname'], columns = self.config['cols']['date'],values='y')
 

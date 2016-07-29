@@ -11,6 +11,7 @@ from sanergy.premodeling.Experiment import generate_experiments, Experiment
 from sanergy.modeling.LossFunction import LossFunction, compare_models_by_loss_functions
 from sanergy.modeling.dataset import grab_collections_data, temporal_split, format_features_labels, create_enveloping_fold
 import sanergy.input.dbconfig as dbconfig
+from sanergy.modeling.models import WasteModel, ScheduleModel, Model
 #from premodeling.Experiment import generate_experiments
 
 class ExperimentTest(unittest.TestCase):
@@ -159,6 +160,26 @@ class datasetTest(unittest.TestCase):
          self.assertIsInstance(labels, np.ndarray)
 
 
+class modelsTest(unittest.TestCase):
+    def setUp(self):
+        self.horizon = 7
+        self.fake_col = np.repeat([1.5],2*self.horizon)
+        self.today = datetime(2011,11,11)
+        self.dates = [self.today + timedelta(days=delta) for delta in range(0,self.horizon)] * 2
+        self.toilets = ['toilet1'] * self.horizon + ['toilet2'] * self.horizon
+        self.config = {
+        'cols':{'toiletname':'ToiletID', 'date':'Collection_Date'}
+        }
+        self.y = range(0,2*self.horizon)
+        self.indices = pd.DataFrame.from_dict({'ToiletID':self.toilets, 'Collection_Date':self.dates, 'something':self.fake_col})
+        self.wm =WasteModel("",{},self.config)
+        
+    def test_form_the_waste_matrix(self):
+        waste_matrix = self.wm.form_the_waste_matrix(self.indices,self.y, self.horizon)
+        self.assertIsInstance(waste_matrix, pd.DataFrame)
+        self.assertEqual(waste_matrix.loc['toilet1', datetime(2011,11,17)], 6)
+        self.assertEqual(waste_matrix.loc['toilet2', datetime(2011,11,15)], 11)
+        self.assertEqual(waste_matrix.shape, (2,7))
 
 class LossFunctionTest(unittest.TestCase):
     def setUp(self):
