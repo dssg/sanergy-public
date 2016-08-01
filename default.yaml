@@ -41,11 +41,39 @@ Xy:
         and: [['>','100']]
     features:
       Total_Waste_kg_day: []
+      Urine_kg_day: []
+      sd_wind_speed_rate: []
+      sd_sea_level_pressure: []
+      sd_precipitation_6hr: []
+      sd_air_temp: []
+      min_wind_speed_rate: []
+      min_sea_level_pressure: []
+      min_precipitation_6hr: []
+      min_air_temp: []
+      max_wind_speed_rate: []
+      max_sea_level_pressure: []
+      max_precipitation_6hr: []
+      max_air_temp: []
+      mean_wind_speed_rate: []
+      mean_sea_level_pressure: []
+      mean_precipitation_6hr: []
+      mean_air_temp: []
+      SubAreaName: []
+      School_Closure: []
+      Route_Name: []
+      OpportunityName: []
+      OpeningTime: []
+      Missed_Collection_Code: []
+      FranchiseType: []
+      ClosingTime: []
     unique:
       ToiletID: []
       Collection_Date: []
     lagged:
       Feces_kg_day:
+          function: 'lag'
+          rows: [1,2,3]
+      Urine_kg_day:
           function: 'lag'
           rows: [1,2,3]
           #rows: [1,2,3]
