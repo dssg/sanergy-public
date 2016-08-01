@@ -101,7 +101,9 @@ parameters:
     #maxlag: [5, 10]
   LinearRegression:
     dummy: [1] #A fake parameter making sure that we loop over this model.
-
+  Lasso:
+    alpha: [0.1] # The alpha parameter controls the degree of sparsity of the coefficients estimated.
+  
 cv:
   start_date: '2014-01-01'
   end_date: '2014-03-01'
