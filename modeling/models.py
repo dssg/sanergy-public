@@ -70,8 +70,16 @@ class WasteModel(object):
             self.gen_model(train_x, train_y)
 
     def predict(self, test_x):
+        # will predict weight accumulated in the coming 7 days
         features = test_x.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
-        result_y = self.trained_model.predict(features)
+        result_y = pd.DataFrame()
+        for i in range (0,7):
+            #update the results table
+            result_onedayahead = self.trained_model.predict(features)
+            result_y = result_y.append(resul_onedayahead)
+            #update the features table
+            features = features.shift(1)   #not correct yet --- need to update this!!!
+
         waste_matrix = self.form_the_waste_matrix(test_x[[self.config['cols']['toiletname'], self.config['cols']['date']]], result_y, self.config['implementation']['prediction_horizon'][0] )
 
         return waste_matrix, result_y
