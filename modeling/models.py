@@ -123,6 +123,10 @@ class WasteModel(object):
 	elif self.modeltype == "Lasso":
 	    return linear_model.Lasso(
 		alpha=self.parameters['alpha'])
+	elif self.modeltype == "ElasticNet":
+	    return linear_model.ElasticNet(
+		alpha=self.parameters['alpha'],
+		l1_ratio=self.parameters['l1_ratio'])
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
