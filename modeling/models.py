@@ -120,6 +120,9 @@ class WasteModel(object):
             #    n_estimators=self.parameters['n_estimators'])
         elif self.modeltype == "LinearRegression":
             return linear_model.LinearRegression()
+	elif self.modeltype == "Lasso":
+	    return linear_model.Lasso(
+		alpha=self.parameters['alpha'])
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
