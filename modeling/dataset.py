@@ -263,7 +263,7 @@ def grab_collections_data(db, config_Xy, log ):
 			con=db['connection'],
 			chunksize=200000)
 	x_features = dataset.drop(['response',response['variable']+unique.keys()], axis=1)
-	y_labels = dataset[response['variable']]
+	y_labels = dataset['response']
 	# Insert tables into database
 	return(y_labels, x_features)
 
