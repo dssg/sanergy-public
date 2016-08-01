@@ -58,6 +58,7 @@ def temporal_split(config_cv, day_of_week=None, floating_window=False):
 	end_date = config_cv['end_date']
 	train_on = config_cv['train_on']
 	test_on = config_cv['test_on']
+	log = logging.getLogger("Sanergy Collection Optimizer")
 
 	# Check to see if the days and weeks values are set
 	for unit in ['days','weeks']:
@@ -96,7 +97,7 @@ def temporal_split(config_cv, day_of_week=None, floating_window=False):
 			# Do not extend past the dataset
 			if (end_date >= fold['window_end']):
 				list_of_dates.append(fold)
-	print('Total %i folds from %s to %s' %(len(list_of_dates),
+	log.info('Total %i folds from %s to %s' %(len(list_of_dates),
 						start_date.strftime('%Y-%m-%d'),
 						end_date.strftime('%Y-%m-%d')))
 	return(list_of_dates)
@@ -327,7 +328,7 @@ def format_features_labels(features_big,labels_big):
 def create_enveloping_fold(folds):
 	"""
 	Create a fold that subsumes all folds in [folds], that is, it starts where the first fold starts and ends where the last fold ends. Make the test and train folds of the enveloping fold the same.
-	Warning: This assumes that the folds form a contiguous block. If it's not contiguous, the enveloping fold takes 
+	Warning: This assumes that the folds form a contiguous block. If it's not contiguous, the enveloping fold takes
 	essentially the convex hull, in 1D that means the smallest interval that comprises all folds.
 	"""
 	all_start = min([fold['train_start'] for fold in folds] + [fold['test_start'] for fold in folds])
@@ -345,7 +346,7 @@ def create_enveloping_fold(folds):
 def create_future(fold, features_old, cfg_parameters):
 	"""
 	Just for testing purposes.
-	Sets up a replicate of the last day(s) data to create new data for testing. But in reality, 
+	Sets up a replicate of the last day(s) data to create new data for testing. But in reality,
 	we should be able to create features for the upcoming days from past data, so this would not be needed???
 	"""
 	last_day = fold['window_end']
