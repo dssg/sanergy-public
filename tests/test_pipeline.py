@@ -13,6 +13,7 @@ from sanergy.premodeling.Experiment import generate_experiments, Experiment
 from sanergy.modeling.LossFunction import LossFunction, compare_models_by_loss_functions
 from sanergy.modeling.dataset import grab_collections_data, temporal_split, format_features_labels, create_enveloping_fold
 import sanergy.input.dbconfig as dbconfig
+from sanergy.modeling.models import WasteModel, ScheduleModel, Model
 from sanergy.modeling.Staffing import Staffing
 #from premodeling.Experiment import generate_experiments
 
@@ -160,6 +161,64 @@ class datasetTest(unittest.TestCase):
          features, labels = format_features_labels(self.features_big, self.labels_big)
          self.assertIsInstance(features, pd.DataFrame)
          self.assertIsInstance(labels, np.ndarray)
+
+
+class modelsTest(unittest.TestCase):
+    def setUp(self):
+        self.horizon = 7
+        self.fake_col = np.repeat([1.5],2*self.horizon)
+        self.today = datetime(2011,11,11)
+        self.unique_dates = [self.today + timedelta(days=delta) for delta in range(0,self.horizon)]
+        self.dates = [self.today + timedelta(days=delta) for delta in range(0,self.horizon)] * 2
+        self.toilets = ['toilet1'] * self.horizon + ['toilet2'] * self.horizon
+        self.config = {
+        'cols':{'toiletname':'ToiletID', 'date':'Collection_Date'},
+        'implementation':{'prediction_horizon':[7]}
+        }
+        self.y = pd.DataFrame.from_dict({'response':range(0,2*self.horizon)})
+        self.x = -self.y['response'] + 5.0
+
+        self.z = np.repeat([-1.0,1.0],self.horizon)
+        self.df = pd.DataFrame.from_dict({'ToiletID':self.toilets, 'Collection_Date':self.dates, 'w':self.fake_col,
+        'x':self.x, 'z' : self.z})
+        self.dftest  = pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t2','t2','t3','t3'],
+         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,5,2), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
+          'w':[3,5,8,7,8,9,10],'x':[0,1,1, 2, 3,4,5], 'z' : [-5,3,6,0,0,0,0]})
+        self.wm =WasteModel("LinearRegression",{},self.config)
+        self.sm =ScheduleModel(self.config)
+        self.waste_matrix =  pd.DataFrame.from_items([('t1', [60, 50, 10, 40, 70, 10, 30]), ('t2', [10, 20, 30, 40, 50, 60, 70])],
+        orient='index', columns=self.unique_dates)
+
+    def test_form_the_waste_matrix(self):
+        waste_matrix = self.wm.form_the_waste_matrix(self.df[[0,1]],self.y, self.horizon)
+        self.assertIsInstance(waste_matrix, pd.DataFrame)
+        self.assertEqual(waste_matrix.loc['toilet1', datetime(2011,11,17)], 6)
+        self.assertEqual(waste_matrix.loc['toilet2', datetime(2011,11,15)], 11)
+        self.assertEqual(waste_matrix.shape, (2,7))
+
+    def test_WasteModel_run(self):
+        self.wm.gen_model(self.df, self.y)
+        waste, y = self.wm.predict(self.dftest)
+
+        self.assertEqual(waste.shape, (3,2))
+        self.assertEqual(np.linalg.norm(y  + self.dftest['x'] - 5.0) < 1.0e-9,True)
+
+    def test_compute_schedule(self):
+        schedule = self.sm.compute_schedule(self.waste_matrix)
+        self.assertEqual(schedule.loc["t2",datetime(2011,11,13) ], 1 ) #Test that collects after 3 days
+        self.assertEqual(schedule.loc["t1",datetime(2011,11,12) ], 1 ) #Test that the toilet is collected when full
+        self.assertEqual(schedule.loc["t2",datetime(2011,11,16) ], 1 ) #Test that the toilet is collected when full
+        self.assertEqual(schedule.loc["t1",datetime(2011,11,13) ], 0 ) #Test that the toilet is empty after the collection
+        self.assertEqual(schedule.loc["t2",datetime(2011,11,12) ], 0 ) #Test that the toilet is not collected when not full
+
+    def test_Model(self):
+        model = Model(self.config, "LinearRegression")
+        cm, sm = model.run(self.df, self.y, self.dftest)
+        self.assertEqual(cm.shape, (3,2))
+        self.assertEqual(sm.shape, (3,2))
+        self.assertEqual(cm.loc['t2',datetime(2012,1,2)], 0)
+
+
 
 
 
