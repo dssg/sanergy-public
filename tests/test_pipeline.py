@@ -151,7 +151,7 @@ class datasetTest(unittest.TestCase):
 
         #Now replicate the original features
 
-        print(next_days)
+        #print(next_days)
 
 
     def test_format_features_labels(self):
@@ -165,6 +165,7 @@ class modelsTest(unittest.TestCase):
         self.horizon = 7
         self.fake_col = np.repeat([1.5],2*self.horizon)
         self.today = datetime(2011,11,11)
+        self.unique_dates = [self.today + timedelta(days=delta) for delta in range(0,self.horizon)]
         self.dates = [self.today + timedelta(days=delta) for delta in range(0,self.horizon)] * 2
         self.toilets = ['toilet1'] * self.horizon + ['toilet2'] * self.horizon
         self.config = {
@@ -181,6 +182,9 @@ class modelsTest(unittest.TestCase):
          'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,5,2), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
           'w':[3,5,8,7,8,9,10],'x':[0,1,1, 2, 3,4,5], 'z' : [-5,3,6,0,0,0,0]})
         self.wm =WasteModel("LinearRegression",{},self.config)
+        self.sm =ScheduleModel(self.config)
+        self.waste_matrix =  pd.DataFrame.from_items([('t1', [60, 50, 10, 40, 70, 10, 30]), ('t2', [10, 20, 30, 40, 50, 60, 70])],
+        orient='index', columns=self.unique_dates)
 
     def test_form_the_waste_matrix(self):
         waste_matrix = self.wm.form_the_waste_matrix(self.df[[0,1]],self.y, self.horizon)
@@ -189,12 +193,20 @@ class modelsTest(unittest.TestCase):
         self.assertEqual(waste_matrix.loc['toilet2', datetime(2011,11,15)], 11)
         self.assertEqual(waste_matrix.shape, (2,7))
 
-    def test_run(self):
+    def test_WasteModel_run(self):
         self.wm.gen_model(self.df, self.y)
         waste, y = self.wm.predict(self.dftest)
-        
+
         self.assertEqual(waste.shape, (3,2))
         self.assertEqual(np.linalg.norm(y  + self.dftest['x'] - 5.0) < 1.0e-9,True)
+
+    def test_compute_schedule(self):
+        schedule = self.sm.compute_schedule(self.waste_matrix)
+        self.assertEqual(schedule.loc["t2",datetime(2011,11,13) ], 1 ) #Test that collects after 3 days
+        self.assertEqual(schedule.loc["t1",datetime(2011,11,12) ], 1 ) #Test that the toilet is collected when full
+        self.assertEqual(schedule.loc["t2",datetime(2011,11,16) ], 1 ) #Test that the toilet is collected when full
+        self.assertEqual(schedule.loc["t1",datetime(2011,11,13) ], 0 ) #Test that the toilet is empty after the collection
+        self.assertEqual(schedule.loc["t2",datetime(2011,11,12) ], 0 ) #Test that the toilet is not collected when not full
 
 
 

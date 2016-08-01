@@ -2,6 +2,7 @@
 import logging
 import pdb
 import numpy as np
+import pandas as pd
 import datetime
 
 from sklearn import svm, ensemble, tree, linear_model, neighbors, naive_bayes
@@ -43,7 +44,7 @@ class Model(object):
         waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
         waste_matrix = waste_model.predict(test_x)[0]
         schedule_model = ScheduleModel(self.modeltype_schedule, self.parameters_schedule, self.config, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
-        collection_matrix = schedule_model.compute(waste_matrix, test_x) #Again, might be able to ignore test_x
+        collection_matrix = schedule_model.compute_schedule(waste_matrix, test_x) #Again, might be able to ignore test_x
         return collection_matrix, schedule_model
 
 
@@ -123,6 +124,8 @@ class WasteModel(object):
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
 class ScheduleModel(object):
+    TOILET_CAPACITY = 100 # 100% full
+    MAXIMAL_COLLECTION_INTERVAL = 3 #TODO: Get this into yaml.
     """
     Based on the waste matrix, create the collection schedule. The same format as the waste matrix, but values are 0/1 (skip/collect)
     """
@@ -134,16 +137,44 @@ class ScheduleModel(object):
         self.train_x = train_x
         self.train_y = train_y
 
-    def compute(self, waste_matrix):
+    def simple_waste_collector(self, waste_row):
         """
+        An iterator that simulates the simple waste collection process
+        """
+        total_waste = 0
+        last_collected = 0
+        i_collected = 0
+        for new_waste in waste_row:
+            collect = 0
+            i_collected += 1
+            total_waste += new_waste
+            if (total_waste > self.TOILET_CAPACITY) or ((i_collected - last_collected) >= self.MAXIMAL_COLLECTION_INTERVAL):
+                collect = 1
+                total_waste = 0
+                last_collected = i_collected
+            yield collect, total_waste
+
+    def compute_schedule(self, waste_matrix):
+        """
+        Based on the waste predictions, compute the optimal schedule for the next week.
+
+        simple:
+          Per toilet, predict accumulated waste. Then whenever the waste exceeds toilet capacity, collect the toilet.
+
         Returns:
-          collection_schedule (DataFrame): The same format as
+          collection_schedule (DataFrame): The same format as the waste_matrix
         """
+        #Same dimensions as the waste_matrix
+        collection_schedule = pd.DataFrame(index=waste_matrix.index,columns=waste_matrix.columns)
         if self.modeltype == 'simple':
-            #TODO
+            for i_toilet, toilet in waste_matrix.iterrows():
+                toilet_accums = [collect for collect, waste in self.simple_waste_collector(toilet) ]
+                collection_schedule.loc[i_toilet] = toilet_accums
+                #collection_schedule.append(pd.DataFrame(toilet_accums, index = i_toilet), ignore_index=True)
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
+        return(collection_schedule)
 
 
 def run_models_on_folds(folds, loss_function, db, experiment):
