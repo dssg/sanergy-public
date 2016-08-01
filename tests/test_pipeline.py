@@ -198,13 +198,13 @@ class modelsTest(unittest.TestCase):
 
     def test_WasteModel_run(self):
         self.wm.gen_model(self.df, self.y)
-        waste, y = self.wm.predict(self.dftest)
+        waste, wv, y = self.wm.predict(self.dftest)
 
         self.assertEqual(waste.shape, (3,2))
         self.assertEqual(np.linalg.norm(y  + self.dftest['x'] - 5.0) < 1.0e-9,True)
 
     def test_compute_schedule(self):
-        schedule = self.sm.compute_schedule(self.waste_matrix)
+        schedule, sv = self.sm.compute_schedule(self.waste_matrix)
         self.assertEqual(schedule.loc["t2",datetime(2011,11,13) ], 1 ) #Test that collects after 3 days
         self.assertEqual(schedule.loc["t1",datetime(2011,11,12) ], 1 ) #Test that the toilet is collected when full
         self.assertEqual(schedule.loc["t2",datetime(2011,11,16) ], 1 ) #Test that the toilet is collected when full
@@ -213,7 +213,7 @@ class modelsTest(unittest.TestCase):
 
     def test_Model(self):
         model = Model(self.config, "LinearRegression")
-        cm, sm = model.run(self.df, self.y, self.dftest)
+        cm, sm, cv, sv = model.run(self.df, self.y, self.dftest)
         self.assertEqual(cm.shape, (3,2))
         self.assertEqual(sm.shape, (3,2))
         self.assertEqual(cm.loc['t2',datetime(2012,1,2)], 0)
@@ -232,17 +232,17 @@ class LossFunctionTest(unittest.TestCase):
         self.assertIsInstance(lf,LossFunction)
 
     def test_L2_loss(self):
-        lf = LossFunction(self.config, self.config['implementation']['loss'], self.config['implementation']['aggregation_measure'])
+        lf = LossFunction(self.config)
         yhat = [1,0,0]
         y = [0,2,0]
-        loss = lf.evaluate(yhat,y)
+        loss = lf.evaluate_waste(yhat,y)
         self.assertEqual(loss, np.sqrt(5)/3)
 
     def test_01_loss(self):
-        lf = LossFunction(self.config, '0-1')
+        lf = LossFunction(self.config)
         yhat = [1,0,0]
         y = [0,1,0]
-        loss = lf.evaluate(yhat,y)
+        loss = lf.evaluate_schedule(yhat,y)
         self.assertEqual(loss, 2.0/3)
 
 class outputTest(unittest.TestCase):
