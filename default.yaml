@@ -73,6 +73,9 @@ Xy:
       Feces_kg_day:
           function: 'lag'
           rows: [1,2,3]
+      Urine_kg_day:
+          function: 'lag'
+          rows: [1,2,3]
           #rows: [1,2,3]
 
 ############################
