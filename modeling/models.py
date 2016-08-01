@@ -43,9 +43,9 @@ class Model(object):
         """
         waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
         waste_matrix = waste_model.predict(test_x)[0]
-        schedule_model = ScheduleModel(self.modeltype_schedule, self.parameters_schedule, self.config, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
-        collection_matrix = schedule_model.compute_schedule(waste_matrix, test_x) #Again, might be able to ignore test_x
-        return collection_matrix, schedule_model
+        schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
+        collection_matrix = schedule_model.compute_schedule(waste_matrix)
+        return collection_matrix, waste_matrix
 
 
 class WasteModel(object):

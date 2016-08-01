@@ -208,6 +208,15 @@ class modelsTest(unittest.TestCase):
         self.assertEqual(schedule.loc["t1",datetime(2011,11,13) ], 0 ) #Test that the toilet is empty after the collection
         self.assertEqual(schedule.loc["t2",datetime(2011,11,12) ], 0 ) #Test that the toilet is not collected when not full
 
+    def test_Model(self):
+        model = Model(self.config, "LinearRegression")
+        cm, sm = model.run(self.df, self.y, self.dftest)
+        self.assertEqual(cm.shape, (3,2))
+        self.assertEqual(sm.shape, (3,2))
+        self.assertEqual(cm.loc['t2',datetime(2012,1,2)], 0)
+
+
+
 
 
 class LossFunctionTest(unittest.TestCase):
