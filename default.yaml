@@ -103,7 +103,18 @@ parameters:
     dummy: [1] #A fake parameter making sure that we loop over this model.
   Lasso:
     alpha: [0.1] # The alpha parameter controls the degree of sparsity of the coefficients estimated.
-  
+  ElasticNet:
+    alpha: [0.1]
+    l1_ratio: [0.5]
+  SVR: # http://scikit-learn.org/stable/modules/generated/sklearn.svm.SVR.html
+    C: [1.0] # Penalty parameter C of the error term.
+    epsilon: [0.1] # Epsilon in the epsilon-SVR model. It specifies the epsilon-tube within which no penalty is associated in the training loss function with points predicted within a distance epsilon from the actual value.
+    kernel: ['rbf'] #Specifies the kernel type to be used in the algorithm. It must be one of 'linear', 'poly', 'rbf', 'sigmoid', 'precomputed' or a callable. If none is given, 'rbf' will be used. If a callable is given it is used to precompute the kernel matrix.
+  SGDClassifier:
+    loss: ['hinge']
+    penalty: ['l1']
+    epsilon: [0.1]
+    l1_ratio: [0.5]
 cv:
   start_date: '2014-01-01'
   end_date: '2014-03-01'
