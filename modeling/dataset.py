@@ -257,20 +257,14 @@ def grab_collections_data(db, config_Xy, log ):
 		dataset['response'] = dataset[response['variable']]
 	# Divide the dataset into a LABELS and FEATURES dataframe so that they link by UNIQUE variables
 	dataset = dataset.sort_values(by=unique.keys())
-	x_features = dataset.drop(['response',response['variable']], axis=1)
-	y_labels = dataset[["response",response['variable']]+unique.keys()]
+	db['connection'].execute('DROP TABLE IF EXISTS modeling."dataset"')
+	dataset.to_sql(name='dataset',
+			schema="modeling",
+			con=db['connection'],
+			chunksize=200000)
+	x_features = dataset.drop(['response',response['variable']+unique.keys()], axis=1)
+	y_labels = dataset[response['variable']]
 	# Insert tables into database
-	db['connection'].execute('DROP TABLE IF EXISTS modeling."labels"')
-	y_labels.to_sql(name='labels',
-			schema="modeling",
-			con=db['connection'],
-			chunksize=1000)
-	db['connection'].execute('DROP TABLE IF EXISTS modeling."features"')
-	x_features.to_sql(name='features',
-			schema="modeling",
-			con=db['connection'],
-			chunksize=1000)
-
 	return(y_labels, x_features)
 
 def grab_from_features_and_labels(db, fold):
