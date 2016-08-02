@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 
 class LossFunction(object):
+    TOILET_CAPACITY= 100
     """
     A class to contain loss functions. Mainly used to take a Prediction object and new y data
     and return the evaluated loss, for different loss functions.
@@ -73,6 +74,42 @@ class LossFunction(object):
 
         return(aggregated_loss)
 
+    def compute_p_collect(self, collection_vector):
+        return np.mean(collection_vector)
+
+    def simple_waste_inspector(self, schedule_row, waste_row) :
+        """
+        A *function* that checks how often a schedule row leads to an overflow, based on the true waste in waste row
+        """
+        current_waste = 0
+        n_overflows = 0
+        n_days = 0
+        for scheduled, new_waste in zip(schedule_row, waste_row):
+            n_days += 1
+            current_waste += new_waste
+            if scheduled:
+                current_waste = 0
+            if current_waste > self.TOILET_CAPACITY:
+                n_overflows += 1
+
+        return n_overflows, n_days
+
+    def compute_p_overflow(self, schedule, true_waste):
+        """
+        Given a proposed schedule and a true waste matrix, evaluate how many overflows there would have been if the schedule was followed.
+        Args:
+          schedule (DataFrame): the proposed schedule, in the format row=toiletname, column=date. Has 1 if the collection is recommended.
+          true_waste (DataFrame): The same format as schedule, the entries are actually accumulated waste percentages.
+        """
+        n_overflows = 0
+        n_days = 0
+        for i_toilet, toilet_schedule in schedule.iterrows():
+            toilet_waste = true_waste.loc[i_toilet]
+            n_overflows_i, n_days_i = self.simple_waste_inspector(toilet_schedule, toilet_waste)
+            n_overflows += n_overflows_i
+            n_days += n_days_i
+
+        return n_overflows / float(n_days), n_overflows, n_days
 
 
 def compare_models_by_loss_functions(results_from_experiments):

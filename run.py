@@ -40,7 +40,7 @@ def main(config_file_name="default.yaml"):
   # Save results in a dict of lists: {Exp 1: [cv_loss_per_fold_0, cv_loss_per_fold_1, ...], Exp 2:[...], ...}.
   # Note that the number of the Experiments is fixed per run, but the number of folds may differ by experiment.
   # In the aggregate evaluation, we may need to interpret losses from folds with different windows differently.
-  losses_from_experiments = {} #A dict keyed by experiments and valued by a list of cv-losses for that experiment.
+  results = DataFrame()
 
   # 1. Generate all experiments
   log.info("Generate experiments from default.yaml...")
@@ -77,16 +77,17 @@ def main(config_file_name="default.yaml"):
       # 4. Folds are passed to models functions
       # 5. Run the models
       # 6. Calculate and save the losses
-      losses_from_experiments[experiment] = run_models_on_folds(folds, lf, db, experiment) #See below the structure. Return a list of losses per fold.
+      results.append( run_models_on_folds(folds, lf, db, experiment) )#See below the structure. Return a list of losses per fold.
       # 8. Evaluate the losses
       # Have results_from_experiments ready or load it from the db
   log.info("Crossvalidated the experiments.")
-  best_experiment, best_loss = compare_models_by_loss_functions(losses_from_experiments)
-  log.info("Mean loss for the best experiment:{0}".format(best_loss))
+  #TODO: Now, what is the best experiment?
+  #best_experiment, best_loss = compare_models_by_loss_functions(losses_from_experiments)
+  #log.info("Mean loss for the best experiment:{0}".format(best_loss))
 
   # 9. Rerun best model on whole dataset
   #TODO: What is test?
-  run_best_model_on_all_data(best_experiment, db, folds)
+  #run_best_model_on_all_data(best_experiment, db, folds)
   # Write the results to postgres
 
 if __name__ == '__main__':

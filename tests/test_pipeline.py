@@ -13,7 +13,7 @@ from sanergy.premodeling.Experiment import generate_experiments, Experiment
 from sanergy.modeling.LossFunction import LossFunction, compare_models_by_loss_functions
 from sanergy.modeling.dataset import grab_collections_data, temporal_split, format_features_labels, create_enveloping_fold
 import sanergy.input.dbconfig as dbconfig
-from sanergy.modeling.models import WasteModel, ScheduleModel, Model
+from sanergy.modeling.models import WasteModel, ScheduleModel, FullModel
 from sanergy.modeling.Staffing import Staffing
 #from premodeling.Experiment import generate_experiments
 
@@ -266,6 +266,16 @@ class LossFunctionTest(unittest.TestCase):
         y = [0,1,0]
         loss = lf.evaluate_schedule(yhat,y)
         self.assertEqual(loss, 2.0/3)
+
+    def test_compute_p_overflow(self):
+        lf = LossFunction(self.config)
+        waste = pd.DataFrame({datetime(2015,1,1):[80,20], datetime(2015,1,2):[30, 30], datetime(2015,1,3):[50, 49], datetime(2015,1,4):[70, 20] ,
+        datetime(2015,1,5):[30, 30], datetime(2015,1,6):[30, 30],  datetime(2015,1,7):[30, 30]}, index = ['t1', 't2'])
+        schedule = pd.DataFrame({datetime(2015,1,1):[0,0], datetime(2015,1,2):[0,0], datetime(2015,1,3):[1,0], datetime(2015,1,4):[0,1] ,
+        datetime(2015,1,5):[0,0], datetime(2015,1,6):[0,0], datetime(2015,1,7):[1,1]}, index = ['t1', 't2'])
+        p_overflows, n_overflows, n_days = lf.compute_p_overflow(schedule, waste)
+        self.assertEqual(n_days, 14)
+        self.assertEqual(n_overflows, 2) #t1 on 15/1/2 and on 15/1/6
 
 class outputTest(unittest.TestCase):
     pass
