@@ -35,7 +35,7 @@ class LossFunction(object):
             yhat, y (array(float)): The predicted, respectively observed values.
 
         Returns:
-            loos: Evaluated loss as a float.
+            loss: Evaluated loss as a float.
         """
         if (isinstance(yhat, pd.DataFrame) and isinstance(y, pd.DataFrame)):
             yhat, y = self.extract_vectors(yhat, y)

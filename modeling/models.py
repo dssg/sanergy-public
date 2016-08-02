@@ -185,13 +185,12 @@ class ScheduleModel(object):
 
 
 def run_models_on_folds(folds, loss_function, db, experiment):
-    losses = []
+    results 
     log = logging.getLogger("Sanergy Collection Optimizer")
     for i_fold, fold in enumerate(folds):
         #log.debug("Fold {0}: {1}".format(i_fold, fold))
-        features_train_big, labels_train_big, features_test_big, labels_test_big = grab_from_features_and_labels(db, fold)
-        features_train,labels_train=format_features_labels(features_train_big,labels_train_big)
-        features_test,labels_test=format_features_labels(features_test_big,labels_test_big)
+        features_train, labels_train, features_test, labels_test = grab_from_features_and_labels(db, fold)
+
 
         # 5. Run the models
         #print(features_train.shape)
