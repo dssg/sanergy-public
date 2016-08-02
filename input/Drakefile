@@ -56,6 +56,7 @@ psql/input/Collection_Schedule_Wheelbarrow, psql/input/Collection_Schedule_Truck
 ;in2csv --sheet "SF_check" data/input/Logistics_schedule.xlsx | csvcut -c 1-25 > data/input/school_by_route.csv
 
 psql/input/Collection_Schedule_School <- input/CollectionSchedule_input.sql, data/input/school_by_route.csv [method:psql]
+psql/input/new_geo_data <- input/CollectionSchedule_input.sql, data/input/new_geo_data.csv [method:psql]
 
 ;;; Toilet Coordinates ;;;
 psql/input/toilet_coordinates <- input/ToiletCoords_input.sql, data/input/ToiletCoords.csv [method:psql]
