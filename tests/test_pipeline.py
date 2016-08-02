@@ -172,6 +172,18 @@ class modelsTest(unittest.TestCase):
         self.dates = [self.today + timedelta(days=delta) for delta in range(0,self.horizon)] * 2
         self.toilets = ['toilet1'] * self.horizon + ['toilet2'] * self.horizon
         self.config = {
+        'Xy':{
+        'response':{'variable':'y'},
+        'lagged':{}
+        },
+        'cols':{'toiletname':'ToiletID', 'date':'Collection_Date'},
+        'implementation':{'prediction_horizon':[2]}
+        }
+        self.config2 = {
+        'Xy':{
+        'response':{'variable':'y'},
+        'lagged':{'y':{'rows':[1,2]}}
+        },
         'cols':{'toiletname':'ToiletID', 'date':'Collection_Date'},
         'implementation':{'prediction_horizon':[7]}
         }
@@ -184,10 +196,19 @@ class modelsTest(unittest.TestCase):
         self.dftest  = pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t2','t2','t3','t3'],
          'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,5,2), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
           'w':[3,5,8,7,8,9,10],'x':[0,1,1, 2, 3,4,5], 'z' : [-5,3,6,0,0,0,0]})
+        self.dftest2  = pd.DataFrame.from_dict({'ToiletID':['t1','t1','t2','t2','t3','t3'],
+         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),   datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
+          'w':[3,5,7,8,9,10],'x':[0,1,2, 3,4,5], 'z' : [-5,3,6,0,0,0]})
+        self.dftest2.sort_values(by=['Collection_Date','ToiletID'],inplace=True)
         self.wm =WasteModel("LinearRegression",{},self.config)
+        self.wm2 =WasteModel("LinearRegression",{},self.config2)
         self.sm =ScheduleModel(self.config)
         self.waste_matrix =  pd.DataFrame.from_items([('t1', [60, 50, 10, 40, 70, 10, 30]), ('t2', [10, 20, 30, 40, 50, 60, 70])],
         orient='index', columns=self.unique_dates)
+        self.shift_set = pd.DataFrame.from_dict({'ToiletID':['t1','t2','t1','t2','t1','t2'],
+        'Collection_Date':[datetime(2012,1,1),datetime(2012,1,1),datetime(2012,1,2),datetime(2012,1,2),datetime(2012,1,3),datetime(2012,1,3)],
+        'y_lag1': range(0,6), 'y_lag2':range(6,12)})
+
 
     def test_form_the_waste_matrix(self):
         waste_matrix = self.wm.form_the_waste_matrix(self.df[[0,1]],self.y, self.horizon)
@@ -198,10 +219,9 @@ class modelsTest(unittest.TestCase):
 
     def test_WasteModel_run(self):
         self.wm.gen_model(self.df, self.y)
-        waste, wv, y = self.wm.predict(self.dftest)
-
+        waste, wv, y = self.wm.predict(self.dftest2)
         self.assertEqual(waste.shape, (3,2))
-        self.assertEqual(np.linalg.norm(y  + self.dftest['x'] - 5.0) < 1.0e-9,True)
+        self.assertEqual(np.linalg.norm(y  + self.dftest2['x'] - 5.0) < 1.0e-9,True)
 
     def test_compute_schedule(self):
         schedule, sv = self.sm.compute_schedule(self.waste_matrix)
@@ -211,16 +231,18 @@ class modelsTest(unittest.TestCase):
         self.assertEqual(schedule.loc["t1",datetime(2011,11,13) ], 0 ) #Test that the toilet is empty after the collection
         self.assertEqual(schedule.loc["t2",datetime(2011,11,12) ], 0 ) #Test that the toilet is not collected when not full
 
-    def test_Model(self):
-        model = Model(self.config, "LinearRegression")
-        cm, sm, cv, sv = model.run(self.df, self.y, self.dftest)
-        self.assertEqual(cm.shape, (3,2))
-        self.assertEqual(sm.shape, (3,2))
-        self.assertEqual(cm.loc['t2',datetime(2012,1,2)], 0)
+    # def test_Model(self):
+    #     model = Model(self.config, "LinearRegression")
+    #     cm, sm, cv, sv = model.run(self.df, self.y, self.dftest)
+    #     self.assertEqual(cm.shape, (3,2))
+    #     self.assertEqual(sm.shape, (3,2))
+    #     self.assertEqual(cm.loc['t2',datetime(2012,1,2)], 0)
 
-
-
-
+    def test_shift(self):
+        shifted = self.wm2.shift(self.shift_set,datetime(2012,1,2),[42,53])
+        self.assertEqual( shifted.loc[(shifted['ToiletID']=="t2") & (shifted['Collection_Date']==datetime(2012,1,2)),'y_lag1'].values, 53)
+        self.assertEqual(shifted.loc[(shifted['ToiletID']=="t1") & (shifted['Collection_Date']==datetime(2012,1,2)),'y_lag2'].values,
+        self.shift_set.loc[(self.shift_set['ToiletID']=="t1") & (self.shift_set['Collection_Date']==datetime(2012,1,2)),'y_lag1'].values)
 
 class LossFunctionTest(unittest.TestCase):
     def setUp(self):

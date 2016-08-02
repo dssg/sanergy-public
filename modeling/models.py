@@ -68,23 +68,46 @@ class WasteModel(object):
         self.config = config
         if (train_x is not None) and (train_y is not None):
             self.gen_model(train_x, train_y)
+        self.v_response = self.config['Xy']['response']['variable']
+        if self.v_response in self.config['Xy']['lagged']:
+            self.v_lag = self.config['Xy']['lagged'][self.v_response]['rows']
+        else:
+            self.v_lag = []
+
 
     def predict(self, test_x):
+        """
+        Assume test_x (and test_y) are ordered by [date, toiletname]
+        """
         waste_vector = test_x[[self.config['cols']['toiletname'], self.config['cols']['date']]]
         # will predict weight accumulated in the coming 7 days
-        features = test_x.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
-        result_y = pd.DataFrame()
-        for i in range (0,7):
+        features = test_x#.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
+        today = test_x[self.config['cols']['date']].min() #The first day in the features
+        next_days = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
+
+        result_y = []
+        for d in next_days:
             #update the results table
-            result_onedayahead = self.trained_model.predict(features)
-            result_y = result_y.append(result_onedayahead)
+            result_onedayahead = list(self.trained_model.predict( (features.loc[features[self.config['cols']['date']]==d]).drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1) ))
+            result_y = result_y + result_onedayahead
             #update the features table
-            #TODO
-            features = features.shift(1)   #not correct yet --- need to update this!!!
+            d_next = d + datetime.timedelta(days=1)
+            if len(self.v_lag) > 0:
+                features = self.shift(features, d_next, result_onedayahead)
 
         waste_matrix = self.form_the_waste_matrix(test_x[[self.config['cols']['toiletname'], self.config['cols']['date']]], result_y, self.config['implementation']['prediction_horizon'][0] )
-        waste_vector['waste'] = result_y
+        waste_vector['waste'] = result_y #This declares a warning, but should be fine...
         return waste_matrix, waste_vector, result_y
+
+    def shift(self, features, day, y_new):
+        features_shifted = features.copy()
+        for lag in reversed(self.v_lag[1:]):
+            var_replaced = self.v_response + '_lag' + str(lag)
+            var_replace = self.v_response + '_lag' + str(lag - 1)
+            features_shifted.loc[features_shifted[self.config['cols']['date']]==day, var_replaced ] = features_shifted.loc[features_shifted[self.config['cols']['date']]==day, var_replace ]
+        v_lag_latest = self.v_response + '_lag' + str(1)
+        features_shifted.loc[features_shifted[self.config['cols']['date']]==day, v_lag_latest ] = y_new
+        return(features_shifted)
 
     def form_the_waste_matrix(self, indices, y, horizon):
         """
@@ -213,11 +236,11 @@ class ScheduleModel(object):
 
 
 def run_models_on_folds(folds, loss_function, db, experiment):
-    results
+    #results
     log = logging.getLogger("Sanergy Collection Optimizer")
     for i_fold, fold in enumerate(folds):
         #log.debug("Fold {0}: {1}".format(i_fold, fold))
-        features_train, labels_train, features_test, labels_test = grab_from_features_and_labels(db, fold)
+        features_train, labels_train, features_test, labels_test = grab_from_features_and_labels(db, fold, experiment.config)
 
 
         # 5. Run the models
