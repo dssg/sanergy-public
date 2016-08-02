@@ -11,6 +11,7 @@ from sklearn.feature_selection import SelectKBest
 import statsmodels.tsa
 
 from sanergy.modeling.dataset import grab_from_features_and_labels, format_features_labels
+from sanergy.modeling.output import write_evaluation_into_db
 
 log = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class ConfigError(NameError):
     def __str__(self):
         return repr(self.value)
 
-class Model(object):
+class FullModel(object):
     """
     A class for collection scheduling model(s)
     """
@@ -42,10 +43,10 @@ class Model(object):
         Args:
           waste_past: A past waste matrix. Currently not used?
         """
-        waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
-        waste_matrix, waste_vector, y = waste_model.predict(test_x)
-        schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
-        collection_matrix, collection_vector = schedule_model.compute_schedule(waste_matrix)
+        self.waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
+        waste_matrix, waste_vector, y = self.waste_model.predict(test_x)
+        self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
+        collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix)
         return collection_matrix, waste_matrix, collection_vector, waste_vector
 
 
@@ -68,44 +69,74 @@ class WasteModel(object):
         self.config = config
         if (train_x is not None) and (train_y is not None):
             self.gen_model(train_x, train_y)
+        self.v_response = self.config['Xy']['response']['variable']
+        if self.v_response in self.config['Xy']['lagged']:
+            self.v_lag = self.config['Xy']['lagged'][self.v_response]['rows']
+        else:
+            self.v_lag = []
+
 
     def predict(self, test_x):
+        """
+        Assume test_x (and test_y) are ordered by [date, toiletname]
+        """
         waste_vector = test_x[[self.config['cols']['toiletname'], self.config['cols']['date']]]
         # will predict weight accumulated in the coming 7 days
-        features = test_x.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
-        result_y = pd.DataFrame()
-        for i in range (0,7):
+        features = test_x#.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
+        today = test_x[self.config['cols']['date']].min() #The first day in the features
+        next_days = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
+
+        result_y = []
+        for d in next_days:
             #update the results table
-            result_onedayahead = self.trained_model.predict(features)
-            result_y = result_y.append(result_onedayahead)
+            result_onedayahead = list(self.trained_model.predict( (features.loc[features[self.config['cols']['date']]==d]).drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1) ))
+            result_y = result_y + result_onedayahead
             #update the features table
-            #TODO
-            features = features.shift(1)   #not correct yet --- need to update this!!!
+            d_next = d + datetime.timedelta(days=1)
+            if len(self.v_lag) > 0:
+                features = self.shift(features, d_next, result_onedayahead)
 
         waste_matrix = self.form_the_waste_matrix(test_x[[self.config['cols']['toiletname'], self.config['cols']['date']]], result_y, self.config['implementation']['prediction_horizon'][0] )
-        waste_vector['waste'] = result_y
+        waste_vector['waste'] = result_y #This declares a warning, but should be fine...
         return waste_matrix, waste_vector, result_y
 
-    def form_the_waste_matrix(self, indices, y, horizon):
+    def shift(self, features, day, y_new):
+        features_shifted = features.copy()
+        for lag in reversed(self.v_lag[1:]):
+            var_replaced = self.v_response + '_lag' + str(lag)
+            var_replace = self.v_response + '_lag' + str(lag - 1)
+            features_shifted.loc[features_shifted[self.config['cols']['date']]==day, var_replaced ] = features_shifted.loc[features_shifted[self.config['cols']['date']]==day, var_replace ]
+        v_lag_latest = self.v_response + '_lag' + str(1)
+        features_shifted.loc[features_shifted[self.config['cols']['date']]==day, v_lag_latest ] = y_new
+        return(features_shifted)
+
+    def form_the_waste_matrix(self, indices, y, horizon, merge_y = False):
         """
         Args:
           indices (DataFrame): Includes the date and toilet_id
           y (vector?): a vector of predictions, each index correpsonding to the toilet and date from indices
           horizon (int): how long in the future should the  waste_matrix go?
+          merge_y (bool): If True, y is a dataframe with the vector of interest (in the third column, the first two columns being toilet_id and date),
+            which needs to be merged into indices based on toilets and dates.
         """
+        #Append y to indices
+        waste_matrix = indices.copy()
+        if merge_y:
+            y = y[[self.config['cols']['date'], self.config['cols']['toiletname'], 'response']]
+            waste_matrix = pd.merge(waste_matrix, y, on = [self.config['cols']['date'], self.config['cols']['toiletname']])
+        else:
+            waste_matrix['response'] = y
 
         #Take the next prediction horizon days, extract them from features.
         today = indices[self.config['cols']['date']].min() #The first day in the features
         #7 (or horizon) days from today
         next_days = [today + datetime.timedelta(days=delta) for delta in range(0,horizon)]
-        #Append y to indices
-        waste_matrix = indices.copy()
-        waste_matrix['y'] = y
+
         #Sort the indices and only include the ones within the following days
         waste_matrix.sort_values(by=self.config['cols']['date'], inplace=True)
         waste_matrix = waste_matrix[waste_matrix[self.config['cols']['date']].isin(next_days)]
         #Pivot the waste matrix
-        waste_matrix = waste_matrix.pivot(index = self.config['cols']['toiletname'], columns = self.config['cols']['date'],values='y')
+        waste_matrix = waste_matrix.pivot(index = self.config['cols']['toiletname'], columns = self.config['cols']['date'],values='response')
 
         return waste_matrix
 
@@ -213,25 +244,110 @@ class ScheduleModel(object):
 
 
 def run_models_on_folds(folds, loss_function, db, experiment):
-    results
+    results = DataFrame({'model id':[], 'model':[], 'fold':[], 'metric':[], 'parameter':[], 'value':[]})#Index by experiment hash
     log = logging.getLogger("Sanergy Collection Optimizer")
     for i_fold, fold in enumerate(folds):
         #log.debug("Fold {0}: {1}".format(i_fold, fold))
-        features_train, labels_train, features_test, labels_test = grab_from_features_and_labels(db, fold)
+        result_fold = DataFrame({'model id':[], 'model':[], 'fold':[], 'metric':[], 'parameter':[], 'value':[]})
+        features_train, labels_train, features_test, labels_test = grab_from_features_and_labels(db, fold, experiment.config)
 
 
         # 5. Run the models
         #print(features_train.shape)
         #print(labels_train.shape)
-        model = Model(experiment.model,experiment.parameters)
-        yhat, trained_model = model.run(features_train, labels_train, features_test)
+        model = FullModel(experiment.config, experiment.model, parameters_waste = experiment.parameters)
+        cm, wm, cv, wv = model.run(features_train, labels_train, features_test) #Not interested in the collection schedule, will recompute with different parameters.
+        #L2 evaluation of the waste prediction
+        result_fold.append(generate_result_row(experiment, i_fold, 'L2', loss_function.evaluate_waste(labels_test, wv)))
 
-        # 6. From the loss function
-        losses.append(loss_function.evaluate_waste(yhat, labels_test))
+        # proportion collected and proportion overflow
+        for safety_remainder in range(0.0, 100.0, 1.0):
+            #Compute the collection schedule assuing the given safety_remainder
+            schedule, cv = model.schedule_model.compute_schedule(wm, safety_remainder)
+            true_waste = wm.form_the_waste_matrix(features_test, labels_test, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
+
+            result_fold.append(generate_result_row(experiment, i_fold, 'p_collect', loss_function.compute_p_collect(cv), parameter = safety_remainder))
+            result_fold.append(generate_result_row(experiment, i_fold, 'p_overflow', loss_function.compute_p_overflow(schedule, true_waste)[0], parameter = safety_remainder))
 
         """
         TODO:
         7. We have to save the model results and the evaluation in postgres
         Experiment x Fold, long file
         """
-    return(losses)
+        write_evaluation_into_db(results, db)
+        results.append(result_fold)
+
+    #write_evaluation_into_db(results, append = False)
+    return(results)
+
+def generate_result_row(experiment, fold, metric, value, parameter=np.nan):
+    """
+    Just a wrapper
+    """
+    result_row = DataFrame({'model id':hash(experiment), 'model':experiment.model, 'fold':fold, 'metric':metric, 'parameter':parameter, 'value':value})
+    return result_row
+
+def write_evaluation_into_db(results, db , append = True, chunksize=1000):
+    if ~append :
+        db['connection'].execute('DROP TABLE IF EXISTS output."predicted_filled"')
+    results.to_sql(name='evaluations',
+    schema="output",
+    con=db['connection'],
+    chunksize=chunksize)
+
+    return None
+
+def run_best_model_on_all_data(experiment, db, folds):
+    """
+    TODO: Rethink this. Perhaps we can just draw a pickle file or something, need not evaluate the model from scratch.
+    Run the model based on the passed experiment, predict on the test (future) data, and present the results.
+    Write everything to the db.
+
+    Args:
+    test_features (array): Should include Day and Toilet
+    """
+    #Create a "master" fold: including all training and testing data.
+    master_fold = create_enveloping_fold(folds)
+    #Extract all features and labels
+    features_all_big,labels_all_big,_,_=grab_from_features_and_labels(db, master_fold)
+    features_all,labels_all=format_features_labels(features_all_big,labels_all_big)
+    #Create a dataset for future prediction (?)... will need to do this differently... (?)
+    features_future_big = create_future(master_fold, features_all_big, experiment.parameters) #TODO: This needs fixing
+    features_future=format_features_labels(features_future_big,labels_all_big)[0]
+
+    best_model = FullModel(experiment.model,experiment.parameters)
+    #Results are the predicted probabilities that a toilet will overflow? This is probably an array
+    yhat = best_model.run(features_all, labels_all, features_future)[0]
+
+    #TODO: Need to transform yhat (a probability?) into 1/0 for collect vs not collect. Probably should happen within the Model class?
+    output_schedule = present_schedule(yhat, features_future_big, experiment.config)
+    #output_waste = ...
+
+    #Workforce scheduling
+    staffing = Staffing(output_schedule, None, None, experiment.config)
+    output_roster = staffing.staff()[0]
+
+
+    # Write the results to postgres
+    db['connection'].execute('DROP TABLE IF EXISTS output."predicted_filled"')
+    pd.DataFrame(yhat).to_sql(name='predicted_filled',
+    schema="output",
+    con=db['connection'],
+    chunksize=1000)
+
+    db['connection'].execute('DROP TABLE IF EXISTS output."collection_schedule"')
+    pd.DataFrame(output_schedule).to_sql(name='collection_schedule',
+    schema="output",
+    con=db['connection'],
+    chunksize=1000)
+
+    #If we created the output roster, save it into the db too
+    if output_roster:
+        db['connection'].execute('DROP TABLE IF EXISTS output."workforce_schedule"')
+        pd.DataFrame(output_roster).to_sql(name='workforce_schedule',
+        schema="output",
+        con=db['connection'],
+        chunksize=1000)
+
+
+    return(best_model)

@@ -267,7 +267,7 @@ def grab_collections_data(db, config_Xy, log ):
 	# Insert tables into database
 	return(y_labels, x_features)
 
-def grab_from_features_and_labels(db, fold):
+def grab_from_features_and_labels(db, fold, config):
 
 	"""
 	A function that subsets the features df and labels df stored in the Postgres, into train and test features and labels, based on the fold info (train start, train end, test start, test end )
@@ -282,6 +282,8 @@ def grab_from_features_and_labels(db, fold):
 	"""
 	features=pd.read_sql('SELECT * FROM modeling."features"', db['connection'], coerce_float=True, params=None)
 	labels=pd.read_sql('SELECT * FROM modeling."labels"', db['connection'], coerce_float=True, params=None)
+	features.sort_values(by = [ self.config['cols']['date'], self.config['cols']['toiletname']], inplace=True)
+	labels.sort_values(by = [ self.config['cols']['date'], self.config['cols']['toiletname']], inplace=True)
 
 	features_train = features.loc[((features['Collection_Date']>=fold["train_start"]) & (features['Collection_Date']<=fold["train_end"]))]
 	features_test = features.loc[((features['Collection_Date']>=fold["test_start"]) & (features['Collection_Date']<=fold["test_end"]))]
