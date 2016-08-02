@@ -64,10 +64,12 @@ def main(config_file_name="default.yaml"):
   """
 
   #Loop through each of the experiments
+  #TODO: Remove this, move this elsewhere
+  db['connection'].execute('DROP TABLE IF EXISTS output."evaluations"')
   for i_exp, experiment in enumerate(experiments):
       log.debug("Running experiment #{0}".format(i_exp))
       #Initialize the loss function.
-      lf = LossFunction(experiment.config, experiment.parameters['loss'], experiment.parameters['aggregation_measure'])
+      lf = LossFunction(experiment.config)
 
       # 2. Create the labels / features data set in Postgres
       #TODO: grab_collections_data needs a unittest

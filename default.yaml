@@ -40,7 +40,7 @@ Xy:
       split:
         and: [['>','100']]
     features:
-      Total_Waste_kg_day: []
+      #Total_Waste_kg_day: []
       Urine_kg_day: []
       #sd_wind_speed_rate: []
       #sd_sea_level_pressure: []
@@ -58,14 +58,14 @@ Xy:
       #mean_sea_level_pressure: []
       #mean_precipitation_6hr: []
       #mean_air_temp: []
-      SubAreaName: []
-      School_Closure: []
-      Route_Name: []
-      OpportunityName: []
-      OpeningTime: []
-      Missed_Collection_Code: []
-      FranchiseType: []
-      ClosingTime: []
+      #SubAreaName: []
+      #School_Closure: []
+      #Route_Name: []
+      #OpportunityName: []
+      #OpeningTime: []
+      #Missed_Collection_Code: []
+      #FranchiseType: []
+      #ClosingTime: []
     unique:
       ToiletID: []
       Collection_Date: []
@@ -116,11 +116,11 @@ parameters:
     epsilon: [0.1]
     l1_ratio: [0.5]
 cv:
-  start_date: '2014-01-01'
-  end_date: '2014-03-01'
+  start_date: '2016-01-01'
+  end_date: '2016-05-01'
   train_on:
     days: 0
-    weeks: 5
+    weeks: 2
   test_on:
     days: 0
     weeks: 1

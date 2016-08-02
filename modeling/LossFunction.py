@@ -24,8 +24,8 @@ class LossFunction(object):
         Given two dataframes x, y with toiletname, date, and value, take the inner join and return values only
         """
         joint_df = pd.merge(x,y, on = [self.config['cols']['toiletname'],self.config['cols']['date']])
-        x_new = joint_df.iloc[:,3].values
-        y_new = joint_df.iloc[:,4].values
+        x_new = joint_df['response_x'].values
+        y_new = joint_df['response_y'].values
         return x_new, y_new
 
     def evaluate_waste(self, yhat, y):
@@ -45,6 +45,8 @@ class LossFunction(object):
             evaluated_loss = (1.0/len(yhat))*np.linalg.norm(np.asarray(yhat)-np.asarray(y), ord=2)
         elif self.loss_waste == "L1":
             evaluated_loss = (1.0/len(yhat))*np.linalg.norm(np.asarray(yhat)-np.asarray(y), ord=1)
+        else:
+          evaluated_loss =  (1.0/len(yhat))*np.linalg.norm(np.asarray(yhat)-np.asarray(y), ord=2) #L2
 
         return(evaluated_loss)
 
@@ -75,7 +77,7 @@ class LossFunction(object):
         return(aggregated_loss)
 
     def compute_p_collect(self, collection_vector):
-        return np.mean(collection_vector)
+        return float(np.mean(collection_vector))
 
     def simple_waste_inspector(self, schedule_row, waste_row) :
         """
@@ -109,7 +111,7 @@ class LossFunction(object):
             n_overflows += n_overflows_i
             n_days += n_days_i
 
-        return n_overflows / float(n_days), n_overflows, n_days
+        return (n_overflows / float(n_days)), n_overflows, n_days
 
 
 def compare_models_by_loss_functions(results_from_experiments):

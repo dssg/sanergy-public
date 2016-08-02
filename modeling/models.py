@@ -80,24 +80,29 @@ class WasteModel(object):
         """
         Assume test_x (and test_y) are ordered by [date, toiletname]
         """
-        waste_vector = test_x[[self.config['cols']['toiletname'], self.config['cols']['date']]]
+
         # will predict weight accumulated in the coming 7 days
-        features = test_x#.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
         today = test_x[self.config['cols']['date']].min() #The first day in the features
         next_days = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
+        features = test_x.loc[ [d in next_days for  d in test_x[self.config['cols']['date']] ]]#.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
+        waste_vector = features[[self.config['cols']['toiletname'], self.config['cols']['date']]]
 
         result_y = []
         for d in next_days:
             #update the results table
-            result_onedayahead = list(self.trained_model.predict( (features.loc[features[self.config['cols']['date']]==d]).drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1) ))
+            ftr_pred = (features.loc[features[self.config['cols']['date']]==d]).drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
+            print(ftr_pred.shape)
+            result_onedayahead = list(self.trained_model.predict( ftr_pred))
             result_y = result_y + result_onedayahead
             #update the features table
             d_next = d + datetime.timedelta(days=1)
             if len(self.v_lag) > 0:
                 features = self.shift(features, d_next, result_onedayahead)
 
-        waste_matrix = self.form_the_waste_matrix(test_x[[self.config['cols']['toiletname'], self.config['cols']['date']]], result_y, self.config['implementation']['prediction_horizon'][0] )
-        waste_vector['waste'] = result_y #This declares a warning, but should be fine...
+        print(features.shape)
+        print(len(result_y))
+        waste_matrix = self.form_the_waste_matrix(features[[self.config['cols']['toiletname'], self.config['cols']['date']]], result_y, self.config['implementation']['prediction_horizon'][0] )
+        waste_vector['response'] = result_y #This declares a warning, but should be fine...
         return waste_matrix, waste_vector, result_y
 
     def shift(self, features, day, y_new):
@@ -147,6 +152,7 @@ class WasteModel(object):
         labels=train_y['response'].fillna(0).values
         #For features, assume they have already been subsetted, use everything except toilet_id, day...
         features = train_x.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
+
         #fit the model...
         self.trained_model.fit(features, labels)
         return self.trained_model
@@ -248,7 +254,6 @@ def run_models_on_folds(folds, loss_function, db, experiment):
     log = logging.getLogger("Sanergy Collection Optimizer")
     for i_fold, fold in enumerate(folds):
         #log.debug("Fold {0}: {1}".format(i_fold, fold))
-        result_fold = pd.DataFrame({'model id':[], 'model':[], 'fold':[], 'metric':[], 'parameter':[], 'value':[]})
         features_train, labels_train, features_test, labels_test = grab_from_features_and_labels(db, fold, experiment.config)
 
 
@@ -258,24 +263,33 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         model = FullModel(experiment.config, experiment.model, parameters_waste = experiment.parameters)
         cm, wm, cv, wv = model.run(features_train, labels_train, features_test) #Not interested in the collection schedule, will recompute with different parameters.
         #L2 evaluation of the waste prediction
-        result_fold.append(generate_result_row(experiment, i_fold, 'L2', loss_function.evaluate_waste(labels_test, wv)))
+        loss = loss_function.evaluate_waste(labels_test, wv)
+        results_fold = generate_result_row(experiment, i_fold, 'MSE', loss)
+
 
         # proportion collected and proportion overflow
-        for safety_remainder in range(0.0, 100.0, 1.0):
-            #Compute the collection schedule assuing the given safety_remainder
-            schedule, cv = model.schedule_model.compute_schedule(wm, safety_remainder)
-            true_waste = wm.form_the_waste_matrix(features_test, labels_test, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
-
-            result_fold.append(generate_result_row(experiment, i_fold, 'p_collect', loss_function.compute_p_collect(cv), parameter = safety_remainder))
-            result_fold.append(generate_result_row(experiment, i_fold, 'p_overflow', loss_function.compute_p_overflow(schedule, true_waste)[0], parameter = safety_remainder))
+        for safety_remainder in range(0, 100, 50):
+           #Compute the collection schedule assuing the given safety_remainder
+           schedule, cv = model.schedule_model.compute_schedule(wm, safety_remainder)
+           true_waste = model.waste_model.form_the_waste_matrix(features_test, labels_test, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
+           p_collect = loss_function.compute_p_collect(cv)
+           p_overflow =  loss_function.compute_p_overflow(schedule, true_waste)[0]
+           print(p_collect)
+           print(p_overflow)
+           res_collect = generate_result_row(experiment, i_fold, 'p_collect', p_collect, parameter = float(safety_remainder))
+           res_overflow = generate_result_row(experiment, i_fold, 'p_overflow', p_overflow, parameter = float(safety_remainder))
+           results_fold = results_fold.append(res_collect, ignore_index=True)
+           results_fold = results_fold.append(res_overflow, ignore_index=True)
+           #result_fold +=
 
         """
         TODO:
         7. We have to save the model results and the evaluation in postgres
         Experiment x Fold, long file
         """
-        write_evaluation_into_db(results, db)
-        results.append(result_fold)
+        print(results_fold)
+        write_evaluation_into_db(results_fold, db)
+        results = results.append(results_fold,ignore_index=True)
 
     #write_evaluation_into_db(results, append = False)
     return(results)
@@ -284,16 +298,18 @@ def generate_result_row(experiment, fold, metric, value, parameter=np.nan):
     """
     Just a wrapper
     """
-    result_row = pd.DataFrame({'model id':hash(experiment), 'model':experiment.model, 'fold':fold, 'metric':metric, 'parameter':parameter, 'value':value})
+    #result_row = pd.DataFrame({'model id':[hash(experiment)], 'model':[experiment.model], 'fold':[fold], 'metric':[metric], 'parameter':[parameter], 'value':[value]})#, index = [hash( (experiment.model, fold, metric,parameter) )] )
+    result_row = pd.DataFrame({'model':[experiment.model], 'fold':[fold], 'metric':[metric], 'parameter':[parameter], 'value':[value]})#, index = [hash( (experiment.model, fold, metric,parameter) )] )
     return result_row
 
 def write_evaluation_into_db(results, db , append = True, chunksize=1000):
-    if ~append :
-        db['connection'].execute('DROP TABLE IF EXISTS output."predicted_filled"')
+    #if ~append :
+    #    db['connection'].execute('DROP TABLE IF EXISTS output."evaluations"')
     results.to_sql(name='evaluations',
     schema="output",
     con=db['connection'],
-    chunksize=chunksize)
+    chunksize=chunksize,
+    if_exists='append')
 
     return None
 
