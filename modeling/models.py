@@ -244,11 +244,11 @@ class ScheduleModel(object):
 
 
 def run_models_on_folds(folds, loss_function, db, experiment):
-    results = DataFrame({'model id':[], 'model':[], 'fold':[], 'metric':[], 'parameter':[], 'value':[]})#Index by experiment hash
+    results = pd.DataFrame({'model id':[], 'model':[], 'fold':[], 'metric':[], 'parameter':[], 'value':[]})#Index by experiment hash
     log = logging.getLogger("Sanergy Collection Optimizer")
     for i_fold, fold in enumerate(folds):
         #log.debug("Fold {0}: {1}".format(i_fold, fold))
-        result_fold = DataFrame({'model id':[], 'model':[], 'fold':[], 'metric':[], 'parameter':[], 'value':[]})
+        result_fold = pd.DataFrame({'model id':[], 'model':[], 'fold':[], 'metric':[], 'parameter':[], 'value':[]})
         features_train, labels_train, features_test, labels_test = grab_from_features_and_labels(db, fold, experiment.config)
 
 
@@ -284,7 +284,7 @@ def generate_result_row(experiment, fold, metric, value, parameter=np.nan):
     """
     Just a wrapper
     """
-    result_row = DataFrame({'model id':hash(experiment), 'model':experiment.model, 'fold':fold, 'metric':metric, 'parameter':parameter, 'value':value})
+    result_row = pd.DataFrame({'model id':hash(experiment), 'model':experiment.model, 'fold':fold, 'metric':metric, 'parameter':parameter, 'value':value})
     return result_row
 
 def write_evaluation_into_db(results, db , append = True, chunksize=1000):
