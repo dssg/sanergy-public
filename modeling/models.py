@@ -43,10 +43,10 @@ class FullModel(object):
         Args:
           waste_past: A past waste matrix. Currently not used?
         """
-        waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
-        waste_matrix, waste_vector, y = waste_model.predict(test_x)
-        schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
-        collection_matrix, collection_vector = schedule_model.compute_schedule(waste_matrix)
+        self.waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
+        waste_matrix, waste_vector, y = self.waste_model.predict(test_x)
+        self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
+        collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix)
         return collection_matrix, waste_matrix, collection_vector, waste_vector
 
 
@@ -263,7 +263,7 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         # proportion collected and proportion overflow
         for safety_remainder in range(0.0, 100.0, 1.0):
             #Compute the collection schedule assuing the given safety_remainder
-            schedule, cv = sm.compute_schedule(wm, safety_remainder)
+            schedule, cv = model.schedule_model.compute_schedule(wm, safety_remainder)
             true_waste = wm.form_the_waste_matrix(features_test, labels_test, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
 
             result_fold.append(generate_result_row(experiment, i_fold, 'p_collect', loss_function.compute_p_collect(cv), parameter = safety_remainder))
