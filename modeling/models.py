@@ -6,6 +6,7 @@ import pandas as pd
 import datetime
 
 from sklearn import svm, ensemble, tree, linear_model, neighbors, naive_bayes
+from sklearn.svm import SVR
 from sklearn.feature_selection import SelectKBest
 import statsmodels.tsa
 
@@ -70,8 +71,17 @@ class WasteModel(object):
 
     def predict(self, test_x):
         waste_vector = test_x[[self.config['cols']['toiletname'], self.config['cols']['date']]]
+        # will predict weight accumulated in the coming 7 days
         features = test_x.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
-        result_y = self.trained_model.predict(features)
+        result_y = pd.DataFrame()
+        for i in range (0,7):
+            #update the results table
+            result_onedayahead = self.trained_model.predict(features)
+            result_y = result_y.append(result_onedayahead)
+            #update the features table
+            #TODO
+            features = features.shift(1)   #not correct yet --- need to update this!!!
+
         waste_matrix = self.form_the_waste_matrix(test_x[[self.config['cols']['toiletname'], self.config['cols']['date']]], result_y, self.config['implementation']['prediction_horizon'][0] )
         waste_vector['waste'] = result_y
         return waste_matrix, waste_vector, result_y
@@ -121,6 +131,24 @@ class WasteModel(object):
             #    n_estimators=self.parameters['n_estimators'])
         elif self.modeltype == "LinearRegression":
             return linear_model.LinearRegression()
+	elif self.modeltype == "Lasso":
+	    return linear_model.Lasso(
+		alpha=self.parameters['alpha'])
+	elif self.modeltype == "ElasticNet":
+	    return linear_model.ElasticNet(
+		alpha=self.parameters['alpha'],
+		l1_ratio=self.parameters['l1_ratio'])
+	elif self.modeltype == "SVR":
+	    return SVR(
+		C=self.parameters['C'],
+		epsilon=self.parameters['epsilon'],
+		kernel=self.parameters['kernel'])
+	elif self.modeltype == 'SGDClassifier':
+	    return linear_model.SGDClassifier(
+		loss=self.parameters['loss'],
+		penalty=self.parameters['penalty'],
+		epsilon=self.parameters['epsilon'],
+		l1_ratio=self.parameters['l1_ratio'])
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
@@ -185,7 +213,7 @@ class ScheduleModel(object):
 
 
 def run_models_on_folds(folds, loss_function, db, experiment):
-    results 
+    results
     log = logging.getLogger("Sanergy Collection Optimizer")
     for i_fold, fold in enumerate(folds):
         #log.debug("Fold {0}: {1}".format(i_fold, fold))
