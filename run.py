@@ -3,13 +3,14 @@
 import logging
 import yaml
 import sys
+import pandas as pd
 
 #Import our modules
 from sanergy.modeling.LossFunction import LossFunction, compare_models_by_loss_functions
 from sanergy.premodeling.Experiment import generate_experiments
 from sanergy.modeling.dataset import grab_collections_data, get_db, temporal_split
-from sanergy.modeling.models import run_models_on_folds
-from sanergy.modeling.output import run_best_model_on_all_data
+from sanergy.modeling.models import run_models_on_folds, run_best_model_on_all_data
+
 
 
 #Import the internal modules
@@ -40,7 +41,7 @@ def main(config_file_name="default.yaml"):
   # Save results in a dict of lists: {Exp 1: [cv_loss_per_fold_0, cv_loss_per_fold_1, ...], Exp 2:[...], ...}.
   # Note that the number of the Experiments is fixed per run, but the number of folds may differ by experiment.
   # In the aggregate evaluation, we may need to interpret losses from folds with different windows differently.
-  results = DataFrame()
+  results = pd.DataFrame()
 
   # 1. Generate all experiments
   log.info("Generate experiments from default.yaml...")
