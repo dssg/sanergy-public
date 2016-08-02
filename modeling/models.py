@@ -25,7 +25,7 @@ class Model(object):
     A class for collection scheduling model(s)
     """
 
-    def __init__(self, config, modeltype_waste, modeltype_schedule="simple", parameters_waste=None, parameters_schedule=None, ):
+    def __init__(self, config, modeltype_waste, modeltype_schedule="simple", parameters_waste=None, parameters_schedule=None):
         """
         Args:
         """
@@ -42,10 +42,10 @@ class Model(object):
           waste_past: A past waste matrix. Currently not used?
         """
         waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
-        waste_matrix = waste_model.predict(test_x)[0]
+        waste_matrix, waste_vector, y = waste_model.predict(test_x)
         schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
-        collection_matrix = schedule_model.compute_schedule(waste_matrix)
-        return collection_matrix, waste_matrix
+        collection_matrix, collection_vector = schedule_model.compute_schedule(waste_matrix)
+        return collection_matrix, waste_matrix, collection_vector, waste_vector
 
 
 class WasteModel(object):
@@ -69,11 +69,12 @@ class WasteModel(object):
             self.gen_model(train_x, train_y)
 
     def predict(self, test_x):
+        waste_vector = test_x[[self.config['cols']['toiletname'], self.config['cols']['date']]]
         features = test_x.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
         result_y = self.trained_model.predict(features)
         waste_matrix = self.form_the_waste_matrix(test_x[[self.config['cols']['toiletname'], self.config['cols']['date']]], result_y, self.config['implementation']['prediction_horizon'][0] )
-
-        return waste_matrix, result_y
+        waste_vector['waste'] = result_y
+        return waste_matrix, waste_vector, result_y
 
     def form_the_waste_matrix(self, indices, y, horizon):
         """
@@ -137,10 +138,11 @@ class ScheduleModel(object):
         self.train_x = train_x
         self.train_y = train_y
 
-    def simple_waste_collector(self, waste_row):
+    def simple_waste_collector(self, waste_row, remaining_threshold = 0) :
         """
         An iterator that simulates the simple waste collection process
         """
+        fill_threshold = self.TOILET_CAPACITY - remaining_threshold
         total_waste = 0
         last_collected = 0
         i_collected = 0
@@ -148,13 +150,13 @@ class ScheduleModel(object):
             collect = 0
             i_collected += 1
             total_waste += new_waste
-            if (total_waste > self.TOILET_CAPACITY) or ((i_collected - last_collected) >= self.MAXIMAL_COLLECTION_INTERVAL):
+            if (total_waste > fill_threshold) or ((i_collected - last_collected) >= self.MAXIMAL_COLLECTION_INTERVAL):
                 collect = 1
                 total_waste = 0
                 last_collected = i_collected
             yield collect, total_waste
 
-    def compute_schedule(self, waste_matrix):
+    def compute_schedule(self, waste_matrix, remaining_threshold=0):
         """
         Based on the waste predictions, compute the optimal schedule for the next week.
 
@@ -165,26 +167,30 @@ class ScheduleModel(object):
           collection_schedule (DataFrame): The same format as the waste_matrix
         """
         #Same dimensions as the waste_matrix
-        collection_schedule = pd.DataFrame(index=waste_matrix.index,columns=waste_matrix.columns)
+
+        collection_schedule = pd.DataFrame(index=waste_matrix.index,columns=pd.DatetimeIndex(waste_matrix.columns))
         if self.modeltype == 'simple':
             for i_toilet, toilet in waste_matrix.iterrows():
-                toilet_accums = [collect for collect, waste in self.simple_waste_collector(toilet) ]
+                toilet_accums = [collect for collect, waste in self.simple_waste_collector(toilet,remaining_threshold) ]
                 collection_schedule.loc[i_toilet] = toilet_accums
                 #collection_schedule.append(pd.DataFrame(toilet_accums, index = i_toilet), ignore_index=True)
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
-        return(collection_schedule)
+        collection_matrix_aux = collection_schedule.copy()
+        collection_matrix_aux[self.config['cols']['toiletname']] = collection_matrix_aux.index
+        collection_vector = pd.melt(collection_matrix_aux,id_vars = self.config['cols']['toiletname'], var_name=self.config['cols']['date'], value_name = 'collect')
+
+        return collection_schedule, collection_vector
 
 
 def run_models_on_folds(folds, loss_function, db, experiment):
-    losses = []
+    results 
     log = logging.getLogger("Sanergy Collection Optimizer")
     for i_fold, fold in enumerate(folds):
         #log.debug("Fold {0}: {1}".format(i_fold, fold))
-        features_train_big, labels_train_big, features_test_big, labels_test_big = grab_from_features_and_labels(db, fold)
-        features_train,labels_train=format_features_labels(features_train_big,labels_train_big)
-        features_test,labels_test=format_features_labels(features_test_big,labels_test_big)
+        features_train, labels_train, features_test, labels_test = grab_from_features_and_labels(db, fold)
+
 
         # 5. Run the models
         #print(features_train.shape)
@@ -193,7 +199,7 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         yhat, trained_model = model.run(features_train, labels_train, features_test)
 
         # 6. From the loss function
-        losses.append(loss_function.evaluate(yhat, labels_test))
+        losses.append(loss_function.evaluate_waste(yhat, labels_test))
 
         """
         TODO:
