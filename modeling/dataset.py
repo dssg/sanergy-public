@@ -280,13 +280,13 @@ def grab_from_features_and_labels(db, fold):
 		df features test
 		df labels test
 	"""
-	features=pd.read_sql('SELECT * FROM modeling."features"', db['connection'], coerce_float=True, params=None)
-	labels=pd.read_sql('SELECT * FROM modeling."labels"', db['connection'], coerce_float=True, params=None)
-
-	features_train = features.loc[((features['Collection_Date']>=fold["train_start"]) & (features['Collection_Date']<=fold["train_end"]))]
-	features_test = features.loc[((features['Collection_Date']>=fold["test_start"]) & (features['Collection_Date']<=fold["test_end"]))]
-	labels_train = labels.loc[((labels['Collection_Date']>=fold["train_start"]) & (labels['Collection_Date']<=fold["train_end"]))]
-	labels_test = labels.loc[((labels['Collection_Date']>=fold["test_start"]) & (labels['Collection_Date']<=fold["test_end"]))]
+	dataset = pd.read_sql('SELECT * FROM modeling.dataset WHERE (("Collection_Date">='+"'"+fold['train_start']+"'"+')&("Collection_Date" <='+fold['test_end']+'))', db['connection'], coerce_float=True, params=None)
+	dataset = dataset.sort_values(by=['Collection_Date','ToiletID'])
+	
+	features_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"]))].drop(['response'])
+	features_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"]))].drop(['response'])
+	labels_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"])),['response','Collection_Date','ToiletID']]
+	labels_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"])),['response','Collection_Date','ToiletID']]
 
 	return(features_train, labels_train, features_test, labels_test)
 
