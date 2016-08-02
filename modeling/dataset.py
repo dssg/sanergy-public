@@ -280,7 +280,7 @@ def grab_from_features_and_labels(db, fold, config):
 		df features test
 		df labels test
 	"""
-	dataset = pd.read_sql('SELECT * FROM modeling.dataset WHERE (("Collection_Date">="'+fold['train_start'].strftime('%Y-%m-%d'<)+'")&("Collection_Date" <='+fold['test_end'].strftime('%Y-%m-%d')+'))', db['connection'], coerce_float=True, params=None)
+	dataset = pd.read_sql('SELECT * FROM modeling.dataset WHERE (("Collection_Date">="'+fold['train_start'].strftime('%Y-%m-%d')+'")&("Collection_Date" <="'+fold['test_end'].strftime('%Y-%m-%d')+'"))', db['connection'], coerce_float=True, params=None)
 	dataset = dataset.sort_values(by=['Collection_Date','ToiletID'])
 	print(dataset.shape)
 
