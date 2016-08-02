@@ -2,6 +2,16 @@ drop table if exists input.Collection_Schedule_Wheelbarrow;
 drop table if exists input.Collection_Schedule_Truck;
 drop table if exists input.Collection_Schedule_Tuktuk;
 drop table if exists input.Collection_Schedule_School;
+drop table if exists input.new_geo_data;
+
+CREATE TABLE input.new_geo_data (
+        "Date" DATE NOT NULL, 
+        "Location ID" VARCHAR(18) NOT NULL, 
+        "Location Name" VARCHAR(6) NOT NULL, 
+        "GPS_LATITUDE__C" FLOAT NOT NULL, 
+        "GPS_LONGITUDE__C" FLOAT NOT NULL
+);
+
 
 CREATE TABLE input.Collection_Schedule_Wheelbarrow (
 	flt_name TEXT,
@@ -113,4 +123,5 @@ CREATE TABLE input.Collection_Schedule_School (
 \copy input.Collection_Schedule_Truck from 'data/input/truckCut.csv' with csv header;
 \copy input.Collection_Schedule_Tuktuk from 'data/input/tukCut.csv' with csv header;
 \copy input.Collection_Schedule_School from 'data/input/school_by_route.csv' with csv header;
+\copy input.new_geo_data from 'data/input/new_geo_data.csv' with csv header;
 
