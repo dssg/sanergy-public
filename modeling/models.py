@@ -48,7 +48,7 @@ class FullModel(object):
         else:
             self.waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
             waste_matrix, waste_vector, y = self.waste_model.predict(test_x)
-        self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
+        self.schedule_model = schedule_model(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
         collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix)
         return collection_matrix, waste_matrix, collection_vector, waste_vector
 
@@ -201,7 +201,7 @@ class ScheduleModel(object):
     def __init__(self, config, modeltype='simple', parameters=None, waste_past = None, train_x=None, train_y=None):
         self.config = config
         self.modeltype = modeltype
-        self.parameters = parameters
+        self.parameters = parameters  #needs a field "threshold" for the StaticModel
         self.waste_past = waste_past
         self.train_x = train_x
         self.train_y = train_y
@@ -236,12 +236,32 @@ class ScheduleModel(object):
         """
         #Same dimensions as the waste_matrix
 
-        collection_schedule = pd.DataFrame(index=waste_matrix.index,columns=pd.DatetimeIndex(waste_matrix.columns))
+
+
+        if self.modeltype_schedule=='StaticModel':
+            collection_schedule = pd.DataFrame(0,index=self.config['cols']['toiletname'].unique(), columns=pd.DatetimeIndex(waste_matrix.columns)) # NEEDS TO CHANGE COLUMNS!!!!!
+        else:
+            collection_schedule = pd.DataFrame(index=waste_matrix.index,columns=pd.DatetimeIndex(waste_matrix.columns))
         if self.modeltype == 'simple':
             for i_toilet, toilet in waste_matrix.iterrows():
                 toilet_accums = [collect for collect, waste in self.simple_waste_collector(toilet,remaining_threshold) ]
                 collection_schedule.loc[i_toilet] = toilet_accums
                 #collection_schedule.append(pd.DataFrame(toilet_accums, index = i_toilet), ignore_index=True)
+        elif self.modeltype == 'StaticModel':
+                group_ID=self.train_y.groupby(self.config['cols']['toiletname'])  
+                group_mean=group_ID.mean()
+                group_low=group_mean.loc[(group_mean['response']<=self.parameters.thresholds['meanlow']) & (group_std['response']<=self.parameters.thresholds['stdlow'])];
+                ToiletID_LOW=list(set(group_low.index))
+                group_medium=group_mean.loc[(group_mean['response']>self.parameters.thresholds['meanlow']) & (group_mean['response']<=self.parameters.thresholds['meanmed']) & (group_std['response']<=self.parameters.thresholds['stdmed'])];
+                ToiletID_MEDIUM=list(set(group_medium.index))
+                for i_toilet in self.config['cols']['toiletname'].unique()
+                    if i_toilet in ToiletID_LOW: 
+                        toilet_accums=[1 0 0 1 0 0 1]
+                    elif i_toilet in ToiletID_MEDIUM:
+                        toilet_accums=[1 0 1 0 1 0 1]
+                    else:
+                        toilet_accums=[1 1 1 1 1 1 1]
+                    collection_schedule.loc[i_toilet] = toilet_accums
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
