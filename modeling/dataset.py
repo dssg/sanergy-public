@@ -171,49 +171,50 @@ def demand_daily_data(db, rows=[], feature='', function='lag', unique=['ToiletID
 	return(daily_data)
 
 def grab_collections_data(db, config_Xy, log ):
-	"""
-	A function to return a postgres query as a Pandas data frame
-	Args:
-	  DICT DB		A connection objection, database name/table
-	  DICT RESPONSE		The variable to be predicted
-				e.g., Feces container between 30% and  40% full:
-					{'type':'binary',
-					 'variable':'FecesContainer_percent',
-					 'split':{'and':[('>',30),('<',40)]}
-	  DICT[dict] FEATURES	The variables of interest and any subsets on those variables
-				(e.g., Not the school franchise types:
-					{'and':[('=','school')]}
-					Or school and commercial:
-					{"or":[('=',"school"),('=',"commercial")]}
-	  DICT[dict] UNIQUE	The unique variables for the dataset
-				(e.g., {'Collection_Date':{}}, {'ToiletID':{}}
-	  DICT LAGGED		The variables to be lagged are keys, the direction, and
-				number of rows forward or back are values.
-				(e.g., {'Feces_kg_day':{'function':'lag',
-							'rows':[1,2]}}
-	Returns:
-	  DF Y_LABELS		Pandas dataframe for the response variables
-	  DF X_FEATURES		Pandas dataframe for the feature variables
-	"""
-	response = config_Xy['response']
-	features = config_Xy['features']
-	unique = config_Xy['unique']
-	lagged = config_Xy['lagged']
+    """
+    A function to return a postgres query as a Pandas data frame
+    Args:
+    DICT DB		A connection objection, database name/table
+    DICT RESPONSE		The variable to be predicted
+    e.g., Feces container between 30% and  40% full:
+    {'type':'binary',
+    'variable':'FecesContainer_percent',
+    'split':{'and':[('>',30),('<',40)]}
+    DICT[dict] FEATURES	The variables of interest and any subsets on those variables
+    (e.g., Not the school franchise types:
+    {'and':[('=','school')]}
+    Or school and commercial:
+    {"or":[('=',"school"),('=',"commercial")]}
+    DICT[dict] UNIQUE	The unique variables for the dataset
+    (e.g., {'Collection_Date':{}}, {'ToiletID':{}}
+    DICT LAGGED		The variables to be lagged are keys, the direction, and
+    number of rows forward or back are values.
+    (e.g., {'Feces_kg_day':{'function':'lag',
+    'rows':[1,2]}}
+    Returns:
+    DF Y_LABELS		Pandas dataframe for the response variables
+    DF X_FEATURES		Pandas dataframe for the feature variables
+    """
+    response = config_Xy['response']
+    features = config_Xy['features']
+    unique = config_Xy['unique']
+    lagged = config_Xy['lagged']
 
-	# Create the list of all variables requested from the database
-	list_of_variables = [response['variable']]+features.keys()+unique.keys()
-	list_of_variables = ['"'+lv+'"' for lv in list_of_variables]
-	log.info('Request variable(s): %s' %(','.join(list_of_variables)))
+    # Create the list of all variables requested from the database
+    list_of_variables = [response['variable']]+features.keys()+unique.keys()
+    list_of_predictors = features.keys()
+    list_of_variables = ['"'+lv+'"' for lv in list_of_variables]
+    log.info('Request variable(s): %s' %(','.join(list_of_variables)))
 
-	# Determine the conditions statement for the data request
-	conditions = []
-	conditions.extend(write_statement(unique))
-	if len(conditions)>0:
-		conditions = 'and'.join(conditions)
-		conditions = 'where '+conditions
-	else:
-		conditions = ""
-	# Create the SQL statement requesting the data
+    # Determine the conditions statement for the data request
+    conditions = []
+    conditions.extend(write_statement(unique))
+    if len(conditions)>0:
+        conditions = 'and'.join(conditions)
+        conditions = 'where '+conditions
+    else:
+        conditions = ""
+    # Create the SQL statement requesting the data
 	statement = "select %s from %s.%s %s" %(','.join(list_of_variables),
 						db['database'],
 						db['table'],
@@ -255,17 +256,24 @@ def grab_collections_data(db, config_Xy, log ):
 		dataset.loc[(eval(statement)),"response"] = True
 	else:
 		dataset['response'] = dataset[response['variable']]
-	# Divide the dataset into a LABELS and FEATURES dataframe so that they link by UNIQUE variables
-	dataset = dataset.sort_values(by=unique.keys())
-	db['connection'].execute('DROP TABLE IF EXISTS modeling."dataset"')
-	dataset.to_sql(name='dataset',
-			schema="modeling",
-			con=db['connection'],
-			chunksize=200000)
-	x_features = dataset.drop(['response',response['variable']], axis=1)
-	y_labels = dataset[['response']+unique.keys()]
-	# Insert tables into database
-	return(y_labels, x_features)
+
+    #Code the categorical/string variables to dummies
+    str_vars = [row for row, tp in dataset.dtypes.iteritems() if tp == 'object']
+    vars_to_dummify = set(list_of_predictors).intersection(str_vars)
+    dataset = pd.get_dummies(dataset, columns = vars_to_dummify, drop_first = True)
+
+
+    # Divide the dataset into a LABELS and FEATURES dataframe so that they link by UNIQUE variables
+    dataset = dataset.sort_values(by=unique.keys())
+    db['connection'].execute('DROP TABLE IF EXISTS modeling."dataset"')
+    dataset.to_sql(name='dataset',
+    schema="modeling",
+    con=db['connection'],
+    chunksize=200000)
+    x_features = dataset.drop(['response',response['variable']], axis=1)
+    y_labels = dataset[['response']+unique.keys()]
+    # Insert tables into database
+    return(y_labels, x_features)
 
 def grab_from_features_and_labels(db, fold, config):
 
@@ -285,8 +293,8 @@ def grab_from_features_and_labels(db, fold, config):
 	#TODO: Fix this...
 	dataset = dataset.fillna(0) #A hack to make it run for now...
 
-	features_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"]))].drop(['response'],axis=1)
-	features_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"]))].drop(['response'],axis=1)
+	features_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"]))].drop(['response',config['Xy']['response']['variable']],axis=1)
+	features_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"]))].drop(['response', config['Xy']['response']['variable']],axis=1)
 
 	labels_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"])),['response','Collection_Date','ToiletID']]
 	labels_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"])),['response','Collection_Date','ToiletID']]

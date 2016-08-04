@@ -91,7 +91,6 @@ class WasteModel(object):
         for d in next_days:
             #update the results table
             ftr_pred = (features.loc[features[self.config['cols']['date']]==d]).drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
-            print(ftr_pred.shape)
             result_onedayahead = list(self.trained_model.predict( ftr_pred))
             result_y = result_y + result_onedayahead
             #update the features table
@@ -266,11 +265,11 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         loss = loss_function.evaluate_waste(labels_test, wv)
         results_fold = generate_result_row(experiment, i_fold, 'MSE', loss)
 
-
         # proportion collected and proportion overflow
-        for safety_remainder in range(0, 100, 50):
+        for safety_remainder in range(0, 50, 10):
            #Compute the collection schedule assuing the given safety_remainder
            schedule, cv = model.schedule_model.compute_schedule(wm, safety_remainder)
+
            true_waste = model.waste_model.form_the_waste_matrix(features_test, labels_test, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
            p_collect = loss_function.compute_p_collect(cv)
            p_overflow =  loss_function.compute_p_overflow(schedule, true_waste)[0]
@@ -280,7 +279,7 @@ def run_models_on_folds(folds, loss_function, db, experiment):
            res_overflow = generate_result_row(experiment, i_fold, 'p_overflow', p_overflow, parameter = float(safety_remainder))
            results_fold = results_fold.append(res_collect, ignore_index=True)
            results_fold = results_fold.append(res_overflow, ignore_index=True)
-           #result_fold +=
+
 
         """
         TODO:
