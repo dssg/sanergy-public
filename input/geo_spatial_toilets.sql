@@ -2,6 +2,7 @@
  * This table is used as a look up to check the current density, given a
  * Fake-Today.
  */
+
 DROP TABLE IF EXISTS premodeling.toilethistory;
 -- Drop the table if it exists already, simply for efficiency
 select "Toilet__c" as "ToiletID",
@@ -65,5 +66,58 @@ select "ToiletID",
  * The following count should equal 780,572 = ((884*884)-884)
  * select count(*) from premodeling.toiletdistances
  */
+
+select count(*), sum("5m"), avg("5m"), stddev("5m") from premodeling.toiletdensity where "5m"=0;
+select count(*), sum("5m"), avg("5m"), stddev("5m") from premodeling.toiletdensity where "5m">0;
+-- is there something nearby and does it effect usage
+-- did the usage change when another toilet was added
+-- how compact the area is
+-- how far away from the collection center is the toilet
+
+
+/*
+ * Another attempt at the density table, this time
+ * by day and by toilet statistics for the 50m box. */
+DROP TABLE IF EXISTS premodeling.toiletdensity;
+create table premodeling.toiletdensity
+(
+	"ToiletID" text,
+	"Collection_Date" timestamp,
+	"50m" int,
+	"mean50m" float8,
+	"std50m" float8
+);
+
+
+-- A function with two loops by day and by toilet
+do $$
+-- Declare some variables for the FOR loops
+DECLARE
+	ddate timestamp;
+	toilet text;
+BEGIN
+-- Initially loop through the date range
+    FOR ddate IN select date from generate_series(
+					  '2010-01-01'::date,
+					  '2016-05-23'::date,
+					  '1 day'::interval) date
+    LOOP
+-- Return the output
+        RAISE NOTICE 'Date: %', ddate;
+-- Insert the aggregated values into the density table        
+    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","50m","mean50m","std50m")
+    	select 	"ToiletID",
+    			ddate,
+    			count(*),
+			    avg("Distance"),
+			    stddev("Distance")
+			from premodeling.toiletdistances
+-- Only select the 50m box    			
+			where ("50m" != 0) and ("ToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" < ddate)and("LastCollection">=ddate))) 
+			group by "ToiletID";
+    END LOOP;
+END $$;
+-- Bing, bang, boom
+
 
 
