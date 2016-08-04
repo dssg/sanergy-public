@@ -4,6 +4,7 @@ import pdb
 import numpy as np
 import pandas as pd
 import datetime
+import sys
 
 from sklearn import svm, ensemble, tree, linear_model, neighbors, naive_bayes
 from sklearn.svm import SVR
@@ -85,7 +86,7 @@ class WasteModel(object):
         today = test_x[self.config['cols']['date']].min() #The first day in the features
         next_days = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
         features = test_x.loc[ [d in next_days for  d in test_x[self.config['cols']['date']] ]]#.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
-        waste_vector = features[[self.config['cols']['toiletname'], self.config['cols']['date']]]
+        self.waste_vector = features[[self.config['cols']['toiletname'], self.config['cols']['date']]]
 
         result_y = []
         for d in next_days:
@@ -98,14 +99,14 @@ class WasteModel(object):
             if len(self.v_lag) > 0:
                 features = self.shift(features, d_next, result_onedayahead)
 
-        print(features.shape)
-        print(len(result_y))
-        waste_matrix = self.form_the_waste_matrix(features[[self.config['cols']['toiletname'], self.config['cols']['date']]], result_y, self.config['implementation']['prediction_horizon'][0] )
-        waste_vector['response'] = result_y #This declares a warning, but should be fine...
-        return waste_matrix, waste_vector, result_y
+        self.waste_matrix = self.form_the_waste_matrix(features[[self.config['cols']['toiletname'], self.config['cols']['date']]], result_y, self.config['implementation']['prediction_horizon'][0] )
+        self.waste_vector['response'] = result_y #This declares a warning, but should be fine...
+        return self.waste_matrix, self.waste_vector, result_y
 
     def shift(self, features, day, y_new):
         features_shifted = features.copy()
+        print(np.sum(features_shifted[self.config['cols']['date']]==day))
+        print(len(y_new))
         for lag in reversed(self.v_lag[1:]):
             var_replaced = self.v_response + '_lag' + str(lag)
             var_replace = self.v_response + '_lag' + str(lag - 1)
@@ -266,19 +267,25 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         results_fold = generate_result_row(experiment, i_fold, 'MSE', loss)
 
         # proportion collected and proportion overflow
-        for safety_remainder in range(0, 50, 10):
+        for safety_remainder in [0]: #range(0, 50, 10):
            #Compute the collection schedule assuing the given safety_remainder
            schedule, cv = model.schedule_model.compute_schedule(wm, safety_remainder)
 
            true_waste = model.waste_model.form_the_waste_matrix(features_test, labels_test, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
            p_collect = loss_function.compute_p_collect(cv)
            p_overflow =  loss_function.compute_p_overflow(schedule, true_waste)[0]
+           print(true_waste.head(10))
+           print(model.waste_model.waste_matrix.head(10))
+           print(cv.head(10))
+           print(schedule.head(10))
            print(p_collect)
            print(p_overflow)
+           print("--------")
            res_collect = generate_result_row(experiment, i_fold, 'p_collect', p_collect, parameter = float(safety_remainder))
            res_overflow = generate_result_row(experiment, i_fold, 'p_overflow', p_overflow, parameter = float(safety_remainder))
            results_fold = results_fold.append(res_collect, ignore_index=True)
            results_fold = results_fold.append(res_overflow, ignore_index=True)
+           sys.exit("Out!")
 
 
         """
@@ -286,9 +293,10 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         7. We have to save the model results and the evaluation in postgres
         Experiment x Fold, long file
         """
-        print(results_fold)
+        #print(results_fold)
         write_evaluation_into_db(results_fold, db)
         results = results.append(results_fold,ignore_index=True)
+
 
     #write_evaluation_into_db(results, append = False)
     return(results)

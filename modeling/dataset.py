@@ -277,28 +277,38 @@ def grab_collections_data(db, config_Xy, log ):
 
 def grab_from_features_and_labels(db, fold, config):
 
-	"""
-	A function that subsets the features df and labels df stored in the Postgres, into train and test features and labels, based on the fold info (train start, train end, test start, test end )
+    """
+    A function that subsets the features df and labels df stored in the Postgres, into train and test features and labels, based on the fold info (train start, train end, test start, test end )
 
-	Args
-		DICT FOLD start and end date for both train and test set, in the fomat{"train":(start, end),"test":(start, end)}
-	Returns
-		df features train
-		df labels train
-		df features test
-		df labels test
-	"""
-	dataset = pd.read_sql('select * from modeling.dataset where (("Collection_Date" >= '+"'"+fold['train_start'].strftime('%Y-%m-%d')+"'"+') and ("Collection_Date" <= '+"'"+fold['test_end'].strftime('%Y-%m-%d')+"'"+'))', db['connection'], coerce_float=True, params=None)
-	dataset = dataset.sort_values(by=['Collection_Date','ToiletID'])
-	#TODO: Fix this...
-	dataset = dataset.fillna(0) #A hack to make it run for now...
+    Args
+    DICT FOLD start and end date for both train and test set, in the fomat{"train":(start, end),"test":(start, end)}
+    Returns
+    df features train
+    df labels train
+    df features test
+    df labels test
+    """
+    dataset = pd.read_sql('select * from modeling.dataset where (("Collection_Date" >= '+"'"+fold['train_start'].strftime('%Y-%m-%d')+"'"+') and ("Collection_Date" <= '+"'"+fold['test_end'].strftime('%Y-%m-%d')+"'"+'))', db['connection'], coerce_float=True, params=None)
 
-	features_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"]))].drop(['response',config['Xy']['response']['variable']],axis=1)
-	features_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"]))].drop(['response', config['Xy']['response']['variable']],axis=1)
+    #TODO: Fix this...
+    dataset = dataset.fillna(0) #A hack to make it run for now...
+    #Drop the toilets that do not have contiguous data.
+    # Note that missing collections are filled with NaN'd rows, so if a toilet is not contiguous, it must mean that it appeared or disappeared during the fold period -> ignore it.
+    toilet_groups = dataset.groupby(config['cols']['toiletname'])
+    toilets = dataset[config['cols']['toiletname']].unique()
+    number_of_days = max(toilet_groups.size())
+    contiguous_toilets = [t for t in toilets if (toilet_groups.size()[t] == number_of_days)]
+    dataset = dataset.loc[dataset[config['cols']['toiletname']].isin(contiguous_toilets)]
+    #Sort for the purposes of later functions...
+    dataset = dataset.sort_values(by=['Collection_Date','ToiletID'])
 
-	labels_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"])),['response','Collection_Date','ToiletID']]
-	labels_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"])),['response','Collection_Date','ToiletID']]
-	return(features_train, labels_train, features_test, labels_test)
+
+    features_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"]))].drop(['response',config['Xy']['response']['variable']],axis=1)
+    features_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"]))].drop(['response', config['Xy']['response']['variable']],axis=1)
+
+    labels_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"])),['response','Collection_Date','ToiletID']]
+    labels_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"])),['response','Collection_Date','ToiletID']]
+    return(features_train, labels_train, features_test, labels_test)
 
 def format_features_labels(features_big,labels_big):
 
