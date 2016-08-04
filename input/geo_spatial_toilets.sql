@@ -65,7 +65,6 @@ do $$
 -- Declare some variables for the FOR loops
 DECLARE
 	ddate timestamp;
-	toilet text;
 BEGIN
 -- Initially loop through the date range
     FOR ddate IN select date from generate_series(
@@ -78,14 +77,14 @@ BEGIN
 -- Insert the aggregated values into the density table        
     	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","50m","mean50m","std50m")
     	select 	"ToiletID",
-    			ddate,
-    			count(*),
-			    avg("Distance"),
-			    stddev("Distance")
-			from premodeling.toiletdistances
+		ddate,
+		count(*),
+		avg("Distance"),
+		stddev("Distance")
+		from premodeling.toiletdistances
 -- Only select the 50m box    			
-			where ("50m" != 0) and ("ToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" < ddate)and("LastCollection">=ddate))) 
-			group by "ToiletID";
+		where ("50m" != 0) and ("ToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" < ddate)and("LastCollection">=ddate)))
+		group by "ToiletID";
     END LOOP;
 END $$;
 -- Bing, bang, boom
