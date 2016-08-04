@@ -82,7 +82,7 @@ Xy:
 # Model parameters         #
 ############################
 #model: ["LinearRegression", "RandomForest", "Autoregression", "SimpleModel"]
-model: ['LinearRegression', "RandomForest", 'Autoregression', 'Lasso', 'ElasticNet', 'SVR', 'SGDClassifier']
+model: ['LinearRegression', "RandomForest", 'AR', 'Lasso', 'ElasticNet', 'SVR', 'SGDClassifier']
 
 parameters:
   RandomForest:
