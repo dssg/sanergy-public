@@ -43,13 +43,16 @@ class FullModel(object):
         Args:
           waste_past: A past waste matrix. Currently not used?
         """
-        if self.modeltype_schedule=='StaticModel':
-            pass
+        if  self.modeltype_schedule=='StaticModel':
+            today = test_x[self.config['cols']['date']].min() #The first day in the features
+            next_days = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
+            self.schedule_model = schedule_model(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
+            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix=None, next_days)
         else:
             self.waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
             waste_matrix, waste_vector, y = self.waste_model.predict(test_x)
-        self.schedule_model = schedule_model(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
-        collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix)
+            self.schedule_model = schedule_model(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
+            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix)
         return collection_matrix, waste_matrix, collection_vector, waste_vector
 
 
@@ -205,6 +208,7 @@ class ScheduleModel(object):
         self.waste_past = waste_past
         self.train_x = train_x
         self.train_y = train_y
+        self.test_x = test_x
 
     def simple_waste_collector(self, waste_row, remaining_threshold = 0) :
         """
@@ -224,7 +228,7 @@ class ScheduleModel(object):
                 last_collected = i_collected
             yield collect, total_waste
 
-    def compute_schedule(self, waste_matrix, remaining_threshold=0):
+    def compute_schedule(self, waste_matrix = None, remaining_threshold=0, next_days = None):
         """
         Based on the waste predictions, compute the optimal schedule for the next week.
 
@@ -235,13 +239,14 @@ class ScheduleModel(object):
           collection_schedule (DataFrame): The same format as the waste_matrix
         """
         #Same dimensions as the waste_matrix
-
+        if next_days is None:
+             next_days = waste_matrix.columns
 
 
         if self.modeltype_schedule=='StaticModel':
-            collection_schedule = pd.DataFrame(0,index=self.config['cols']['toiletname'].unique(), columns=pd.DatetimeIndex(waste_matrix.columns)) # NEEDS TO CHANGE COLUMNS!!!!!
+            collection_schedule = pd.DataFrame(0,index=self.config['cols']['toiletname'].unique(), columns=pd.DatetimeIndex(next_days)) 
         else:
-            collection_schedule = pd.DataFrame(index=waste_matrix.index,columns=pd.DatetimeIndex(waste_matrix.columns))
+            collection_schedule = pd.DataFrame(index=waste_matrix.index, columns=pd.DatetimeIndex(waste_matrix.columns))
         if self.modeltype == 'simple':
             for i_toilet, toilet in waste_matrix.iterrows():
                 toilet_accums = [collect for collect, waste in self.simple_waste_collector(toilet,remaining_threshold) ]
@@ -268,11 +273,11 @@ class ScheduleModel(object):
                 keep_going=True
                 i=0
                 while (keep_going==True):
-                    day_start=pd.to_datetime(min(self.config['cols']['date']))+timedelta(days=i*7)
+                    day_start=pd.to_datetime(self.train_y[self.config['cols']['date']].min()+timedelta(days=i*7))
                     day_end=day_start+timedelta(days=6)
                     print (day_start)
                     i=i+1
-                    if  (day_end>pd.to_datetime(max(self.config['cols']['date']))):
+                    if  (day_end>pd.to_datetime(self.train_y[self.config['cols']['date']].max())):
                     keep_going=False
                     break
                     #one week in the traing data
