@@ -250,6 +250,7 @@ class ScheduleModel(object):
         elif self.modeltype == 'StaticModel':
                 group_ID=self.train_y.groupby(self.config['cols']['toiletname'])  
                 group_mean=group_ID.mean()
+                group_std=group_ID.agg(np.std, ddof=0)
                 group_low=group_mean.loc[(group_mean['response']<=self.parameters.thresholds['meanlow']) & (group_std['response']<=self.parameters.thresholds['stdlow'])];
                 ToiletID_LOW=list(set(group_low.index))
                 group_medium=group_mean.loc[(group_mean['response']>self.parameters.thresholds['meanlow']) & (group_mean['response']<=self.parameters.thresholds['meanmed']) & (group_std['response']<=self.parameters.thresholds['stdmed'])];
@@ -262,6 +263,43 @@ class ScheduleModel(object):
                     else:
                         toilet_accums=[1 1 1 1 1 1 1]
                     collection_schedule.loc[i_toilet] = toilet_accums
+        elif self.modeltype == 'AdvancedStaticModel':
+                ToiletID_LOW = ToiletID_MEDIUM = ToiletID_HIGH = self.train_y.groupby(self.config['cols']['toiletname']).unique()
+                keep_going=True
+                i=0
+                while (keep_going==True):
+                    day_start=pd.to_datetime(min(self.config['cols']['date']))+timedelta(days=i*7)
+                    day_end=day_start+timedelta(days=6)
+                    print (day_start)
+                    i=i+1
+                    if  (day_end>pd.to_datetime(max(self.config['cols']['date']))):
+                    keep_going=False
+                    break
+                    #one week in the traing data
+                    ToiletCollectionData_train=tmp.loc[((tmp['Collection_Date']>=day_start) & (tmp['Collection_Date']<=day_end))]
+                    # group the collections data by Toilet ID
+                    group_ID=ToiletCollectionData_train.groupby(['ToiletID'])
+                    #find means for the groups
+                    group_mean=group_ID.mean()
+                    #find standard deviations for the groups
+                    #group_std=group_ID.std()
+                    group_std=group_ID.agg(np.std, ddof=0)
+        
+                    group_low=group_mean.loc[(group_mean['response']<=self.parameters.thresholds['meanlow']) & (group_std['response']<=self.parameters.thresholds['stdlow'])];
+                    ToiletID_LOW=list(set(group_low.index) & set(ToiletID_LOW))
+       
+                    group_medium=group_mean.loc[(group_mean['response']>self.parameters.thresholds['meanlow']) & (group_mean['response']<=self.parameters.thresholds['meanmed']) & (group_std['response']<=self.parameters.thresholds['stdmed'])];
+                    ToiletID_MEDIUM=list(set(group_medium.index) & set(ToiletID_MEDIUM))
+
+                    for i_toilet in self.config['cols']['toiletname'].unique()
+                    if i_toilet in ToiletID_LOW: 
+                        toilet_accums=[1 0 0 1 0 0 1]
+                    elif i_toilet in ToiletID_MEDIUM:
+                        toilet_accums=[1 0 1 0 1 0 1]
+                    else:
+                        toilet_accums=[1 1 1 1 1 1 1]
+                    collection_schedule.loc[i_toilet] = toilet_accums
+ 
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
