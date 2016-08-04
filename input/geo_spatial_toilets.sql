@@ -46,35 +46,6 @@ select sub.* into premodeling.toiletdistances from
 		(select * from premodeling.toiletdensity) s
 			where (s."ToiletID" != z."ToiletID")) sub;
 
--- Delete the density table just for the hell of it
-DROP TABLE IF EXISTS premodeling.toiletdensity;
-
--- Create the toilet density
-select "ToiletID",
--- Second, sum over the toilets that existed during the same time periods
-	   sum("5m") as "5m",
-	   sum("25m") as "25m",
-	   sum("50m") as "50m",
-	   sum("100m") as "100m"
-		into premodeling.toiletdensity
-		from premodeling.toiletdistances
--- First, subquery for the toilets and neighbors that existed within the same time periods
-			where ("ToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" > {d '2014-01-01'})and("LastCollection" < {d '2016-07-01'})))
-				and ("NeighborToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" > {d '2014-01-01'})and("LastCollection" < {d '2016-07-01'})))
-					group by "ToiletID";
-/**
- * The following count should equal 780,572 = ((884*884)-884)
- * select count(*) from premodeling.toiletdistances
- */
-
-select count(*), sum("5m"), avg("5m"), stddev("5m") from premodeling.toiletdensity where "5m"=0;
-select count(*), sum("5m"), avg("5m"), stddev("5m") from premodeling.toiletdensity where "5m">0;
--- is there something nearby and does it effect usage
--- did the usage change when another toilet was added
--- how compact the area is
--- how far away from the collection center is the toilet
-
-
 /*
  * Another attempt at the density table, this time
  * by day and by toilet statistics for the 50m box. */
