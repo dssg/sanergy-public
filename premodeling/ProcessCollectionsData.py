@@ -158,13 +158,34 @@ collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),['Total_Waste_kg_da
 print(collects['Feces_kg_day'].describe())
 
 # Incorporate geospatial data in collections
-density = pd.read_sql('SELECT * FROM premodeling.toiletdensity', self.conn, coerce_float=True, params=None)
-collects = pd.merge(collects,
-		    density,
-		    on=['ToiletID','Collection_Date'],
-		    how='left')
+density = pd.read_sql('SELECT * FROM premodeling.toiletdensity', conn, coerce_float=True, params=None)
+
+
+
+
+
+
+
+
 
 #byGROUP = collects.groupby('ToiletID')
+
+# Clean the Cases Data
+toilet_cases = pd.read_sql('SELECT * FROM input.toilet_cases', conn, coerce_float=True, params=None)
+pprint.pprint(toilet_cases.keys())
+
+toilet_cases['CaseDate'] = toilet_cases['Date/Time Opened'].to_frame()
+toilet_cases['CaseDate'] = pd.to_datetime(toilet_cases['CaseDate'], format='%d/%m/%Y %H:%M')
+toilet_cases = toilet_cases.drop('Date/Time Opened',1)
+toilet_cases['CaseSubject'] = toilet_cases['subject']
+toilet_cases = toilet_cases[['ToiletExID','CaseDate','CaseSubject']]
+
+
+
+
+
+
+
 
 #print('applying days since variable')
 
