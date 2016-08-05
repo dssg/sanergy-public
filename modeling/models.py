@@ -45,9 +45,9 @@ class FullModel(object):
         """
         if  self.modeltype_schedule=='StaticModel':
             today = test_x[self.config['cols']['date']].min() #The first day in the features
-            next_days = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
+            days_predict = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
             self.schedule_model = schedule_model(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
-            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix=None, next_days)
+            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix=None, next_days= days_predict)
         else:
             self.waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
             waste_matrix, waste_vector, y = self.waste_model.predict(test_x)
@@ -174,24 +174,24 @@ class WasteModel(object):
             #    n_estimators=self.parameters['n_estimators'])
         elif self.modeltype == "LinearRegression":
             return linear_model.LinearRegression()
-	    elif self.modeltype == "Lasso":
-	        return linear_model.Lasso(
-		    alpha=self.parameters['alpha'])
-	    elif self.modeltype == "ElasticNet":
-	        return linear_model.ElasticNet(
-		    alpha=self.parameters['alpha'],
-		    l1_ratio=self.parameters['l1_ratio'])
-	    elif self.modeltype == "SVR":
-	        return SVR(
-		    C=self.parameters['C'],
-		    epsilon=self.parameters['epsilon'],
-		    kernel=self.parameters['kernel'])
-	    elif self.modeltype == 'SGDClassifier':
-	        return linear_model.SGDClassifier(
-		    loss=self.parameters['loss'],
-		    penalty=self.parameters['penalty'],
-		    epsilon=self.parameters['epsilon'],
-		    l1_ratio=self.parameters['l1_ratio'])
+        elif self.modeltype == "Lasso":
+            return linear_model.Lasso(
+              alpha=self.parameters['alpha'])
+        elif self.modeltype == "ElasticNet":
+            return linear_model.ElasticNet(
+            alpha=self.parameters['alpha'],
+            l1_ratio=self.parameters['l1_ratio'])
+        elif self.modeltype == "SVR":
+            return SVR(
+            C=self.parameters['C'],
+            epsilon=self.parameters['epsilon'],
+            kernel=self.parameters['kernel'])
+        elif self.modeltype == 'SGDClassifier':
+            return linear_model.SGDClassifier(
+            loss=self.parameters['loss'],
+            penalty=self.parameters['penalty'],
+            epsilon=self.parameters['epsilon'],
+            l1_ratio=self.parameters['l1_ratio'])
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
@@ -243,8 +243,8 @@ class ScheduleModel(object):
              next_days = waste_matrix.columns
 
 
-        if self.modeltype_schedule=='StaticModel':
-            collection_schedule = pd.DataFrame(0,index=self.config['cols']['toiletname'].unique(), columns=pd.DatetimeIndex(next_days)) 
+        if self.modeltype=='StaticModel':
+            collection_schedule = pd.DataFrame(0,index=self.train_y[self.config['cols']['toiletname']].unique(), columns=pd.DatetimeIndex(next_days)) 
         else:
             collection_schedule = pd.DataFrame(index=waste_matrix.index, columns=pd.DatetimeIndex(waste_matrix.columns))
         if self.modeltype == 'simple':
@@ -260,16 +260,16 @@ class ScheduleModel(object):
                 ToiletID_LOW=list(set(group_low.index))
                 group_medium=group_mean.loc[(group_mean['response']>self.parameters.thresholds['meanlow']) & (group_mean['response']<=self.parameters.thresholds['meanmed']) & (group_std['response']<=self.parameters.thresholds['stdmed'])];
                 ToiletID_MEDIUM=list(set(group_medium.index))
-                for i_toilet in self.config['cols']['toiletname'].unique()
+                for i_toilet in self.train_y[self.config['cols']['toiletname']].unique():
                     if i_toilet in ToiletID_LOW: 
-                        toilet_accums=[1 0 0 1 0 0 1]
+                        toilet_accums=[1, 0, 0, 1, 0, 0, 1]
                     elif i_toilet in ToiletID_MEDIUM:
-                        toilet_accums=[1 0 1 0 1 0 1]
+                        toilet_accums=[1, 0, 1, 0, 1, 0, 1]
                     else:
-                        toilet_accums=[1 1 1 1 1 1 1]
+                        toilet_accums=[1, 1, 1, 1, 1, 1, 1]
                     collection_schedule.loc[i_toilet] = toilet_accums
         elif self.modeltype == 'AdvancedStaticModel':
-                ToiletID_LOW = ToiletID_MEDIUM = ToiletID_HIGH = self.train_y.groupby(self.config['cols']['toiletname']).unique()
+                ToiletID_LOW = ToiletID_MEDIUM = ToiletID_HIGH = self.train_y[self.config['cols']['toiletname']].unique()
                 keep_going=True
                 i=0
                 while (keep_going==True):
@@ -278,8 +278,8 @@ class ScheduleModel(object):
                     print (day_start)
                     i=i+1
                     if  (day_end>pd.to_datetime(self.train_y[self.config['cols']['date']].max())):
-                    keep_going=False
-                    break
+                        keep_going=False
+                        break
                     #one week in the traing data
                     ToiletCollectionData_train=tmp.loc[((tmp['Collection_Date']>=day_start) & (tmp['Collection_Date']<=day_end))]
                     # group the collections data by Toilet ID
@@ -296,14 +296,14 @@ class ScheduleModel(object):
                     group_medium=group_mean.loc[(group_mean['response']>self.parameters.thresholds['meanlow']) & (group_mean['response']<=self.parameters.thresholds['meanmed']) & (group_std['response']<=self.parameters.thresholds['stdmed'])];
                     ToiletID_MEDIUM=list(set(group_medium.index) & set(ToiletID_MEDIUM))
 
-                    for i_toilet in self.config['cols']['toiletname'].unique()
-                    if i_toilet in ToiletID_LOW: 
-                        toilet_accums=[1 0 0 1 0 0 1]
-                    elif i_toilet in ToiletID_MEDIUM:
-                        toilet_accums=[1 0 1 0 1 0 1]
-                    else:
-                        toilet_accums=[1 1 1 1 1 1 1]
-                    collection_schedule.loc[i_toilet] = toilet_accums
+                    for i_toilet in self.config['cols']['toiletname'].unique():
+                        if i_toilet in ToiletID_LOW: 
+                            toilet_accums=[1, 0, 0, 1, 0, 0, 1]
+                        elif i_toilet in ToiletID_MEDIUM:
+                            toilet_accums=[1, 0, 1, 0, 1, 0, 1]
+                        else:
+                            toilet_accums=[1, 1, 1, 1, 1, 1, 1]
+                        collection_schedule.loc[i_toilet] = toilet_accums
  
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
