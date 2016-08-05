@@ -77,6 +77,7 @@ class WasteModel(object):
             self.v_lag = []
 
 
+
     def predict(self, test_x):
         """
         Assume test_x (and test_y) are ordered by [date, toiletname]
@@ -251,41 +252,41 @@ class ScheduleModel(object):
 def run_models_on_folds(folds, loss_function, db, experiment):
     results = pd.DataFrame({'model id':[], 'model':[], 'fold':[], 'metric':[], 'parameter':[], 'value':[]})#Index by experiment hash
     log = logging.getLogger("Sanergy Collection Optimizer")
+    log.debug("Running model {0}".format(experiment.model))
     for i_fold, fold in enumerate(folds):
         #log.debug("Fold {0}: {1}".format(i_fold, fold))
         features_train, labels_train, features_test, labels_test = grab_from_features_and_labels(db, fold, experiment.config)
 
 
         # 5. Run the models
-        #print(features_train.shape)
-        #print(labels_train.shape)
         model = FullModel(experiment.config, experiment.model, parameters_waste = experiment.parameters)
         cm, wm, cv, wv = model.run(features_train, labels_train, features_test) #Not interested in the collection schedule, will recompute with different parameters.
         #L2 evaluation of the waste prediction
+
         loss = loss_function.evaluate_waste(labels_test, wv)
         results_fold = generate_result_row(experiment, i_fold, 'MSE', loss)
-
-        # proportion collected and proportion overflow
+        #proportion collected and proportion overflow
         for safety_remainder in range(0, 100, 1):
            #Compute the collection schedule assuing the given safety_remainder
            schedule, cv = model.schedule_model.compute_schedule(wm, safety_remainder)
 
            true_waste = model.waste_model.form_the_waste_matrix(features_test, labels_test, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
            p_collect = loss_function.compute_p_collect(cv)
-           p_overflow =  loss_function.compute_p_overflow(schedule, true_waste)[0]
+           p_overflow, p_overflow_conservative, _, _, _ =  loss_function.compute_p_overflow(schedule, true_waste)
            #print(true_waste.head(10))
            #print(model.waste_model.waste_matrix.head(10))
            #print(cv.head(10))
            #print(schedule.head(10))
            print(p_collect)
            print(p_overflow)
+           print(p_overflow_conservative)
            #print("--------")
            res_collect = generate_result_row(experiment, i_fold, 'p_collect', p_collect, parameter = float(safety_remainder))
            res_overflow = generate_result_row(experiment, i_fold, 'p_overflow', p_overflow, parameter = float(safety_remainder))
+           res_overflow_conservative = generate_result_row(experiment, i_fold, 'p_overflow_conservative', p_overflow_conservative, parameter = float(safety_remainder))
            results_fold = results_fold.append(res_collect, ignore_index=True)
            results_fold = results_fold.append(res_overflow, ignore_index=True)
-           #sys.exit("Out!")
-
+           results_fold = results_fold.append(res_overflow_conservative, ignore_index=True)
 
         """
         TODO:

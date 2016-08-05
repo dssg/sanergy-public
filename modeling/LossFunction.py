@@ -1,6 +1,7 @@
 
 import pandas as pd
 import numpy as np
+import sklearn.metrics as skm
 
 class LossFunction(object):
     TOILET_CAPACITY= 100
@@ -24,8 +25,8 @@ class LossFunction(object):
         Given two dataframes x, y with toiletname, date, and value, take the inner join and return values only
         """
         joint_df = pd.merge(x,y, on = [self.config['cols']['toiletname'],self.config['cols']['date']])
-        x_new = joint_df['response_x'].values
-        y_new = joint_df['response_y'].values
+        x_new = joint_df['response_x'].as_matrix()
+        y_new = joint_df['response_y'].as_matrix()
         return x_new, y_new
 
     def evaluate_waste(self, yhat, y):
@@ -39,14 +40,21 @@ class LossFunction(object):
             loss: Evaluated loss as a float.
         """
         if (isinstance(yhat, pd.DataFrame) and isinstance(y, pd.DataFrame)):
+            print(yhat.shape)
+            #yhat.to_csv("yhat.csv")
+            #y.to_csv("y.csv")
             yhat, y = self.extract_vectors(yhat, y)
-
+        print(len(yhat))
         if self.loss_waste == "L2":
-            evaluated_loss = (1.0/len(yhat))*np.linalg.norm(np.asarray(yhat)-np.asarray(y), ord=2)
+            evaluated_loss = skm.mean_squared_error(y,yhat)
+            #evaluated_loss =(1.0/len(yhat))*np.linalg.norm(yhat - y, ord = 2)
+
         elif self.loss_waste == "L1":
-            evaluated_loss = (1.0/len(yhat))*np.linalg.norm(np.asarray(yhat)-np.asarray(y), ord=1)
+            #evaluated_loss = (1.0/len(yhat))*np.linalg.norm(np.asarray(yhat)-np.asarray(y), ord=1)
+            evaluated_loss = skm.mean_absolute_error(y,yhat)
         else:
-          evaluated_loss =  (1.0/len(yhat))*np.linalg.norm(np.asarray(yhat)-np.asarray(y), ord=2) #L2
+            evaluated_loss = skm.mean_squared_error(y,yhat)
+            #evaluated_loss =  (1.0/len(yhat))*np.linalg.norm(np.asarray(yhat)-np.asarray(y), ord=2) #L2
 
         return(evaluated_loss)
 
@@ -85,16 +93,19 @@ class LossFunction(object):
         """
         current_waste = 0
         n_overflows = 0
+        n_overflows_conservative = 0
         n_days = 0
         for scheduled, new_waste in zip(schedule_row, waste_row):
             n_days += 1
             current_waste += new_waste
+            if current_waste > self.TOILET_CAPACITY:
+                n_overflows_conservative += 1
             if scheduled:
                 current_waste = 0
             if current_waste > self.TOILET_CAPACITY:
                 n_overflows += 1
 
-        return n_overflows, n_days
+        return n_overflows, n_overflows_conservative, n_days
 
     def compute_p_overflow(self, schedule, true_waste):
         """
@@ -104,14 +115,16 @@ class LossFunction(object):
           true_waste (DataFrame): The same format as schedule, the entries are actually accumulated waste percentages.
         """
         n_overflows = 0
+        n_overflows_conservative = 0 #
         n_days = 0
         for i_toilet, toilet_schedule in schedule.iterrows():
             toilet_waste = true_waste.loc[i_toilet]
-            n_overflows_i, n_days_i = self.simple_waste_inspector(toilet_schedule, toilet_waste)
+            n_overflows_i, n_overflows_conservative_i, n_days_i = self.simple_waste_inspector(toilet_schedule, toilet_waste)
             n_overflows += n_overflows_i
+            n_overflows_conservative += n_overflows_conservative_i
             n_days += n_days_i
 
-        return (n_overflows / float(n_days)), n_overflows, n_days
+        return (n_overflows / float(n_days)), (n_overflows_conservative / float(n_days)), n_overflows, n_overflows_conservative, n_days
 
 
 def compare_models_by_loss_functions(results_from_experiments):
