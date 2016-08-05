@@ -2,6 +2,7 @@
  * This table is used as a look up to check the current density, given a
  * Fake-Today.
  */
+
 DROP TABLE IF EXISTS premodeling.toilethistory;
 -- Drop the table if it exists already, simply for efficiency
 select "Toilet__c" as "ToiletID",
@@ -45,25 +46,48 @@ select sub.* into premodeling.toiletdistances from
 		(select * from premodeling.toiletdensity) s
 			where (s."ToiletID" != z."ToiletID")) sub;
 
--- Delete the density table just for the hell of it
+/*
+ * Another attempt at the density table, this time
+ * by day and by toilet statistics for the 50m box. */
 DROP TABLE IF EXISTS premodeling.toiletdensity;
+create table premodeling.toiletdensity
+(
+	"ToiletID" text,
+	"Collection_Date" timestamp,
+	"50m" int,
+	"mean50m" float8,
+	"std50m" float8
+);
 
--- Create the toilet density
-select "ToiletID",
--- Second, sum over the toilets that existed during the same time periods
-	   sum("5m") as "5m",
-	   sum("25m") as "25m",
-	   sum("50m") as "50m",
-	   sum("100m") as "100m"
-		into premodeling.toiletdensity
+
+-- A function with two loops by day and by toilet
+do $$
+-- Declare some variables for the FOR loops
+DECLARE
+	ddate timestamp;
+BEGIN
+-- Initially loop through the date range
+    FOR ddate IN select date from generate_series(
+					  '2010-01-01'::date,
+					  '2016-05-23'::date,
+					  '1 day'::interval) date
+    LOOP
+-- Return the output
+        RAISE NOTICE 'Date: %', ddate;
+-- Insert the aggregated values into the density table        
+    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","50m","mean50m","std50m")
+    	select 	"ToiletID",
+		ddate,
+		count(*),
+		avg("Distance"),
+		stddev("Distance")
 		from premodeling.toiletdistances
--- First, subquery for the toilets and neighbors that existed within the same time periods
-			where ("ToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" > {d '2014-01-01'})and("LastCollection" < {d '2016-07-01'})))
-				and ("NeighborToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" > {d '2014-01-01'})and("LastCollection" < {d '2016-07-01'})))
-					group by "ToiletID";
-/**
- * The following count should equal 780,572 = ((884*884)-884)
- * select count(*) from premodeling.toiletdistances
- */
+-- Only select the 50m box    			
+		where ("50m" != 0) and ("ToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" < ddate)and("LastCollection">=ddate)))
+		group by "ToiletID";
+    END LOOP;
+END $$;
+-- Bing, bang, boom
+
 
 

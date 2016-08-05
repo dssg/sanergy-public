@@ -49,7 +49,7 @@ psql/input/ipa_data_incomplete_NAreplaced <- input/ipa_data_incomplete.sql, data
 ;;; Collection Schedule ;;;
 data/input/wheelCut.csv, data/input/truckCut.csv, data/input/tukCut.csv <- input/extract_schedule.sh, data/input/Logistics_schedule.xlsx
 	bash $INPUT0
-psql/input/Collection_Schedule_Wheelbarrow, psql/input/Collection_Schedule_Truck, psql/input/Collection_Schedule_Tuktuk  <- input/CollectionSchedule_input.sql, data/input/wheelCut.csv, data/input/truckCut.csv, data/input/tukCut.csv [method:psql]
+psql/input/Collection_Schedule_Wheelbarrow <- input/CollectionSchedule_input.sql, data/input/wheelCut.csv, data/input/truckCut.csv, data/input/tukCut.csv [method:psql]
 
 ;;; School by Route ;;;
 ;data/input/school_by_route.csv <- input/extract_school.sh, data/input/Logistics_schedule.xlsx
@@ -57,6 +57,7 @@ psql/input/Collection_Schedule_Wheelbarrow, psql/input/Collection_Schedule_Truck
 
 psql/input/Collection_Schedule_School <- input/CollectionSchedule_input.sql, data/input/school_by_route.csv [method:psql]
 psql/input/new_geo_data <- input/CollectionSchedule_input.sql, data/input/new_geo_data.csv [method:psql]
+psql/input/toilet_cases <- input/CollectionSchedule_input.sql, data/input/AllCasesAreaToiletID.csv [method:psql]
 
 ;;; Toilet Coordinates ;;;
 psql/input/toilet_coordinates <- input/ToiletCoords_input.sql, data/input/ToiletCoords.csv [method:psql]
@@ -75,5 +76,10 @@ data/input/weather/weather_master.csv <- input/weather/weather_schema.csv, data/
         in2csv -H -s $INPUT0 > $OUTPUT
 psql/input/weather/jkia <- input/weather/weather.sql, data/input/weather/weather_master.csv [method:psql]
 
+;;; PREMODELING DATA ;;;
+psql/input/toiletcollection <- premodeling/ProcessCollectionsData.py
+	python premodeling/ProcessCollectionsData.py
+
+psql/input/toilethistory <- input/geo_spatial_toilets.sql, data/input/weather/weather_master.csv [method:psql]
 
 ;;; SQL SERVER DATA ;;;

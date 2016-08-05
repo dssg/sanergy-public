@@ -3,6 +3,19 @@ drop table if exists input.Collection_Schedule_Truck;
 drop table if exists input.Collection_Schedule_Tuktuk;
 drop table if exists input.Collection_Schedule_School;
 drop table if exists input.new_geo_data;
+drop table if exists input.toilet_cases;
+
+CREATE TABLE input.toilet_cases (
+        "Case Owner" VARCHAR(22) NOT NULL, 
+        "Account Name" VARCHAR(43), 
+        "Toilet" VARCHAR(8) NOT NULL, 
+        "Subject" VARCHAR(99), 
+        "Date/Time Opened" TEXT NOT NULL, 
+        "Age (Hours)" FLOAT NOT NULL, 
+        "Open" INTEGER NOT NULL, 
+        "Closed" INTEGER NOT NULL, 
+        "Area" VARCHAR(13) NOT NULL
+);
 
 CREATE TABLE input.new_geo_data (
         "Date" DATE NOT NULL, 
@@ -119,6 +132,7 @@ CREATE TABLE input.Collection_Schedule_School (
 	"who_operates_or_manages_the_flt_on_a_daily_basis?" VARCHAR(24) 
 );
 
+\copy input.toilet_cases from 'data/input/AllCasesAreaToiletID.csv' with csv header;
 \copy input.Collection_Schedule_Wheelbarrow from 'data/input/wheelCut.csv' with csv header;
 \copy input.Collection_Schedule_Truck from 'data/input/truckCut.csv' with csv header;
 \copy input.Collection_Schedule_Tuktuk from 'data/input/tukCut.csv' with csv header;
