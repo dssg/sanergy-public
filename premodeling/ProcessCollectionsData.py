@@ -157,6 +157,13 @@ collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),['Total_Waste_kg_da
 
 print(collects['Feces_kg_day'].describe())
 
+# Incorporate geospatial data in collections
+density = pd.read_sql('SELECT * FROM premodeling.toiletdensity', self.conn, coerce_float=True, params=None)
+collects = pd.merge(collects,
+		    density,
+		    on=['ToiletID','Collection_Date'],
+		    how='left')
+
 #byGROUP = collects.groupby('ToiletID')
 
 #print('applying days since variable')
@@ -206,32 +213,32 @@ toilets = pd.read_sql('SELECT * FROM input."tblToilet"', conn, coerce_float=True
 toilets = standardize_variable_names(toilets, RULES)
 
 # Add in the density of Sanergy toilets surrounding a toilet (by meters)
-gToilets = toilets.loc[(toilets.duplicated(subset='ToiletID')==False),['ToiletID','Latitude','Longitude']]
-geometry = [Point(xy) for xy in zip(gToilets.Longitude, gToilets.Latitude)]
-crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
-gdf = gp.GeoDataFrame(gToilets[['ToiletID','Longitude','Latitude']], crs=crs, geometry=geometry)
-gdf.to_crs(epsg=COORD_SYSTEM,inplace=True)
+#gToilets = toilets.loc[(toilets.duplicated(subset='ToiletID')==False),['ToiletID','Latitude','Longitude']]
+#geometry = [Point(xy) for xy in zip(gToilets.Longitude, gToilets.Latitude)]
+#crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+#gdf = gp.GeoDataFrame(gToilets[['ToiletID','Longitude','Latitude']], crs=crs, geometry=geometry)
+#gdf.to_crs(epsg=COORD_SYSTEM,inplace=True)
 #BaseGeometry.distance(gdf.loc[109].geometry, gdf.loc[217].geometry)
-TOILETS = gToilets['ToiletID'].index
+#TOILETS = gToilets['ToiletID'].index
 
-print('Looping through the ID list: %i' %(len(TOILETS)))
-for tt in tqdm(TOILETS):
-	neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 5.0)&(gt!=tt))]
-	gdf.loc[tt,'5m'] = len(neighbors)
+#print('Looping through the ID list: %i' %(len(TOILETS)))
+#for tt in tqdm(TOILETS):
+#	neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 5.0)&(gt!=tt))]
+#	gdf.loc[tt,'5m'] = len(neighbors)
 
 	#neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 25.0)&(gt!=tt))]
 	#gdf.loc[tt,'25m'] = len(neighbors)
     
-	neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 50.0)&(gt!=tt))]
-	gdf.loc[tt,'50m'] = len(neighbors)
+#	neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 50.0)&(gt!=tt))]
+#	gdf.loc[tt,'50m'] = len(neighbors)
 
 	#neighbors = [gt for gt in TOILETS if ((BaseGeometry.distance(gdf.loc[tt].geometry,gdf.loc[gt].geometry) < 100.0)&(gt!=tt))]
 	#gdf.loc[tt,'100m'] = len(neighbors)
 
-print(gdf[['5m','50m']].describe())
-toilets = pd.merge(toilets,
-		   gdf[['ToiletID','5m','50m']],
-		   on='ToiletID')
+#print(gdf[['5m','50m']].describe())
+#toilets = pd.merge(toilets,
+#		   gdf[['ToiletID','5m','50m']],
+#		   on='ToiletID')
 
 # Load the schedule data to pandas
 schedule = pd.read_sql('SELECT * FROM input."FLT_Collection_Schedule__c"', conn, coerce_float=True, params=None)
