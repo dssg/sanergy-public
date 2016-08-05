@@ -26,6 +26,8 @@ from shapely.geometry import Point
 from shapely.geometry.base import BaseGeometry
 from geopandas import GeoSeries, GeoDataFrame
 
+from datetime import timedelta
+
 COORD_SYSTEM = "21037" #One of the 4 systems in Kenya..., the one that contains Nairobi, apparently
 #4326 is WGS84, but that one is not linear but spherical -> difficult to compute distances
 COORD_WGS = "4326"
@@ -163,6 +165,9 @@ collects = pd.merge(collects,
 		    density,
 		    on=['ToiletID','Collection_Date'],
 		    how='left')
+collects.loc[(collects['50m'].isnull()),'50m'] = 0
+
+collects = collects.sort_values(by=['ToiletID','Collection_Date'])
 
 #byGROUP = collects.groupby('ToiletID')
 
@@ -183,6 +188,16 @@ collects = pd.merge(collects,
 		    toilet_cases,
 		    on=['ToiletExID', 'Collection_Date'],
 		    how='left')
+
+collects['CasePriorWeek'] = 0
+
+print('---Long loop of case data---')
+for ii in tqdm(collects.loc[(collects['CaseSubject'].isnull()==False)].index):
+	toilet = collects.loc[ii,'ToiletID']
+	case_date = {'current':collects.loc[ii,'Collection_Date'],
+			'past':collects.loc[ii,'Collection_Date']-timedelta(days=7)}
+	collects.loc[((collects['ToiletID']==toilet)&((collects['Collection_Date']>=case_date['past'])&(collects['Collection_Date']<=case_date['current']))),'CasePriorWeek']=1
+
 
 #print('applying days since variable')
 
