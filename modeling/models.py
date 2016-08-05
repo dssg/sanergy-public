@@ -174,26 +174,26 @@ class WasteModel(object):
             #    n_estimators=self.parameters['n_estimators'])
         elif self.modeltype == "LinearRegression":
             return linear_model.LinearRegression()
-	   elif self.modeltype == "Lasso":
-	       return linear_model.Lasso(
-		  alpha=self.parameters['alpha'])
-	   elif self.modeltype == "ElasticNet":
-	       return linear_model.ElasticNet(
-		   alpha=self.parameters['alpha'],
-		   l1_ratio=self.parameters['l1_ratio'])
-	   elif self.modeltype == "SVR":
-	       return SVR(
-		   C=self.parameters['C'],
-		   epsilon=self.parameters['epsilon'],
-		   kernel=self.parameters['kernel'])
-	   elif self.modeltype == 'SGDClassifier':
-	       return linear_model.SGDClassifier(
-		   loss=self.parameters['loss'],
-		   penalty=self.parameters['penalty'],
-		   epsilon=self.parameters['epsilon'],
-		   l1_ratio=self.parameters['l1_ratio'])
-       else:
-           raise ConfigError("Unsupported model {0}".format(self.modeltype))
+	    elif self.modeltype == "Lasso":
+	        return linear_model.Lasso(
+		    alpha=self.parameters['alpha'])
+	    elif self.modeltype == "ElasticNet":
+	        return linear_model.ElasticNet(
+		    alpha=self.parameters['alpha'],
+		    l1_ratio=self.parameters['l1_ratio'])
+	    elif self.modeltype == "SVR":
+	        return SVR(
+		    C=self.parameters['C'],
+		    epsilon=self.parameters['epsilon'],
+		    kernel=self.parameters['kernel'])
+	    elif self.modeltype == 'SGDClassifier':
+	        return linear_model.SGDClassifier(
+		    loss=self.parameters['loss'],
+		    penalty=self.parameters['penalty'],
+		    epsilon=self.parameters['epsilon'],
+		    l1_ratio=self.parameters['l1_ratio'])
+        else:
+            raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
 class ScheduleModel(object):
     TOILET_CAPACITY = 100 # 100% full
