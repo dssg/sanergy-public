@@ -159,14 +159,10 @@ print(collects['Feces_kg_day'].describe())
 
 # Incorporate geospatial data in collections
 density = pd.read_sql('SELECT * FROM premodeling.toiletdensity', conn, coerce_float=True, params=None)
-
-
-
-
-
-
-
-
+collects = pd.merge(collects,
+		    density,
+		    on=['ToiletID','Collection_Date'],
+		    how='left')
 
 #byGROUP = collects.groupby('ToiletID')
 
@@ -178,14 +174,14 @@ toilet_cases['CaseDate'] = toilet_cases['Date/Time Opened'].to_frame()
 toilet_cases['CaseDate'] = pd.to_datetime(toilet_cases['CaseDate'], format='%d/%m/%Y %H:%M')
 toilet_cases = toilet_cases.drop('Date/Time Opened',1)
 toilet_cases['CaseSubject'] = toilet_cases['subject']
-toilet_cases = toilet_cases[['ToiletExID','CaseDate','CaseSubject']]
+toilet_cases['Collection_Date'] = [cc.date() for cc in toilet_cases['CaseDate']]
 
+toilet_cases = toilet_cases[['ToiletExID','Collection_Date','CaseSubject']]
 
-
-
-
-
-
+collects = pd.merge(collects,
+		    toilet_cases,
+		    on=['ToiletExID', 'Collection_Date'],
+		    how='left')
 
 #print('applying days since variable')
 
