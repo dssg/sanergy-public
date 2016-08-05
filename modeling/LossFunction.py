@@ -40,11 +40,11 @@ class LossFunction(object):
             loss: Evaluated loss as a float.
         """
         if (isinstance(yhat, pd.DataFrame) and isinstance(y, pd.DataFrame)):
-            print(yhat.shape)
+            #print(yhat.shape)
             #yhat.to_csv("yhat.csv")
             #y.to_csv("y.csv")
             yhat, y = self.extract_vectors(yhat, y)
-        print(len(yhat))
+            #print(len(yhat))
         if self.loss_waste == "L2":
             evaluated_loss = skm.mean_squared_error(y,yhat)
             #evaluated_loss =(1.0/len(yhat))*np.linalg.norm(yhat - y, ord = 2)
