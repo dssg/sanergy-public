@@ -200,9 +200,15 @@ class modelsTest(unittest.TestCase):
          'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),   datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
           'w':[3,5,7,8,9,10],'x':[0,1,2, 3,4,5], 'z' : [-5,3,6,0,0,0]})
         self.dftest2.sort_values(by=['Collection_Date','ToiletID'],inplace=True)
+        self.dftrainx  = pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t2','t2','t3','t3'],
+         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,5,2), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
+          'w':[3,5,8,7,8,9,10],'x':[0,1,1, 2, 3,4,5], 'z' : [-5,3,6,0,0,0,0]})
+        self.dftrainy = pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t2','t2','t3','t3'],
+         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,5,2), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
+          'response': [1,1,1, 0,2,1,2]})
         self.wm =WasteModel("LinearRegression",{},self.config)
         self.wm2 =WasteModel("LinearRegression",{},self.config2)
-        self.sm =ScheduleModel(self.config)
+        self.sm =ScheduleModel(self.config, modeltype='StaticModel', parameters.thresholds={....to add from jupyter}, train_x=self.dftrainx, train_y=self.dftrainy)
         self.waste_matrix =  pd.DataFrame.from_items([('t1', [60, 50, 10, 40, 70, 10, 30]), ('t2', [10, 20, 30, 40, 50, 60, 70])],
         orient='index', columns=self.unique_dates)
         self.shift_set = pd.DataFrame.from_dict({'ToiletID':['t1','t2','t1','t2','t1','t2'],
@@ -223,13 +229,17 @@ class modelsTest(unittest.TestCase):
         self.assertEqual(waste.shape, (3,2))
         self.assertEqual(np.linalg.norm(y  + self.dftest2['x'] - 5.0) < 1.0e-9,True)
 
-    def test_compute_schedule(self):
-        schedule, sv = self.sm.compute_schedule(self.waste_matrix)
-        self.assertEqual(schedule.loc["t2",datetime(2011,11,13) ], 1 ) #Test that collects after 3 days
-        self.assertEqual(schedule.loc["t1",datetime(2011,11,12) ], 1 ) #Test that the toilet is collected when full
-        self.assertEqual(schedule.loc["t2",datetime(2011,11,16) ], 1 ) #Test that the toilet is collected when full
-        self.assertEqual(schedule.loc["t1",datetime(2011,11,13) ], 0 ) #Test that the toilet is empty after the collection
-        self.assertEqual(schedule.loc["t2",datetime(2011,11,12) ], 0 ) #Test that the toilet is not collected when not full
+    #def test_compute_schedule(self):
+    #    schedule, sv = self.sm.compute_schedule(self.waste_matrix, remaining_threshold=0, next_days = None)
+    #    self.assertEqual(schedule.loc["t2",datetime(2011,11,13) ], 1 ) #Test that collects after 3 days
+    #    self.assertEqual(schedule.loc["t1",datetime(2011,11,12) ], 1 ) #Test that the toilet is collected when full
+    #    self.assertEqual(schedule.loc["t2",datetime(2011,11,16) ], 1 ) #Test that the toilet is collected when full
+    #    self.assertEqual(schedule.loc["t1",datetime(2011,11,13) ], 0 ) #Test that the toilet is empty after the collection
+    #    self.assertEqual(schedule.loc["t2",datetime(2011,11,12) ], 0 ) #Test that the toilet is not collected when not full
+
+    def test_compute_schedule_Static_model(self):
+        schedule, sv = self.sm.compute_schedule(waste_matrix = None, remaining_threshold=0, next_days = self.unique_dates)
+        #collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix=None, next_days)
 
     # def test_Model(self):
     #     model = Model(self.config, "LinearRegression")
