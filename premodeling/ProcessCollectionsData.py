@@ -173,7 +173,8 @@ pprint.pprint(toilet_cases.keys())
 toilet_cases['CaseDate'] = toilet_cases['Date/Time Opened'].to_frame()
 toilet_cases['CaseDate'] = pd.to_datetime(toilet_cases['CaseDate'], format='%d/%m/%Y %H:%M')
 toilet_cases = toilet_cases.drop('Date/Time Opened',1)
-toilet_cases['CaseSubject'] = toilet_cases['subject']
+toilet_cases['ToiletExID'] = toilet_cases['Toilet']
+toilet_cases['CaseSubject'] = toilet_cases['Subject']
 toilet_cases['Collection_Date'] = [cc.date() for cc in toilet_cases['CaseDate']]
 
 toilet_cases = toilet_cases[['ToiletExID','Collection_Date','CaseSubject']]
