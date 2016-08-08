@@ -26,7 +26,7 @@ from shapely.geometry import Point
 from shapely.geometry.base import BaseGeometry
 from geopandas import GeoSeries, GeoDataFrame
 
-from datetime import timedelta
+from datetime import timedelta, date
 
 COORD_SYSTEM = "21037" #One of the 4 systems in Kenya..., the one that contains Nairobi, apparently
 #4326 is WGS84, but that one is not linear but spherical -> difficult to compute distances
@@ -121,6 +121,7 @@ print('loading collections')
 collects = pd.read_sql('SELECT * FROM input."Collection_Data__c"', conn, coerce_float=True, params=None)
 collects = standardize_variable_names(collects, RULES)
 
+print('Adding Days!')
 # Several days are missing from the data, we append those and sort the data :-p
 ADD_ROWS = {'ToiletID':[], 'Collection_Date':[]}
 ToiletID = list(set(collects['ToiletID'].tolist()))
@@ -128,6 +129,10 @@ for tt in tqdm(ToiletID):
 	temp = collects.loc[(collects['ToiletID']==tt)]
 	min_days = min(temp['Collection_Date'])
 	max_days = max(temp['Collection_Date'])
+	#print((min_days, max_days))
+	if (min_days <= datetime.datetime(2011,1,1)):
+		print(('super small', min_days))
+		min_days = datetime.datetime(2011,1,1)
 	all_days = list(set(pd.date_range(start=min_days, end=max_days, freq="D").tolist()) - set(temp['Collection_Date'].tolist()))
 	ADD_ROWS['ToiletID'].extend([tt]*len(all_days))
 	ADD_ROWS['Collection_Date'].extend(all_days)
@@ -147,11 +152,11 @@ collects = collects.sort_values(by=['ToiletID','Collection_Date'])
 
 collects['Feces_Collected'] = 1
 collects.loc[((collects['Feces_kg_day']==None)|(collects['Feces_kg_day']<=0)),['Feces_Collected']] = 0
-print(collects['Feces_Collected'].value_counts())
+print(collects['Feces_Collected'].value_counts(dropna=False))
 
 collects['Urine_Collected'] = 1
 collects.loc[((collects['Urine_kg_day']==None)|(collects['Urine_kg_day']<=0)),['Urine_Collected']] = 0
-print(collects['Urine_Collected'].value_counts())
+print(collects['Urine_Collected'].value_counts(dropna=False))
 
 # Change outier toilets to none
 collects.loc[(collects['Urine_kg_day']>OUTLIER_KG_DAY),['Urine_kg_day']]=None
@@ -349,13 +354,6 @@ collect_toilets = pd.merge(left=collect_toilets,
 				how="left",
 				left_on=["ToiletID","Collection_Date"],
 				right_on=["ToiletID","Planned_Collection_Date"])
-print(collect_toilets.shape)
-collect_toilets['duplicated'] = collect_toilets.duplicated(subset=['Id'])
-print('merge collections and schedule: %i' %(len(collect_toilets.loc[(collect_toilets['duplicated']==True)])))
-duplicate_ids = set(collect_toilets.loc[(collect_toilets['duplicated']==True),'ToiletID'])
-print(collect_toilets.loc[(collect_toilets['ToiletID'].isin(list(duplicate_ids))),['ToiletID','Planned_Collection_Date','Collection_Date','Route_Name']])
-collect_toilets = collect_toilets[(collect_toilets['duplicated']==False)]
-print(collect_toilets.shape)
 
 collect_toilets = pd.merge(left=collect_toilets,
 			   right=weather,
@@ -363,10 +361,6 @@ collect_toilets = pd.merge(left=collect_toilets,
 			   left_on=['Collection_Date'],
 			   right_on=['date'])
 
-print(collect_toilets.shape)
-collect_toilets['duplicated'] = collect_toilets.duplicated(subset=['Id'])
-print('merge collections and weather: %i' %(len(collect_toilets.loc[(collect_toilets['duplicated']==True)])))
-collect_toilets = collect_toilets.loc[(collect_toilets['duplicated']==False)]
 print(collect_toilets.shape)
 
 # Removing observations that are outside of the time range (See notes from Rosemary meeting 6/21)
@@ -389,7 +383,7 @@ collect_toilets.loc[((collect_toilets['Total_Waste_kg_day'] <= 0)&(collect_toile
 missed_code_set_interpolate=set(['5','8','9'])  # if the missed collection code is equal to one of those numbers, interpolate values
 missed_code_set_0=set(['1','2', '3','4','6','7'])   #if the missed collection code is equal to one of those numbers, set feces accumulation on that day to 0
 max_linear_int={}    #will keep track, for each Toilet Id,  of the longest possible array of consecutive days over which we linearly interpolate feces/urine values
-for ToiletId in collect_toilets['ToiletID'].unique():
+for ToiletId in tqdm(collect_toilets['ToiletID'].unique()):
     tmpId=collect_toilets[collect_toilets['ToiletID']==ToiletId]
     tmpId.sort_values('Collection_Date', ascending = True, inplace = True)
     dfId = pd.DataFrame(tmpId, columns = ['ToiletID', 'Id', 'Collection_Date', 'Missed_Collection_Code',  'Feces_kg_day', 'Urine_kg_day','Days_Since_Last_Collection'])
