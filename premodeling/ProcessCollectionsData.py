@@ -387,10 +387,13 @@ collect_toilets.loc[((collect_toilets['Total_Waste_kg_day'] <= 0)&(collect_toile
 
 missed_code_set_interpolate=set(['5','8','9'])  # if the missed collection code is equal to one of those numbers, interpolate values
 missed_code_set_0=set(['1','2', '3','4','6','7'])   #if the missed collection code is equal to one of those numbers, set feces accumulation on that day to 0
+max_linear_int={}    #will keep track, for each Toilet Id,  of the longest possible array of consecutive days over which we linearly interpolate feces/urine values
 for ToiletId in collect_toilets['ToiletID'].unique():
-    tmpId=collect_toilets[collect_toilets['ToiletID']==ToiletId];
+    tmpId=collect_toilets[collect_toilets['ToiletID']==ToiletId]
+    tmpId.sort_values('Collection_Date', ascending=True)
     dfId = pd.DataFrame(tmpId, columns = ['ToiletID', 'Id', 'Collection_Date', 'Missed_Collection_Code',  'Feces_kg_day', 'Urine_kg_day','Days_Since_Last_Collection'])
     count_int=0
+    max_count_int=0   #keeps track of the longest possible array of consecutive days over which we linearly interpolate feces/urine values
     keep_going=True
     ind_interpolate=list()
     for ind in dfId.index:
@@ -401,14 +404,18 @@ for ToiletId in collect_toilets['ToiletID'].unique():
             collect_toilets.loc[ind,'Feces_kg_day']=0
             collect_toilets.loc[ind,'Urine_kg_day']=0
         elif dfId.loc[ind,'Id'] == None:
-                count_int=count_int+1
-                ind_interpolate.append(ind)
+        	count_int=count_int+1
+        	ind_interpolate.append(ind)
         else:      # this is the case of a day on which there wasn't a missed collection 
-                if (count_int>0):    
-                    collect_toilets.loc[ind_interpolate,'Feces_kg_day']=dfId.loc[ind,'Feces_kg_day']/count_int
-                    collect_toilets.loc[ind_interpolate,'Urine_kg_day']=dfId.loc[ind,'Urine_kg_day']/count_int
-                    count_int=0
-                    ind_interpolate=list()
+            if (count_int>0):   
+            	count_int=count_int+1 
+                collect_toilets.loc[ind_interpolate,'Feces_kg_day']=dfId.loc[ind,'Feces_kg_day']/count_int
+                collect_toilets.loc[ind_interpolate,'Urine_kg_day']=dfId.loc[ind,'Urine_kg_day']/count_int
+                if count_int>max_count_int
+                	max_count_int=count_int
+                count_int=0
+                ind_interpolate=list()
+    max_linear_int[ToiletId] = max_count_int
 
 
 
