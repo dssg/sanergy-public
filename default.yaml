@@ -4,7 +4,8 @@
 #               from Portable Sanitation            #
 #####################################################
 
-
+setup:
+    run_features: False
 
 ############################
 # Database column names    #
@@ -37,11 +38,11 @@ Xy:
       #split: []
       type: 'binary'
       variable: 'FecesContainer_percent'
-      split:
-        and: [['>','100']]
+      split: []
+      #  and: [['>','100']]
     features:
       #Total_Waste_kg_day: []
-      Urine_kg_day: []
+      #UrineContainer_percent: []
       #sd_wind_speed_rate: []
       #sd_sea_level_pressure: []
       #sd_precipitation_6hr: []
@@ -56,21 +57,26 @@ Xy:
       #max_air_temp: []
       #mean_wind_speed_rate: []
       #mean_sea_level_pressure: []
-      #mean_precipitation_6hr: []
-      #mean_air_temp: []
-      #SubAreaName: []
-      #School_Closure: []
+      mean_precipitation_6hr: []
+      mean_air_temp: []
+      SubAreaName: []
+      School_Closure: []
       #Route_Name: []
       #OpportunityName: []
-      #OpeningTime: []
+      OpeningTime: []
+      ClosingTime: []
       #Missed_Collection_Code: []
-      #FranchiseType: []
-      #ClosingTime: []
+      FranchiseType: []
+      50m: []
+      mean50m: []
+      CasePriorWeek: []
+      DaysOpenInWeek: []
+      month: []
     unique:
       ToiletID: []
       Collection_Date: []
     lagged:
-      Feces_kg_day:
+      FecesContainer_percent:
           function: 'lag'
           rows: [1,2,3]
       #Urine_kg_day:
@@ -82,7 +88,7 @@ Xy:
 # Model parameters         #
 ############################
 #model: ["LinearRegression", "RandomForest", "Autoregression", "SimpleModel"]
-model: ["RandomForest", 'Autoregression', 'LinearRegression', 'Lasso', 'ElasticNet', 'SVR', 'SGDClassifier']
+model: ['LinearRegression', "RandomForest", 'AR', 'Lasso', 'ElasticNet', 'SVR', 'SGDClassifier']
 
 parameters:
   RandomForest:
@@ -96,7 +102,7 @@ parameters:
     # max_features: ['sqrt', 'log2']  # [2, 4, 8, 16, "auto"]
     # criterion: ['gini', 'entropy']
     # min_samples_split: [2, 5, 10]
-  Autoregression:
+  AR:
     maxlag: [3]
     #maxlag: [5, 10]
   LinearRegression:
@@ -130,7 +136,7 @@ cv:
 #############################
 implementation:
   loss: ['0-1'] #["L2", "L1"]
-  prediction_horizon: [1] #How many days
+  prediction_horizon: [7] #How many days
   prediction_weekday_start: [0] #Which day of the week do we recompute the schedule? 0=Mon, 7=Sun. Applicable for weekly or multiple-thereof schedules.
   aggregation_measure: ["mean"] #A measure to use to aggregate the losses across different folds. Since different experiments may have different numbers of folds, should be a probability measure.
   thresholds: {'meanlow':23, 'stdlow':100, 'meanmed':40, 'stdmed':10}  # static model parameters
