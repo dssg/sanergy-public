@@ -411,7 +411,7 @@ for ToiletId in collect_toilets['ToiletID'].unique():
             	count_int=count_int+1 
                 collect_toilets.loc[ind_interpolate,'Feces_kg_day']=dfId.loc[ind,'Feces_kg_day']/count_int
                 collect_toilets.loc[ind_interpolate,'Urine_kg_day']=dfId.loc[ind,'Urine_kg_day']/count_int
-                if count_int>max_count_int
+                if (count_int>max_count_int):
                 	max_count_int=count_int
                 count_int=0
                 ind_interpolate=list()
