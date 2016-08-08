@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import datetime
 import sys
+import json
 
 from sklearn import svm, ensemble, tree, linear_model, neighbors, naive_bayes
 from sklearn.svm import SVR
@@ -371,6 +372,7 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         """
         #print(results_fold)
         write_evaluation_into_db(results_fold, db)
+        write_experiment_into_db(experiment, db)
         results = results.append(results_fold,ignore_index=True)
 
 
@@ -389,6 +391,18 @@ def write_evaluation_into_db(results, db , append = True, chunksize=1000):
     #if ~append :
     #    db['connection'].execute('DROP TABLE IF EXISTS output."evaluations"')
     results.to_sql(name='evaluations',
+    schema="output",
+    con=db['connection'],
+    chunksize=chunksize,
+    if_exists='append')
+
+    return None
+
+def write_experiment_into_db(experiment, db , append = True, chunksize=1000):
+    timestamp =  datetime.datetime.now().isoformat()
+    exp_row = pd.DataFrame({'timestamp':[timestamp], 'id':[hash(experiment)] ,'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'model_config':[json.dumps(experiment.config)]})
+
+    exp_row.to_sql(name='experiments',
     schema="output",
     con=db['connection'],
     chunksize=chunksize,
