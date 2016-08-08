@@ -1,5 +1,6 @@
 import yaml
 import itertools
+import json
 
 class Experiment(object):
     """
@@ -28,6 +29,9 @@ class Experiment(object):
         models_are_the_same = (self.model == other.model)
         items_are_the_same =  (len(set(self.parameters.items()) ^ set(other.parameters.items())) == 0) #Take the symmetric difference of the sets of two items and check that the symmetric difference is empty.
         return (   models_are_the_same & items_are_the_same )
+
+    def to_json(self):
+        return json.dumps(self.parameters.items())
 
 def generate_experiments(yaml_config):
     """

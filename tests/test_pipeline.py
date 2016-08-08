@@ -33,9 +33,9 @@ class ExperimentTest(unittest.TestCase):
 
     def test_experiments(self):
          experiments = generate_experiments(self.config)
-         #print(experiments[1].parameters)
          self.assertEqual(len(experiments[1].parameters),9)
          self.assertIsInstance(experiments[23].parameters,dict)
+         self.assertIsInstance(experiments[0].to_json(),str)
 
     def test_default_yaml(self):
         """

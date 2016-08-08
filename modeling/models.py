@@ -382,7 +382,7 @@ def generate_result_row(experiment, fold, metric, value, parameter=np.nan):
     Just a wrapper
     """
     #result_row = pd.DataFrame({'model id':[hash(experiment)], 'model':[experiment.model], 'fold':[fold], 'metric':[metric], 'parameter':[parameter], 'value':[value]})#, index = [hash( (experiment.model, fold, metric,parameter) )] )
-    result_row = pd.DataFrame({'model':[experiment.model], 'fold':[fold], 'metric':[metric], 'parameter':[parameter], 'value':[value]})#, index = [hash( (experiment.model, fold, metric,parameter) )] )
+    result_row = pd.DataFrame({'id':[hash(experiment)],'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'fold':[fold], 'metric':[metric], 'parameter':[parameter], 'value':[value]})#, index = [hash( (experiment.model, fold, metric,parameter) )] )
     return result_row
 
 def write_evaluation_into_db(results, db , append = True, chunksize=1000):
