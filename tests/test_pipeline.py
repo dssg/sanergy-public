@@ -4,13 +4,17 @@ import re, pprint
 import sqlalchemy
 import pandas as pd
 import numpy as np
+import logging
+import sys
 from datetime import datetime, date, timedelta
-
+from functools import reduce
 
 from sanergy.premodeling.Experiment import generate_experiments, Experiment
 from sanergy.modeling.LossFunction import LossFunction, compare_models_by_loss_functions
 from sanergy.modeling.dataset import grab_collections_data, temporal_split, format_features_labels, create_enveloping_fold
 import sanergy.input.dbconfig as dbconfig
+from sanergy.modeling.models import WasteModel, ScheduleModel, FullModel
+from sanergy.modeling.Staffing import Staffing
 #from premodeling.Experiment import generate_experiments
 
 class ExperimentTest(unittest.TestCase):
@@ -150,7 +154,7 @@ class datasetTest(unittest.TestCase):
 
         #Now replicate the original features
 
-        print(next_days)
+        #print(next_days)
 
 
     def test_format_features_labels(self):
@@ -159,6 +163,86 @@ class datasetTest(unittest.TestCase):
          self.assertIsInstance(labels, np.ndarray)
 
 
+class modelsTest(unittest.TestCase):
+    def setUp(self):
+        self.horizon = 7
+        self.fake_col = np.repeat([1.5],2*self.horizon)
+        self.today = datetime(2011,11,11)
+        self.unique_dates = [self.today + timedelta(days=delta) for delta in range(0,self.horizon)]
+        self.dates = [self.today + timedelta(days=delta) for delta in range(0,self.horizon)] * 2
+        self.toilets = ['toilet1'] * self.horizon + ['toilet2'] * self.horizon
+        self.config = {
+        'Xy':{
+        'response':{'variable':'y'},
+        'lagged':{}
+        },
+        'cols':{'toiletname':'ToiletID', 'date':'Collection_Date'},
+        'implementation':{'prediction_horizon':[2]}
+        }
+        self.config2 = {
+        'Xy':{
+        'response':{'variable':'y'},
+        'lagged':{'y':{'rows':[1,2]}}
+        },
+        'cols':{'toiletname':'ToiletID', 'date':'Collection_Date'},
+        'implementation':{'prediction_horizon':[7]}
+        }
+        self.y = pd.DataFrame.from_dict({'response':range(0,2*self.horizon)})
+        self.x = -self.y['response'] + 5.0
+
+        self.z = np.repeat([-1.0,1.0],self.horizon)
+        self.df = pd.DataFrame.from_dict({'ToiletID':self.toilets, 'Collection_Date':self.dates, 'w':self.fake_col,
+        'x':self.x, 'z' : self.z})
+        self.dftest  = pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t2','t2','t3','t3'],
+         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,5,2), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
+          'w':[3,5,8,7,8,9,10],'x':[0,1,1, 2, 3,4,5], 'z' : [-5,3,6,0,0,0,0]})
+        self.dftest2  = pd.DataFrame.from_dict({'ToiletID':['t1','t1','t2','t2','t3','t3'],
+         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),   datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
+          'w':[3,5,7,8,9,10],'x':[0,1,2, 3,4,5], 'z' : [-5,3,6,0,0,0]})
+        self.dftest2.sort_values(by=['Collection_Date','ToiletID'],inplace=True)
+        self.wm =WasteModel("LinearRegression",{},self.config)
+        self.wm2 =WasteModel("LinearRegression",{},self.config2)
+        self.sm =ScheduleModel(self.config)
+        self.waste_matrix =  pd.DataFrame.from_items([('t1', [60, 50, 10, 40, 70, 10, 30]), ('t2', [10, 20, 30, 40, 50, 60, 70])],
+        orient='index', columns=self.unique_dates)
+        self.shift_set = pd.DataFrame.from_dict({'ToiletID':['t1','t2','t1','t2','t1','t2'],
+        'Collection_Date':[datetime(2012,1,1),datetime(2012,1,1),datetime(2012,1,2),datetime(2012,1,2),datetime(2012,1,3),datetime(2012,1,3)],
+        'y_lag1': range(0,6), 'y_lag2':range(6,12)})
+
+
+    def test_form_the_waste_matrix(self):
+        waste_matrix = self.wm.form_the_waste_matrix(self.df[[0,1]],self.y, self.horizon)
+        self.assertIsInstance(waste_matrix, pd.DataFrame)
+        self.assertEqual(waste_matrix.loc['toilet1', datetime(2011,11,17)], 6)
+        self.assertEqual(waste_matrix.loc['toilet2', datetime(2011,11,15)], 11)
+        self.assertEqual(waste_matrix.shape, (2,7))
+
+    def test_WasteModel_run(self):
+        self.wm.gen_model(self.df, self.y)
+        waste, wv, y = self.wm.predict(self.dftest2)
+        self.assertEqual(waste.shape, (3,2))
+        self.assertEqual(np.linalg.norm(y  + self.dftest2['x'] - 5.0) < 1.0e-9,True)
+
+    def test_compute_schedule(self):
+        schedule, sv = self.sm.compute_schedule(self.waste_matrix)
+        self.assertEqual(schedule.loc["t2",datetime(2011,11,13) ], 1 ) #Test that collects after 3 days
+        self.assertEqual(schedule.loc["t1",datetime(2011,11,12) ], 1 ) #Test that the toilet is collected when full
+        self.assertEqual(schedule.loc["t2",datetime(2011,11,16) ], 1 ) #Test that the toilet is collected when full
+        self.assertEqual(schedule.loc["t1",datetime(2011,11,13) ], 0 ) #Test that the toilet is empty after the collection
+        self.assertEqual(schedule.loc["t2",datetime(2011,11,12) ], 0 ) #Test that the toilet is not collected when not full
+
+    # def test_Model(self):
+    #     model = Model(self.config, "LinearRegression")
+    #     cm, sm, cv, sv = model.run(self.df, self.y, self.dftest)
+    #     self.assertEqual(cm.shape, (3,2))
+    #     self.assertEqual(sm.shape, (3,2))
+    #     self.assertEqual(cm.loc['t2',datetime(2012,1,2)], 0)
+
+    def test_shift(self):
+        shifted = self.wm2.shift(self.shift_set,datetime(2012,1,2),[42,53])
+        self.assertEqual( shifted.loc[(shifted['ToiletID']=="t2") & (shifted['Collection_Date']==datetime(2012,1,2)),'y_lag1'].values, 53)
+        self.assertEqual(shifted.loc[(shifted['ToiletID']=="t1") & (shifted['Collection_Date']==datetime(2012,1,2)),'y_lag2'].values,
+        self.shift_set.loc[(self.shift_set['ToiletID']=="t1") & (self.shift_set['Collection_Date']==datetime(2012,1,2)),'y_lag1'].values)
 
 class LossFunctionTest(unittest.TestCase):
     def setUp(self):
@@ -170,21 +254,91 @@ class LossFunctionTest(unittest.TestCase):
         self.assertIsInstance(lf,LossFunction)
 
     def test_L2_loss(self):
-        lf = LossFunction(self.config, self.config['implementation']['loss'], self.config['implementation']['aggregation_measure'])
+        lf = LossFunction(self.config)
         yhat = [1,0,0]
         y = [0,2,0]
-        loss = lf.evaluate(yhat,y)
+        loss = lf.evaluate_waste(yhat,y)
         self.assertEqual(loss, np.sqrt(5)/3)
 
     def test_01_loss(self):
-        lf = LossFunction(self.config, '0-1')
+        lf = LossFunction(self.config)
         yhat = [1,0,0]
         y = [0,1,0]
-        loss = lf.evaluate(yhat,y)
+        loss = lf.evaluate_schedule(yhat,y)
         self.assertEqual(loss, 2.0/3)
+
+    def test_compute_p_overflow(self):
+        lf = LossFunction(self.config)
+        waste = pd.DataFrame({datetime(2015,1,1):[80,20], datetime(2015,1,2):[30, 30], datetime(2015,1,3):[50, 49], datetime(2015,1,4):[70, 20] ,
+        datetime(2015,1,5):[30, 30], datetime(2015,1,6):[30, 30],  datetime(2015,1,7):[30, 30]}, index = ['t1', 't2'])
+        schedule = pd.DataFrame({datetime(2015,1,1):[0,0], datetime(2015,1,2):[0,0], datetime(2015,1,3):[1,0], datetime(2015,1,4):[0,1] ,
+        datetime(2015,1,5):[0,0], datetime(2015,1,6):[0,0], datetime(2015,1,7):[1,1]}, index = ['t1', 't2'])
+        p_overflows, n_overflows, n_days = lf.compute_p_overflow(schedule, waste)
+        self.assertEqual(n_days, 14)
+        self.assertEqual(n_overflows, 2) #t1 on 15/1/2 and on 15/1/6
 
 class outputTest(unittest.TestCase):
     pass
+
+class StaffingTest(unittest.TestCase):
+    def setUp(self):
+        self.config = {
+        'cols':{'feces':"FecesContainer_percent"}
+        }
+        self.staffing_parameters = {'N':5, 'W':10.0, 'NR':2,'D':5}
+        d_waste = {
+        'ToiletID' : pd.Series(['T1', 'T2','T3'], index=[0,1,2]),
+        '0' : pd.Series([5,6,11], index=[0,1,2]),
+        '1' : pd.Series([5,6,11], index=[0,1,2]),
+        '2' : pd.Series([5,6,11], index=[0,1,2]),
+        '3' : pd.Series([5,6,11], index=[0,1,2]),
+        '4' : pd.Series([5,6,11], index=[0,1,2]),
+        '5' : pd.Series([5,6,11], index=[0,1,2]),
+        '6' : pd.Series([5,6,11], index=[0,1,2])
+        }
+        d_schedule = {
+        'ToiletID' : pd.Series(['T1', 'T2','T3'], index=[0,1,2]),
+        '0' : pd.Series([1,1,0], index=[0,1,2]),
+        '1' : pd.Series([1,1,1], index=[0,1,2]),
+        '2' : pd.Series([1,0,0], index=[0,1,2]),
+        '3' : pd.Series([0,0,0], index=[0,1,2]),
+        '4' : pd.Series([0,0,0], index=[0,1,2]),
+        '5' : pd.Series([0,0,0], index=[0,1,2]),
+        '6' : pd.Series([0,0,0], index=[0,1,2]),
+        'Area' : pd.Series(['DSSG','DSSG','DSSG'], index=[0,1,2])
+        }
+        self.dfw = pd.DataFrame(d_waste)
+        self.dfs = pd.DataFrame(d_schedule)
+        logging.basicConfig(format="%(asctime)s %(message)s",
+        filename="default.log", level=logging.DEBUG)
+        self.log = logging.getLogger("Sanergy Collection Optimizer")
+
+        screenlog = logging.StreamHandler(sys.stdout)
+        screenlog.setLevel(logging.DEBUG)
+        formatter = logging.Formatter("%(asctime)s - %(name)s: %(message)s")
+        screenlog.setFormatter(formatter)
+        self.log.addHandler(screenlog)
+
+    def test_staff(self):
+        staffing = Staffing(self.dfs, self.dfw, self.staffing_parameters,self.config)
+        roster, s, vars =staffing.staff()
+        collectors_day0 =  reduce(lambda x,y: x+y, [s.getVal(vars[i,'DSSG','0']) for i in range(0,self.staffing_parameters['N'])])
+        collectors_day1 =  reduce(lambda x,y: x+y, [s.getVal(vars[i,'DSSG','1']) for i in range(0,self.staffing_parameters['N'])])
+        collectors_day2 =  reduce(lambda x,y: x+y, [s.getVal(vars[i,'DSSG','2']) for i in range(0,self.staffing_parameters['N'])])
+        collectors_day5 =  reduce(lambda x,y: x+y, [s.getVal(vars[i,'DSSG','5']) for i in range(0,self.staffing_parameters['N'])])
+        #Need 2 people on Monday, 3 people on Tuesday, and 1 (-> 2) people on Wednesday. Zero on other days.
+        self.assertEqual(collectors_day0, 2)
+        self.assertEqual(collectors_day1, 3)
+        self.assertEqual(collectors_day2, 2)
+        self.assertEqual(collectors_day5, 0)
+        self.assertEqual(roster.shape[0], 1)
+        self.assertEqual( list(roster.loc['DSSG',['0','1','2']].values), [collectors_day0,collectors_day1,collectors_day2])
+
+    def test_emptyStaffing(self):
+        staffing = Staffing(None, None, self.staffing_parameters, self.config)
+        output_roster = staffing.staff()[0]
+        self.assertEqual(output_roster, None)
+
 
 if __name__ == '__main__':
     unittest.main()

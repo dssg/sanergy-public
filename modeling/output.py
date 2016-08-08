@@ -10,52 +10,24 @@ from sqlalchemy import create_engine
 import datetime as dt
 import pandas as pd
 
+
 import sanergy.input.dbconfig as dbconfig
-from sanergy.modeling.models import Model
 from sanergy.modeling.dataset import create_enveloping_fold, grab_from_features_and_labels, create_future, format_features_labels
 
 WDAY_SUNDAY = 6
 WDAY_MONDAY = 0
 
-def run_best_model_on_all_data(experiment, db, folds):
-    """
-    Run the model based on the passed experiment, predict on the test (future) data, and present the results.
-    Write everything to the db.
-
-    Args:
-    test_features (array): Should include Day and Toilet
-    """
-    #Create a "master" fold: including all training and testing data.
-    master_fold = create_enveloping_fold(folds)
-    #Extract all features and labels
-    features_all_big,labels_all_big,_,_=grab_from_features_and_labels(db, master_fold)
-    features_all,labels_all=format_features_labels(features_all_big,labels_all_big)
-    #Create a dataset for future prediction (?)... will need to do this differently... (?)
-    features_future_big = create_future(master_fold, features_all_big, experiment.parameters) #TODO: This needs fixing
-    features_future=format_features_labels(features_future_big,labels_all_big)[0]
-
-    best_model = Model(experiment.model,experiment.parameters)
-    #Results are the predicted probabilities that a toilet will overflow? This is probably an array
-    yhat = best_model.run(features_all, labels_all, features_future)[0]
-
-    #TODO: Need to transform yhat (a probability?) into 1/0 for collect vs not collect. Probably should happen within the Model class?
-    output_schedule = present_schedule(yhat, features_future_big, experiment.config)
-
-
-    # Write the results to postgres
-    db['connection'].execute('DROP TABLE IF EXISTS output."predicted_filled"')
-    pd.DataFrame(yhat).to_sql(name='predicted_filled',
+def write_evaluation_into_db(results, db , append = True, chunksize=1000):
+    if ~append :
+        db['connection'].execute('DROP TABLE IF EXISTS output."predicted_filled"')
+    results.to_sql(name='evaluations',
     schema="output",
     con=db['connection'],
-    chunksize=1000)
+    chunksize=chunksize)
 
-    db['connection'].execute('DROP TABLE IF EXISTS output."collection_schedule"')
-    pd.DataFrame(output_schedule).to_sql(name='collection_schedule',
-    schema="output",
-    con=db['connection'],
-    chunksize=1000)
+    return None
 
-    return(best_model)
+
 
 def present_schedule(predicted, day_toilet_data, config):
     """

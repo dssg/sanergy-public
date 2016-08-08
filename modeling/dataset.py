@@ -58,6 +58,7 @@ def temporal_split(config_cv, day_of_week=None, floating_window=False):
 	end_date = config_cv['end_date']
 	train_on = config_cv['train_on']
 	test_on = config_cv['test_on']
+	log = logging.getLogger("Sanergy Collection Optimizer")
 
 	# Check to see if the days and weeks values are set
 	for unit in ['days','weeks']:
@@ -96,7 +97,7 @@ def temporal_split(config_cv, day_of_week=None, floating_window=False):
 			# Do not extend past the dataset
 			if (end_date >= fold['window_end']):
 				list_of_dates.append(fold)
-	print('Total %i folds from %s to %s' %(len(list_of_dates),
+	log.info('Total %i folds from %s to %s' %(len(list_of_dates),
 						start_date.strftime('%Y-%m-%d'),
 						end_date.strftime('%Y-%m-%d')))
 	return(list_of_dates)
@@ -170,49 +171,50 @@ def demand_daily_data(db, rows=[], feature='', function='lag', unique=['ToiletID
 	return(daily_data)
 
 def grab_collections_data(db, config_Xy, log ):
-	"""
-	A function to return a postgres query as a Pandas data frame
-	Args:
-	  DICT DB		A connection objection, database name/table
-	  DICT RESPONSE		The variable to be predicted
-				e.g., Feces container between 30% and  40% full:
-					{'type':'binary',
-					 'variable':'FecesContainer_percent',
-					 'split':{'and':[('>',30),('<',40)]}
-	  DICT[dict] FEATURES	The variables of interest and any subsets on those variables
-				(e.g., Not the school franchise types:
-					{'and':[('=','school')]}
-					Or school and commercial:
-					{"or":[('=',"school"),('=',"commercial")]}
-	  DICT[dict] UNIQUE	The unique variables for the dataset
-				(e.g., {'Collection_Date':{}}, {'ToiletID':{}}
-	  DICT LAGGED		The variables to be lagged are keys, the direction, and
-				number of rows forward or back are values.
-				(e.g., {'Feces_kg_day':{'function':'lag',
-							'rows':[1,2]}}
-	Returns:
-	  DF Y_LABELS		Pandas dataframe for the response variables
-	  DF X_FEATURES		Pandas dataframe for the feature variables
-	"""
-	response = config_Xy['response']
-	features = config_Xy['features']
-	unique = config_Xy['unique']
-	lagged = config_Xy['lagged']
+    """
+    A function to return a postgres query as a Pandas data frame
+    Args:
+    DICT DB		A connection objection, database name/table
+    DICT RESPONSE		The variable to be predicted
+    e.g., Feces container between 30% and  40% full:
+    {'type':'binary',
+    'variable':'FecesContainer_percent',
+    'split':{'and':[('>',30),('<',40)]}
+    DICT[dict] FEATURES	The variables of interest and any subsets on those variables
+    (e.g., Not the school franchise types:
+    {'and':[('=','school')]}
+    Or school and commercial:
+    {"or":[('=',"school"),('=',"commercial")]}
+    DICT[dict] UNIQUE	The unique variables for the dataset
+    (e.g., {'Collection_Date':{}}, {'ToiletID':{}}
+    DICT LAGGED		The variables to be lagged are keys, the direction, and
+    number of rows forward or back are values.
+    (e.g., {'Feces_kg_day':{'function':'lag',
+    'rows':[1,2]}}
+    Returns:
+    DF Y_LABELS		Pandas dataframe for the response variables
+    DF X_FEATURES		Pandas dataframe for the feature variables
+    """
+    response = config_Xy['response']
+    features = config_Xy['features']
+    unique = config_Xy['unique']
+    lagged = config_Xy['lagged']
 
-	# Create the list of all variables requested from the database
-	list_of_variables = [response['variable']]+features.keys()+unique.keys()
-	list_of_variables = ['"'+lv+'"' for lv in list_of_variables]
-	log.info('Request variable(s): %s' %(','.join(list_of_variables)))
+    # Create the list of all variables requested from the database
+    list_of_variables = [response['variable']]+features.keys()+unique.keys()
+    list_of_predictors = features.keys()
+    list_of_variables = ['"'+lv+'"' for lv in list_of_variables]
+    log.info('Request variable(s): %s' %(','.join(list_of_variables)))
 
-	# Determine the conditions statement for the data request
-	conditions = []
-	conditions.extend(write_statement(unique))
-	if len(conditions)>0:
-		conditions = 'and'.join(conditions)
-		conditions = 'where '+conditions
-	else:
-		conditions = ""
-	# Create the SQL statement requesting the data
+    # Determine the conditions statement for the data request
+    conditions = []
+    conditions.extend(write_statement(unique))
+    if len(conditions)>0:
+        conditions = 'and'.join(conditions)
+        conditions = 'where '+conditions
+    else:
+        conditions = ""
+    # Create the SQL statement requesting the data
 	statement = "select %s from %s.%s %s" %(','.join(list_of_variables),
 						db['database'],
 						db['table'],
@@ -254,46 +256,59 @@ def grab_collections_data(db, config_Xy, log ):
 		dataset.loc[(eval(statement)),"response"] = True
 	else:
 		dataset['response'] = dataset[response['variable']]
-	# Divide the dataset into a LABELS and FEATURES dataframe so that they link by UNIQUE variables
-	dataset = dataset.sort_values(by=unique.keys())
-	x_features = dataset.drop(['response',response['variable']], axis=1)
-	y_labels = dataset[["response",response['variable']]+unique.keys()]
-	# Insert tables into database
-	db['connection'].execute('DROP TABLE IF EXISTS modeling."labels"')
-	y_labels.to_sql(name='labels',
-			schema="modeling",
-			con=db['connection'],
-			chunksize=1000)
-	db['connection'].execute('DROP TABLE IF EXISTS modeling."features"')
-	x_features.to_sql(name='features',
-			schema="modeling",
-			con=db['connection'],
-			chunksize=1000)
 
-	return(y_labels, x_features)
+    #Code the categorical/string variables to dummies
+    str_vars = [row for row, tp in dataset.dtypes.iteritems() if tp == 'object']
+    vars_to_dummify = set(list_of_predictors).intersection(str_vars)
+    dataset = pd.get_dummies(dataset, columns = vars_to_dummify, drop_first = True)
 
-def grab_from_features_and_labels(db, fold):
 
-	"""
-	A function that subsets the features df and labels df stored in the Postgres, into train and test features and labels, based on the fold info (train start, train end, test start, test end )
+    # Divide the dataset into a LABELS and FEATURES dataframe so that they link by UNIQUE variables
+    dataset = dataset.sort_values(by=unique.keys())
+    db['connection'].execute('DROP TABLE IF EXISTS modeling."dataset"')
+    dataset.to_sql(name='dataset',
+    schema="modeling",
+    con=db['connection'],
+    chunksize=200000)
+    x_features = dataset.drop(['response',response['variable']], axis=1)
+    y_labels = dataset[['response']+unique.keys()]
+    # Insert tables into database
+    return(y_labels, x_features)
 
-	Args
-		DICT FOLD start and end date for both train and test set, in the fomat{"train":(start, end),"test":(start, end)}
-	Returns
-		df features train
-		df labels train
-		df features test
-		df labels test
-	"""
-	features=pd.read_sql('SELECT * FROM modeling."features"', db['connection'], coerce_float=True, params=None)
-	labels=pd.read_sql('SELECT * FROM modeling."labels"', db['connection'], coerce_float=True, params=None)
+def grab_from_features_and_labels(db, fold, config):
 
-	features_train = features.loc[((features['Collection_Date']>=fold["train_start"]) & (features['Collection_Date']<=fold["train_end"]))]
-	features_test = features.loc[((features['Collection_Date']>=fold["test_start"]) & (features['Collection_Date']<=fold["test_end"]))]
-	labels_train = labels.loc[((labels['Collection_Date']>=fold["train_start"]) & (labels['Collection_Date']<=fold["train_end"]))]
-	labels_test = labels.loc[((labels['Collection_Date']>=fold["test_start"]) & (labels['Collection_Date']<=fold["test_end"]))]
+    """
+    A function that subsets the features df and labels df stored in the Postgres, into train and test features and labels, based on the fold info (train start, train end, test start, test end )
 
-	return(features_train, labels_train, features_test, labels_test)
+    Args
+    DICT FOLD start and end date for both train and test set, in the fomat{"train":(start, end),"test":(start, end)}
+    Returns
+    df features train
+    df labels train
+    df features test
+    df labels test
+    """
+    dataset = pd.read_sql('select * from modeling.dataset where (("Collection_Date" >= '+"'"+fold['train_start'].strftime('%Y-%m-%d')+"'"+') and ("Collection_Date" <= '+"'"+fold['test_end'].strftime('%Y-%m-%d')+"'"+'))', db['connection'], coerce_float=True, params=None)
+
+    #TODO: Fix this...
+    dataset = dataset.fillna(0) #A hack to make it run for now...
+    #Drop the toilets that do not have contiguous data.
+    # Note that missing collections are filled with NaN'd rows, so if a toilet is not contiguous, it must mean that it appeared or disappeared during the fold period -> ignore it.
+    toilet_groups = dataset.groupby(config['cols']['toiletname'])
+    toilets = dataset[config['cols']['toiletname']].unique()
+    number_of_days = max(toilet_groups.size())
+    contiguous_toilets = [t for t in toilets if (toilet_groups.size()[t] == number_of_days)]
+    dataset = dataset.loc[dataset[config['cols']['toiletname']].isin(contiguous_toilets)]
+    #Sort for the purposes of later functions...
+    dataset = dataset.sort_values(by=['Collection_Date','ToiletID'])
+
+
+    features_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"]))].drop(['response',config['Xy']['response']['variable']],axis=1)
+    features_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"]))].drop(['response', config['Xy']['response']['variable']],axis=1)
+
+    labels_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"])),['response','Collection_Date','ToiletID']]
+    labels_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"])),['response','Collection_Date','ToiletID']]
+    return(features_train, labels_train, features_test, labels_test)
 
 def format_features_labels(features_big,labels_big):
 
@@ -327,7 +342,7 @@ def format_features_labels(features_big,labels_big):
 def create_enveloping_fold(folds):
 	"""
 	Create a fold that subsumes all folds in [folds], that is, it starts where the first fold starts and ends where the last fold ends. Make the test and train folds of the enveloping fold the same.
-	Warning: This assumes that the folds form a contiguous block. If it's not contiguous, the enveloping fold takes 
+	Warning: This assumes that the folds form a contiguous block. If it's not contiguous, the enveloping fold takes
 	essentially the convex hull, in 1D that means the smallest interval that comprises all folds.
 	"""
 	all_start = min([fold['train_start'] for fold in folds] + [fold['test_start'] for fold in folds])
@@ -345,7 +360,7 @@ def create_enveloping_fold(folds):
 def create_future(fold, features_old, cfg_parameters):
 	"""
 	Just for testing purposes.
-	Sets up a replicate of the last day(s) data to create new data for testing. But in reality, 
+	Sets up a replicate of the last day(s) data to create new data for testing. But in reality,
 	we should be able to create features for the upcoming days from past data, so this would not be needed???
 	"""
 	last_day = fold['window_end']
