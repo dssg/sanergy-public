@@ -380,7 +380,10 @@ collect_toilets.loc[((collect_toilets['Feces_kg_day'] <= 0)&(collect_toilets['Mi
 collect_toilets.loc[((collect_toilets['Total_Waste_kg_day'] <= 0)&(collect_toilets['Missed_Collection_Code'].isnull()==False)),['Total_Waste_kg_day']]=None
 
 
-# Estimate the values at the days when collections were missed or when no collection was scheduled
+
+# Estimate the amounts of feces and urine accumulated during the days for which there wasn't a pick up (either because 
+# it wasn't sceduled or because it was missed)
+
 
 missed_code_set_interpolate=set(['5','8','9'])  # if the missed collection code is equal to one of those numbers, interpolate values
 missed_code_set_0=set(['1','2', '3','4','6','7'])   #if the missed collection code is equal to one of those numbers, set feces accumulation on that day to 0
