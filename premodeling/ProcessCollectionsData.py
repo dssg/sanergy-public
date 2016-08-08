@@ -390,7 +390,7 @@ missed_code_set_0=set(['1','2', '3','4','6','7'])   #if the missed collection co
 max_linear_int={}    #will keep track, for each Toilet Id,  of the longest possible array of consecutive days over which we linearly interpolate feces/urine values
 for ToiletId in collect_toilets['ToiletID'].unique():
     tmpId=collect_toilets[collect_toilets['ToiletID']==ToiletId]
-    tmpId.sort_values('Collection_Date', ascending=True)
+    tmpId.sort_values('Collection_Date', ascending = True, inplace = True)
     dfId = pd.DataFrame(tmpId, columns = ['ToiletID', 'Id', 'Collection_Date', 'Missed_Collection_Code',  'Feces_kg_day', 'Urine_kg_day','Days_Since_Last_Collection'])
     count_int=0
     max_count_int=0   #keeps track of the longest possible array of consecutive days over which we linearly interpolate feces/urine values
