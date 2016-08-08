@@ -138,6 +138,7 @@ collects = collects.append(ADDING_ROWS)
 print('Adding in the missing days: %i' %(len(collects)))
 collects = collects.sort_values(by=['ToiletID','Collection_Date'])
 
+
 # Drop the route variable from the collections data
 collects = collects.drop('Collection_Route',1)
 
@@ -378,6 +379,37 @@ collect_toilets.loc[((collect_toilets['Urine_kg_day'] <= 0)&(collect_toilets['Mi
 collect_toilets.loc[((collect_toilets['Feces_kg_day'] <= 0)&(collect_toilets['Missed_Collection_Code'].isnull()==False)),['Feces_kg_day']]=None
 collect_toilets.loc[((collect_toilets['Total_Waste_kg_day'] <= 0)&(collect_toilets['Missed_Collection_Code'].isnull()==False)),['Total_Waste_kg_day']]=None
 
+
+# Estimate the values at the days when collections were missed or when no collection was scheduled
+
+missed_code_set_interpolate=set(['5','8','9'])  # if the missed collection code is equal to one of those numbers, interpolate values
+missed_code_set_0=set(['1','2', '3','4','6','7'])   #if the missed collection code is equal to one of those numbers, set feces accumulation on that day to 0
+for ToiletId in collect_toilets['ToiletID'].unique():
+    tmpId=collect_toilets[collect_toilets['ToiletID']==ToiletId];
+    dfId = pd.DataFrame(tmpId, columns = ['ToiletID', 'Id', 'Collection_Date', 'Missed_Collection_Code',  'Feces_kg_day', 'Urine_kg_day','Days_Since_Last_Collection'])
+    count_int=0
+    keep_going=True
+    ind_interpolate=list()
+    for ind in dfId.index:
+        if dfId.loc[ind,'Missed_Collection_Code'] in missed_code_set_interpolate:
+            count_int=count_int+1
+            ind_interpolate.append(ind)   #keeps track of indices of the places to interpolate
+        elif dfId.loc[ind,'Missed_Collection_Code'] in missed_code_set_0:
+            collect_toilets.loc[ind,'Feces_kg_day']=0
+            collect_toilets.loc[ind,'Urine_kg_day']=0
+        elif dfId.loc[ind,'Id'] == None:
+                count_int=count_int+1
+                ind_interpolate.append(ind)
+        else:      # this is the case of a day on which there wasn't a missed collection 
+                if (count_int>0):    
+                    collect_toilets.loc[ind_interpolate,'Feces_kg_day']=dfId.loc[ind,'Feces_kg_day']/count_int
+                    collect_toilets.loc[ind_interpolate,'Urine_kg_day']=dfId.loc[ind,'Urine_kg_day']/count_int
+                    count_int=0
+                    ind_interpolate=list()
+
+
+
+
 # Calculate the percentage of the container full (urine/feces)
 collect_toilets['waste_factor'] = 29.0 # Feces container size is 35 L
 collect_toilets.loc[(collect_toilets['FecesContainer'].isin([40,45])),'waste_factor']=37.0 # Feces container size is 45 L
@@ -403,3 +435,10 @@ collect_toilets.to_sql(name='toiletcollection',
 			con=engine,
 			chunksize=10000)
 print('end');
+
+
+
+
+
+
+
