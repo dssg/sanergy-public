@@ -208,7 +208,7 @@ class ScheduleModel(object):
         self.waste_past = waste_past
         self.train_x = train_x
         self.train_y = train_y
-        self.test_x = test_x
+       
 
     def simple_waste_collector(self, waste_row, remaining_threshold = 0) :
         """
@@ -256,9 +256,9 @@ class ScheduleModel(object):
                 group_ID=self.train_y.groupby(self.config['cols']['toiletname'])  
                 group_mean=group_ID.mean()
                 group_std=group_ID.agg(np.std, ddof=0)
-                group_low=group_mean.loc[(group_mean['response']<=self.parameters.thresholds['meanlow']) & (group_std['response']<=self.parameters.thresholds['stdlow'])];
+                group_low=group_mean.loc[(group_mean['response']<=self.parameters['meanlow']) & (group_std['response']<=self.parameters['stdlow'])];
                 ToiletID_LOW=list(set(group_low.index))
-                group_medium=group_mean.loc[(group_mean['response']>self.parameters.thresholds['meanlow']) & (group_mean['response']<=self.parameters.thresholds['meanmed']) & (group_std['response']<=self.parameters.thresholds['stdmed'])];
+                group_medium=group_mean.loc[(group_mean['response']>self.parameters['meanlow']) & (group_mean['response']<=self.parameters['meanmed']) & (group_std['response']<=self.parameters['stdmed'])];
                 ToiletID_MEDIUM=list(set(group_medium.index))
                 for i_toilet in self.train_y[self.config['cols']['toiletname']].unique():
                     if i_toilet in ToiletID_LOW: 
@@ -290,10 +290,10 @@ class ScheduleModel(object):
                     #group_std=group_ID.std()
                     group_std=group_ID.agg(np.std, ddof=0)
         
-                    group_low=group_mean.loc[(group_mean['response']<=self.parameters.thresholds['meanlow']) & (group_std['response']<=self.parameters.thresholds['stdlow'])];
+                    group_low=group_mean.loc[(group_mean['response']<=self.parameters['meanlow']) & (group_std['response']<=self.parameters['stdlow'])];
                     ToiletID_LOW=list(set(group_low.index) & set(ToiletID_LOW))
        
-                    group_medium=group_mean.loc[(group_mean['response']>self.parameters.thresholds['meanlow']) & (group_mean['response']<=self.parameters.thresholds['meanmed']) & (group_std['response']<=self.parameters.thresholds['stdmed'])];
+                    group_medium=group_mean.loc[(group_mean['response']>self.parameters['meanlow']) & (group_mean['response']<=self.parameters['meanmed']) & (group_std['response']<=self.parameters['stdmed'])];
                     ToiletID_MEDIUM=list(set(group_medium.index) & set(ToiletID_MEDIUM))
 
                     for i_toilet in self.config['cols']['toiletname'].unique():

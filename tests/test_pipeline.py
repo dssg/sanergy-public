@@ -208,7 +208,7 @@ class modelsTest(unittest.TestCase):
           'response': [1,1,1, 0,2,1,2]})
         self.wm =WasteModel("LinearRegression",{},self.config)
         self.wm2 =WasteModel("LinearRegression",{},self.config2)
-        self.sm =ScheduleModel(self.config, modeltype='StaticModel', parameters.thresholds={....to add from jupyter}, train_x=self.dftrainx, train_y=self.dftrainy)
+        self.sm =ScheduleModel(self.config, modeltype='StaticModel', parameters={'meanlow':23, 'stdlow':100, 'meanmed':40, 'stdmed':10}, train_x=self.dftrainx, train_y=self.dftrainy)
         self.waste_matrix =  pd.DataFrame.from_items([('t1', [60, 50, 10, 40, 70, 10, 30]), ('t2', [10, 20, 30, 40, 50, 60, 70])],
         orient='index', columns=self.unique_dates)
         self.shift_set = pd.DataFrame.from_dict({'ToiletID':['t1','t2','t1','t2','t1','t2'],
