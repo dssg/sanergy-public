@@ -337,7 +337,8 @@ pprint.pprint(list(set(toilets['ToiletID'])-set(collects['ToiletID'])))
 # Merge the collection and toilet data
 collect_toilets = pd.merge(collects,
 				toilets,
-				on="ToiletID")
+				on="ToiletID",
+				how="left")
 print(collect_toilets.shape)
 collect_toilets['duplicated'] = collect_toilets.duplicated(subset=['Id'])
 print('merge collections and toilets: %i' %(len(collect_toilets.loc[(collect_toilets['duplicated']==True)])))
