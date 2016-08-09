@@ -79,6 +79,7 @@ def temporal_split(config_cv, day_of_week=None, floating_window=False):
 	list_of_dates = []
 	for day in range(date_range.days + 1):
 		day = start_date+timedelta(days=day)
+		print(('Fake Today:', date_range.days, day))
 		fold = {'train_start':day,
 			'train_end':day + train_window,
 			'test_start':(day+train_window),
@@ -97,9 +98,11 @@ def temporal_split(config_cv, day_of_week=None, floating_window=False):
 			# Do not extend past the dataset
 			if (end_date >= fold['window_end']):
 				list_of_dates.append(fold)
-	log.info('Total %i folds from %s to %s' %(len(list_of_dates),
+	report = 'Total %i folds from %s to %s' %(len(list_of_dates),
 						start_date.strftime('%Y-%m-%d'),
-						end_date.strftime('%Y-%m-%d')))
+						end_date.strftime('%Y-%m-%d'))
+	log.info(report)
+	print(report)
 	return(list_of_dates)
 
 
