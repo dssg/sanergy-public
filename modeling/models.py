@@ -71,7 +71,7 @@ class FullModel(object):
         """
 
         try:
-            return self.waste_model..feature_importances_
+            return self.waste_model.feature_importances_
         except:
             pass
         try:
