@@ -57,7 +57,7 @@ class FullModel(object):
             self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, train_y, train_x, train_y) #For simpler models, can ignore train_x and train_y?
             #Use train_y for waste_past
             collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix, 0.0, next_days)
-        importances = self.get_feature_importances()
+        importances, coefs = self.get_feature_importances()
         return collection_matrix, waste_matrix, collection_vector, waste_vector, importances
 
 
@@ -360,8 +360,9 @@ def run_models_on_folds(folds, loss_function, db, experiment):
 
         # 5. Run the models
         model = FullModel(experiment.config, experiment.model, parameters_waste = experiment.parameters)
-        cm, wm, cv, wv, _ = model.run(features_train, labels_train, features_test) #Not interested in the collection schedule, will recompute with different parameters.
+        cm, wm, cv, wv, fi = model.run(features_train, labels_train, features_test) #Not interested in the collection schedule, will recompute with different parameters.
         #L2 evaluation of the waste prediction
+        print(fi)
 
         loss = loss_function.evaluate_waste(labels_test, wv)
         results_fold = generate_result_row(experiment, i_fold, 'MSE', loss)
