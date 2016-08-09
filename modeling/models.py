@@ -57,32 +57,28 @@ class FullModel(object):
             self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, train_y, train_x, train_y) #For simpler models, can ignore train_x and train_y?
             #Use train_y for waste_past
             collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix, 0.0, next_days)
-        importances = self.get_feature_importances(self.waste_model)
+        importances, coefs = self.get_feature_importances()
         return collection_matrix, waste_matrix, collection_vector, waste_vector, importances
 
 
-    def get_feature_importances(self, model):
-    """
-    Get feature importances (from scikit-learn) of trained model.
-    Args:
+    def get_feature_importances(self):
+        """
+        Get feature importances (from scikit-learn) of trained model.
+        Args:
         model: Trained model
-    Returns:
+        Returns:
         Feature importances, or failing that, None
-    """
-
-    try:
-        return model.feature_importances_
-    except:
-        pass
-    try:
-        # Must be 1D for feature importance plot
-        if len(model.coef_) <= 1:
-            return model.coef_[0]
-        else:
-            return model.coef_
-    except:
-        pass
-    return None
+        """
+        model = self.waste_model.trained_model
+        try:
+            importances = model.feature_importances_
+        except:
+            importances = np.zeros(1)
+        try:
+            coefs = model.coef_
+        except:
+            coefs = np.zeros(1)
+        return importances, coefs
 
 
 
@@ -364,12 +360,13 @@ def run_models_on_folds(folds, loss_function, db, experiment):
 
         # 5. Run the models
         model = FullModel(experiment.config, experiment.model, parameters_waste = experiment.parameters)
-        cm, wm, cv, wv = model.run(features_train, labels_train, features_test) #Not interested in the collection schedule, will recompute with different parameters.
+        cm, wm, cv, wv, fi = model.run(features_train, labels_train, features_test) #Not interested in the collection schedule, will recompute with different parameters.
         #L2 evaluation of the waste prediction
+        print(fi)
 
         loss = loss_function.evaluate_waste(labels_test, wv)
         results_fold = generate_result_row(experiment, i_fold, 'MSE', loss)
-        remainder_range = rev(experiment.config['setup']['collection_remainder_threshold'])
+        remainder_range = list(reversed(experiment.config['setup']['collection_remainder_threshold']))
         if len(remainder_range) == 0:
             remainder_range = range(0, 100, 1)
         #proportion collected and proportion overflow
@@ -402,7 +399,7 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         """
         #print(results_fold)
         write_evaluation_into_db(results_fold, db)
-        write_experiment_into_db(experiment, db)
+        write_experiment_into_db(experiment, model, db)
         results = results.append(results_fold,ignore_index=True)
 
 
@@ -428,9 +425,11 @@ def write_evaluation_into_db(results, db , append = True, chunksize=1000):
 
     return None
 
-def write_experiment_into_db(experiment, db , append = True, chunksize=1000):
+def write_experiment_into_db(experiment, model, db , append = True, chunksize=1000):
     timestamp =  datetime.datetime.now().isoformat()
-    exp_row = pd.DataFrame({'timestamp':[timestamp], 'id':[hash(experiment)] ,'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'model_config':[json.dumps(experiment.config)]})
+    exp_row = pd.DataFrame({'timestamp':[timestamp], 'id':[hash(experiment)] ,'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'model_config':[json.dumps(experiment.config)],
+    'feature_importances':[json.dumps(model.get_feature_importances()[0].tolist())],'feature_names':[json.dumps(model.get_feature_importances()[1].tolist())] })
+    print(exp_row)
 
     exp_row.to_sql(name='experiments',
     schema="output",
