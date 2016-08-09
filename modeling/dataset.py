@@ -68,14 +68,14 @@ def temporal_split(config_cv, day_of_week=None, floating_window=False):
 
 	list_of_dates = []
 	for day in pd.date_range(start=start_date, end=end_date, freq=fake_freq).tolist():
-		print(('Fake Today:', day))
+		#print(('Fake Today:', day))
 		fold = {'train_start':day-timedelta(days=train_on),
 			'train_end':day-timedelta(days=1),
 			'test_start':day,
 			'test_end': day+timedelta(days=test_on),
 			'window_start': day-timedelta(days=train_on),
 			'window_end': day +timedelta(days=test_on)}
-		pprint.pprint(fold)
+		#pprint.pprint(fold)
 		# Adjust the training window
 		if floating_window==False:
 			fold['window_start'] = day-timedelta(days=train_on)
@@ -92,7 +92,7 @@ def temporal_split(config_cv, day_of_week=None, floating_window=False):
 						start_date.strftime('%Y-%m-%d'),
 						end_date.strftime('%Y-%m-%d'))
 	log.info(report)
-	print(report)
+	#print(report)
 	return(list_of_dates)
 
 

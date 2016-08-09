@@ -69,20 +69,16 @@ class FullModel(object):
         Returns:
         Feature importances, or failing that, None
         """
-
+        model = self.waste_model.trained_model
         try:
-            return self.waste_model.feature_importances_
+            importances = model.feature_importances_
         except:
-            pass
+            importances = np.zeros(1)
         try:
-            # Must be 1D for feature importance plot
-            if len(self.waste_model.coef_) <= 1:
-                return self.waste_model.coef_[0]
-            else:
-                return self.waste_model.coef_
+            coefs = model.coef_
         except:
-            pass
-        return None
+            coefs = np.zeros(1)
+        return importances, coefs
 
 
 
@@ -431,7 +427,8 @@ def write_evaluation_into_db(results, db , append = True, chunksize=1000):
 def write_experiment_into_db(experiment, model, db , append = True, chunksize=1000):
     timestamp =  datetime.datetime.now().isoformat()
     exp_row = pd.DataFrame({'timestamp':[timestamp], 'id':[hash(experiment)] ,'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'model_config':[json.dumps(experiment.config)],
-    'feature_importances':[json.dumps(model.get_feature_importances())]})
+    'feature_importances':[json.dumps(model.get_feature_importances()[0].tolist())],'feature_names':[json.dumps(model.get_feature_importances()[1].tolist())] })
+    print(exp_row)
 
     exp_row.to_sql(name='experiments',
     schema="output",
