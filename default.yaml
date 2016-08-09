@@ -127,7 +127,7 @@ cv:
   end_date: '2016-05-01'
   train_on: 14
   test_on: 7
-  fake_freq: '1W' 
+  fake_freq: '1W'
 
 #############################
 # Implementation parameters #
