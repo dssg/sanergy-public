@@ -57,7 +57,34 @@ class FullModel(object):
             self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, train_y, train_x, train_y) #For simpler models, can ignore train_x and train_y?
             #Use train_y for waste_past
             collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix, 0.0, next_days)
+        importances = get_feature_importances(self.schedule_model)
         return collection_matrix, waste_matrix, collection_vector, waste_vector
+
+
+        def get_feature_importances(model):
+        """
+        Get feature importances (from scikit-learn) of trained model.
+        Args:
+            model: Trained model
+        Returns:
+            Feature importances, or failing that, None
+        """
+
+        try:
+            return model.feature_importances_
+        except:
+            pass
+        try:
+            # Must be 1D for feature importance plot
+            if len(model.coef_) <= 1:
+                return model.coef_[0]
+            else:
+                return model.coef_
+        except:
+            pass
+        return None
+
+
 
 
 class WasteModel(object):
