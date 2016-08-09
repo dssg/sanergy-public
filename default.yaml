@@ -6,6 +6,7 @@
 
 setup:
     run_features: False
+    collection_remainder_threshold: [50,40,30,20,10] #Keep [] if you want to loop over 0..100
 
 ############################
 # Database column names    #

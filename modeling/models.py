@@ -342,8 +342,11 @@ def run_models_on_folds(folds, loss_function, db, experiment):
 
         loss = loss_function.evaluate_waste(labels_test, wv)
         results_fold = generate_result_row(experiment, i_fold, 'MSE', loss)
+        remainder_range = rev(experiment.config['setup']['collection_remainder_threshold'])
+        if len(remainder_range) == 0:
+            remainder_range = range(0, 100, 1)
         #proportion collected and proportion overflow
-        for safety_remainder in range(0, 100, 1):
+        for safety_remainder in remainder_range:
            #Compute the collection schedule assuing the given safety_remainder
            schedule, cv = model.schedule_model.compute_schedule(wm, safety_remainder)
 
