@@ -56,7 +56,7 @@ class FullModel(object):
             waste_matrix, waste_vector, y = self.waste_model.predict(test_x)
             self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, train_y, train_x, train_y) #For simpler models, can ignore train_x and train_y?
             #Use train_y for waste_past
-            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix, next_days)
+            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix, 0.0, next_days)
         return collection_matrix, waste_matrix, collection_vector, waste_vector
 
 
@@ -197,7 +197,7 @@ class WasteModel(object):
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
 class ScheduleModel(object):
-    TOILET_CAPACITY = 100 # 100% full
+    TOILET_CAPACITY = 100.0 # 100% full
     MAXIMAL_COLLECTION_INTERVAL = 3 #TODO: Get this into yaml.
     """
     Based on the waste matrix, create the collection schedule. The same format as the waste matrix, but values are 0/1 (skip/collect)
@@ -211,7 +211,7 @@ class ScheduleModel(object):
         self.train_y = train_y
         #self.test_x = test_x
 
-    def simple_waste_collector(self, waste_row, remaining_threshold = 0, waste_today=0) :
+    def simple_waste_collector(self, waste_row, remaining_threshold = 0.0, waste_today=0) :
         """
         An iterator that simulates the simple waste collection process
         """
@@ -229,7 +229,7 @@ class ScheduleModel(object):
                 last_collected = i_collected
             yield collect, total_waste
 
-    def compute_schedule(self, waste_matrix = None, remaining_threshold=0, next_days = None):
+    def compute_schedule(self, waste_matrix = None, remaining_threshold=0.0, next_days = None):
         """
         Based on the waste predictions, compute the optimal schedule for the next week.
 
@@ -245,7 +245,7 @@ class ScheduleModel(object):
         #Same dimensions as the waste_matrix
         if next_days is None:
              next_days = waste_matrix.columns
-        yesterday = next_days.min() + datetime.timedelta(days=-1)
+        yesterday = min(next_days) + datetime.timedelta(days=-1)
         #A dict of toilet -> waste
         if self.waste_past is not None:
             waste_today = { toilet[self.config['cols']['toiletname']]:toilet['response'] for i_toilet, toilet in  self.waste_past.iterrows() if toilet[self.config['cols']['date']]==yesterday}
