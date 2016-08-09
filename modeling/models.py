@@ -57,32 +57,32 @@ class FullModel(object):
             self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, train_y, train_x, train_y) #For simpler models, can ignore train_x and train_y?
             #Use train_y for waste_past
             collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix, 0.0, next_days)
-        importances = get_feature_importances(self.schedule_model)
-        return collection_matrix, waste_matrix, collection_vector, waste_vector
+        importances = self.get_feature_importances(self.waste_model)
+        return collection_matrix, waste_matrix, collection_vector, waste_vector, importances
 
 
-        def get_feature_importances(model):
-        """
-        Get feature importances (from scikit-learn) of trained model.
-        Args:
-            model: Trained model
-        Returns:
-            Feature importances, or failing that, None
-        """
+    def get_feature_importances(self, model):
+    """
+    Get feature importances (from scikit-learn) of trained model.
+    Args:
+        model: Trained model
+    Returns:
+        Feature importances, or failing that, None
+    """
 
-        try:
-            return model.feature_importances_
-        except:
-            pass
-        try:
-            # Must be 1D for feature importance plot
-            if len(model.coef_) <= 1:
-                return model.coef_[0]
-            else:
-                return model.coef_
-        except:
-            pass
-        return None
+    try:
+        return model.feature_importances_
+    except:
+        pass
+    try:
+        # Must be 1D for feature importance plot
+        if len(model.coef_) <= 1:
+            return model.coef_[0]
+        else:
+            return model.coef_
+    except:
+        pass
+    return None
 
 
 
@@ -369,7 +369,7 @@ def run_models_on_folds(folds, loss_function, db, experiment):
 
         loss = loss_function.evaluate_waste(labels_test, wv)
         results_fold = generate_result_row(experiment, i_fold, 'MSE', loss)
-        remainder_range = list(reversed(experiment.config['setup']['collection_remainder_threshold']))
+        remainder_range = rev(experiment.config['setup']['collection_remainder_threshold'])
         if len(remainder_range) == 0:
             remainder_range = range(0, 100, 1)
         #proportion collected and proportion overflow
