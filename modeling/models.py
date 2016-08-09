@@ -62,27 +62,27 @@ class FullModel(object):
 
 
     def get_feature_importances(self):
-    """
-    Get feature importances (from scikit-learn) of trained model.
-    Args:
+        """
+        Get feature importances (from scikit-learn) of trained model.
+        Args:
         model: Trained model
-    Returns:
+        Returns:
         Feature importances, or failing that, None
-    """
+        """
 
-    try:
-        return self.waste_model..feature_importances_
-    except:
-        pass
-    try:
-        # Must be 1D for feature importance plot
-        if len(self.waste_model.coef_) <= 1:
-            return self.waste_model.coef_[0]
-        else:
-            return self.waste_model.coef_
-    except:
-        pass
-    return None
+        try:
+            return self.waste_model..feature_importances_
+        except:
+            pass
+        try:
+            # Must be 1D for feature importance plot
+            if len(self.waste_model.coef_) <= 1:
+                return self.waste_model.coef_[0]
+            else:
+                return self.waste_model.coef_
+        except:
+            pass
+        return None
 
 
 
