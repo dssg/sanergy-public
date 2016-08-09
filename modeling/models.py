@@ -61,7 +61,7 @@ class FullModel(object):
         return collection_matrix, waste_matrix, collection_vector, waste_vector, importances
 
 
-    def get_feature_importances(self, model):
+    def get_feature_importances(self):
     """
     Get feature importances (from scikit-learn) of trained model.
     Args:
@@ -71,15 +71,15 @@ class FullModel(object):
     """
 
     try:
-        return model.feature_importances_
+        return self.waste_model..feature_importances_
     except:
         pass
     try:
         # Must be 1D for feature importance plot
-        if len(model.coef_) <= 1:
-            return model.coef_[0]
+        if len(self.waste_model.coef_) <= 1:
+            return self.waste_model.coef_[0]
         else:
-            return model.coef_
+            return self.waste_model.coef_
     except:
         pass
     return None
@@ -402,7 +402,7 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         """
         #print(results_fold)
         write_evaluation_into_db(results_fold, db)
-        write_experiment_into_db(experiment, db)
+        write_experiment_into_db(experiment, model, db)
         results = results.append(results_fold,ignore_index=True)
 
 
@@ -428,9 +428,10 @@ def write_evaluation_into_db(results, db , append = True, chunksize=1000):
 
     return None
 
-def write_experiment_into_db(experiment, db , append = True, chunksize=1000):
+def write_experiment_into_db(experiment, model, db , append = True, chunksize=1000):
     timestamp =  datetime.datetime.now().isoformat()
-    exp_row = pd.DataFrame({'timestamp':[timestamp], 'id':[hash(experiment)] ,'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'model_config':[json.dumps(experiment.config)]})
+    exp_row = pd.DataFrame({'timestamp':[timestamp], 'id':[hash(experiment)] ,'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'model_config':[json.dumps(experiment.config)],
+    'feature_importances':[json.dumps(model.get_feature_importances())]})
 
     exp_row.to_sql(name='experiments',
     schema="output",
