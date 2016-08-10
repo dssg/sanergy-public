@@ -59,6 +59,9 @@ class FullModel(object):
             #Use train_y for waste_past
             collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix, 0.0, next_days)
         importances, coefs = self.get_feature_importances()
+
+        if config['staffing']: #Compute the staffing schedule for the next week
+
         return collection_matrix, waste_matrix, collection_vector, waste_vector, importances
 
 
@@ -438,7 +441,6 @@ def write_experiment_into_db(experiment, model, db , append = True, chunksize=10
 
     exp_row = pd.DataFrame({'timestamp':[timestamp], 'id':[hash(experiment)] ,'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'model_config':[json.dumps(experiment.config)],
     'feature_importances':[json.dumps(model.get_feature_importances()[0].tolist())],'feature_names':[json.dumps(model.get_feature_importances()[1].tolist())] })
-    print(exp_row)
 
     exp_row.to_sql(name='experiments',
     schema="output",
