@@ -6,6 +6,7 @@ import pandas as pd
 import datetime
 import sys
 import json
+import pickle
 
 from sklearn import svm, ensemble, tree, linear_model, neighbors, naive_bayes
 from sklearn.svm import SVR
@@ -100,6 +101,7 @@ class WasteModel(object):
         self.parameters = parameters
         self.modeltype = modeltype
         self.config = config
+	self.timestamp = datetime.datetime.now().isoformat()
         if (train_x is not None) and (train_y is not None):
             self.gen_model(train_x, train_y)
         self.v_response = self.config['Xy']['response']['variable']
@@ -187,6 +189,11 @@ class WasteModel(object):
 
         #fit the model...
         self.trained_model.fit(features, labels)
+
+	#save model to pickle object
+	save_model_file = open('%s.pkl' %(self.timestamp), 'wb')
+	pickle.dump(self.trained_model, save_model_file)
+	save_model_file.close()
         return self.trained_model
 
     def define_model(self):
