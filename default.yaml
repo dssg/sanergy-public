@@ -6,6 +6,7 @@
 
 setup:
     run_features: False
+    collection_remainder_threshold: [50,40,30,20,10] #Keep [] if you want to loop over 0..100
 
 ############################
 # Database column names    #
@@ -57,8 +58,8 @@ Xy:
       #max_air_temp: []
       #mean_wind_speed_rate: []
       #mean_sea_level_pressure: []
-      mean_precipitation_6hr: []
-      mean_air_temp: []
+      #mean_precipitation_6hr: []
+      #mean_air_temp: []
       SubAreaName: []
       School_Closure: []
       #Route_Name: []
@@ -68,7 +69,7 @@ Xy:
       #Missed_Collection_Code: []
       FranchiseType: []
       50m: []
-      mean50m: []
+      #mean50m: []
       CasePriorWeek: []
       DaysOpenInWeek: []
       month: []
@@ -88,7 +89,7 @@ Xy:
 # Model parameters         #
 ############################
 #model: ["LinearRegression", "RandomForest", "Autoregression", "SimpleModel"]
-model: ['LinearRegression', "RandomForest", 'AR', 'Lasso', 'ElasticNet', 'SVR', 'SGDClassifier']
+model: ['LinearRegression', "RandomForest",  'Lasso', 'ElasticNet', 'SVR', 'SGDClassifier'] #'AR'
 
 parameters:
   RandomForest:
@@ -124,12 +125,9 @@ parameters:
 cv:
   start_date: '2016-01-01'
   end_date: '2016-05-01'
-  train_on:
-    days: 0
-    weeks: 2
-  test_on:
-    days: 0
-    weeks: 1
+  train_on: 14
+  test_on: 7
+  fake_freq: '1W'
 
 #############################
 # Implementation parameters #
@@ -139,4 +137,4 @@ implementation:
   prediction_horizon: [7] #How many days
   prediction_weekday_start: [0] #Which day of the week do we recompute the schedule? 0=Mon, 7=Sun. Applicable for weekly or multiple-thereof schedules.
   aggregation_measure: ["mean"] #A measure to use to aggregate the losses across different folds. Since different experiments may have different numbers of folds, should be a probability measure.
-  thresholds: {'meanlow':23, 'stdlow':100, 'meanmed':40, 'stdmed':10}  # static model parameters
+  #thresholds: {'meanlow':23, 'stdlow':100, 'meanmed':40, 'stdmed':10}  # static model parameters

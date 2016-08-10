@@ -33,9 +33,9 @@ class ExperimentTest(unittest.TestCase):
 
     def test_experiments(self):
          experiments = generate_experiments(self.config)
-         #print(experiments[1].parameters)
          self.assertEqual(len(experiments[1].parameters),9)
          self.assertIsInstance(experiments[23].parameters,dict)
+         self.assertIsInstance(experiments[0].to_json(),str)
 
     def test_default_yaml(self):
         """
@@ -169,6 +169,7 @@ class modelsTest(unittest.TestCase):
         self.fake_col = np.repeat([1.5],2*self.horizon)
         self.today = datetime(2011,11,11)
         self.unique_dates = [self.today + timedelta(days=delta) for delta in range(0,self.horizon)]
+        self.yesterday = self.today + timedelta(days = -1)
         self.dates = [self.today + timedelta(days=delta) for delta in range(0,self.horizon)] * 2
         self.toilets = ['toilet1'] * self.horizon + ['toilet2'] * self.horizon
         self.config = {
@@ -211,6 +212,9 @@ class modelsTest(unittest.TestCase):
         self.sm2 =ScheduleModel(self.config, modeltype='StaticModel', parameters={'meanlow':23, 'stdlow':100, 'meanmed':40, 'stdmed':10}, train_x=self.dftrainx, train_y=self.dftrainy)
         self.waste_matrix =  pd.DataFrame.from_items([('t1', [60, 50, 10, 40, 70, 10, 30]), ('t2', [10, 20, 30, 40, 50, 60, 70])],
         orient='index', columns=self.unique_dates)
+        self.zero_day  = pd.DataFrame.from_dict({'ToiletID':['t1','t2'],
+         'Collection_Date':[self.yesterday]*2, 'response':[50,20]})
+
         self.shift_set = pd.DataFrame.from_dict({'ToiletID':['t1','t2','t1','t2','t1','t2'],
         'Collection_Date':[datetime(2012,1,1),datetime(2012,1,1),datetime(2012,1,2),datetime(2012,1,2),datetime(2012,1,3),datetime(2012,1,3)],
         'y_lag1': range(0,6), 'y_lag2':range(6,12)})
@@ -242,6 +246,14 @@ class modelsTest(unittest.TestCase):
         print (schedule)
         #collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix=None, next_days)
 
+    def test_compute_schedule_with_initial_waste(self):
+        self.sm.waste_past = self.zero_day
+        schedule, sv = self.sm.compute_schedule(self.waste_matrix)
+        self.assertEqual(schedule.loc["t1",datetime(2011,11,11) ], 1 ) #Test that the toilet is collected when full
+        self.assertEqual(schedule.loc["t2",datetime(2011,11,11) ], 0 ) #Test that the toilet is collected when full
+        self.assertEqual(schedule.loc["t2",datetime(2011,11,13) ], 1 ) #Test that the toilet is empty after the collection
+
+
     # def test_Model(self):
     #     model = Model(self.config, "LinearRegression")
     #     cm, sm, cv, sv = model.run(self.df, self.y, self.dftest)
@@ -269,7 +281,7 @@ class LossFunctionTest(unittest.TestCase):
         yhat = [1,0,0]
         y = [0,2,0]
         loss = lf.evaluate_waste(yhat,y)
-        self.assertEqual(loss, np.sqrt(5)/3)
+        self.assertEqual(loss, 5.0/3)
 
     def test_01_loss(self):
         lf = LossFunction(self.config)
@@ -284,7 +296,7 @@ class LossFunctionTest(unittest.TestCase):
         datetime(2015,1,5):[30, 30], datetime(2015,1,6):[30, 30],  datetime(2015,1,7):[30, 30]}, index = ['t1', 't2'])
         schedule = pd.DataFrame({datetime(2015,1,1):[0,0], datetime(2015,1,2):[0,0], datetime(2015,1,3):[1,0], datetime(2015,1,4):[0,1] ,
         datetime(2015,1,5):[0,0], datetime(2015,1,6):[0,0], datetime(2015,1,7):[1,1]}, index = ['t1', 't2'])
-        p_overflows, n_overflows, n_days = lf.compute_p_overflow(schedule, waste)
+        p_overflows, _, n_overflows, _, n_days = lf.compute_p_overflow(schedule, waste)
         self.assertEqual(n_days, 14)
         self.assertEqual(n_overflows, 2) #t1 on 15/1/2 and on 15/1/6
 

@@ -56,39 +56,30 @@ def temporal_split(config_cv, day_of_week=None, floating_window=False):
 	"""
 	start_date = config_cv['start_date']
 	end_date = config_cv['end_date']
+	fake_freq = config_cv['fake_freq']
 	train_on = config_cv['train_on']
 	test_on = config_cv['test_on']
 	log = logging.getLogger("Sanergy Collection Optimizer")
 
-	# Check to see if the days and weeks values are set
-	for unit in ['days','weeks']:
-		if train_on.has_key(unit)==False:
-			train_on[unit] = 0
-		if test_on.has_key(unit)==False:
-			test_on[unit] = 0
-	# Compute the time delta for the training and testing windows
-	train_window = timedelta(days=train_on['days'], weeks=train_on['weeks'])
-	test_window = timedelta(days=test_on['days'], weeks=test_on['weeks'])
-	# Compute the full window size
-	window_size = train_window + test_window
 	# Compute the full date range (in days)
 	start_date = datetime.strptime(start_date,'%Y-%m-%d')
 	end_date = datetime.strptime(end_date,'%Y-%m-%d')
 	date_range = end_date - start_date
 
 	list_of_dates = []
-	for day in range(date_range.days + 1):
-		day = start_date+timedelta(days=day)
-		fold = {'train_start':day,
-			'train_end':day + train_window,
-			'test_start':(day+train_window),
-			'test_end': (day+train_window) + test_window,
-			'window_start': day,
-			'window_end': day + window_size}
+	for day in pd.date_range(start=start_date, end=end_date, freq=fake_freq).tolist():
+		#print(('Fake Today:', day))
+		fold = {'train_start':day-timedelta(days=train_on),
+			'train_end':day-timedelta(days=1),
+			'test_start':day,
+			'test_end': day+timedelta(days=test_on),
+			'window_start': day-timedelta(days=train_on),
+			'window_end': day +timedelta(days=test_on)}
+		#pprint.pprint(fold)
 		# Adjust the training window
 		if floating_window==False:
-			fold['window_start'] = start_date
-			fold['train_start'] = start_date
+			fold['window_start'] = day-timedelta(days=train_on)
+			fold['train_start'] = day-timedelta(days=train_on)
 		# Test whether the day is the right day
 		if bool(day_of_week):
 			if (day.weekday() != day_of_week):
@@ -97,9 +88,11 @@ def temporal_split(config_cv, day_of_week=None, floating_window=False):
 			# Do not extend past the dataset
 			if (end_date >= fold['window_end']):
 				list_of_dates.append(fold)
-	log.info('Total %i folds from %s to %s' %(len(list_of_dates),
+	report = 'Total %i folds from %s to %s' %(len(list_of_dates),
 						start_date.strftime('%Y-%m-%d'),
-						end_date.strftime('%Y-%m-%d')))
+						end_date.strftime('%Y-%m-%d'))
+	log.info(report)
+	#print(report)
 	return(list_of_dates)
 
 
@@ -269,7 +262,7 @@ def grab_collections_data(db, config_Xy, log ):
     dataset.to_sql(name='dataset',
     schema="modeling",
     con=db['connection'],
-    chunksize=200000)
+    chunksize=20000)
     x_features = dataset.drop(['response',response['variable']], axis=1)
     y_labels = dataset[['response']+unique.keys()]
     # Insert tables into database
