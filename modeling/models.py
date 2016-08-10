@@ -435,7 +435,7 @@ def write_experiment_into_db(experiment, model, db , append = True, chunksize=10
     pickle.dump(model, save_model_file)
     save_model_file.close()
 
-    exp_row = pd.DataFrame({'timestamp':[timestamp],'pickle':'/store/%s.pkl' %(timestamp), 'id':[hash(experiment)] ,'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'model_config':[json.dumps(experiment.config)],
+    exp_row = pd.DataFrame({'timestamp':[timestamp], 'id':[hash(experiment)] ,'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'model_config':[json.dumps(experiment.config)],
     'feature_importances':[json.dumps(model.get_feature_importances()[0].tolist())],'feature_names':[json.dumps(model.get_feature_importances()[1].tolist())] })
     print(exp_row)
 
