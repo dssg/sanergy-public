@@ -47,24 +47,17 @@ class FullModel(object):
           waste_past: A past waste matrix. Currently not used?
         """
         today = test_x[self.config['cols']['date']].min() #The first day in the features
-        next_days = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
+        future_days = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
 
         if  self.modeltype_schedule=='StaticModel':
-<<<<<<< HEAD
-            today = test_x[self.config['cols']['date']].min() #The first day in the features
-            days_predict = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
             self.schedule_model = schedule_model(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
-            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix=None, next_days= days_predict)
-=======
-            self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
-            collection_matrix, collection_vector = self.schedule_model.compute_schedule(None, next_days)
->>>>>>> 215c76549f2a25b78e36b62e45c552cdcb8c7a85
+            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix=None, next_days= future_days)
         else:
             self.waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
             waste_matrix, waste_vector, y = self.waste_model.predict(test_x)
             self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, train_y, train_x, train_y) #For simpler models, can ignore train_x and train_y?
             #Use train_y for waste_past
-            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix, 0.0, next_days)
+            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix, 0.0, future_days)
         importances, coefs = self.get_feature_importances()
         return collection_matrix, waste_matrix, collection_vector, waste_vector, importances
 
@@ -126,19 +119,19 @@ class WasteModel(object):
 
         # will predict weight accumulated in the coming 7 days
         today = test_x[self.config['cols']['date']].min() #The first day in the features
-        next_days = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
-        features = test_x.loc[ [d in next_days for  d in test_x[self.config['cols']['date']] ]]#.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
+        future_days = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
+        features = test_x.loc[ [d in future_days for  d in test_x[self.config['cols']['date']] ]]#.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
         self.waste_vector = features[[self.config['cols']['toiletname'], self.config['cols']['date']]]
 
         result_y = []
-        for d in next_days:
+        for d in future_days:
             #update the results table
             ftr_pred = (features.loc[features[self.config['cols']['date']]==d]).drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
             result_onedayahead = list(self.trained_model.predict( ftr_pred))
             result_y = result_y + result_onedayahead
             #update the features table
             d_next = d + datetime.timedelta(days=1)
-            if (len(self.v_lag) > 0) & (d < max(next_days)): #Last day -> need not shift
+            if (len(self.v_lag) > 0) & (d < max(future_days)): #Last day -> need not shift
                 features = self.shift(features, d_next, result_onedayahead)
 
         self.waste_matrix = self.form_the_waste_matrix(features[[self.config['cols']['toiletname'], self.config['cols']['date']]], result_y, self.config['implementation']['prediction_horizon'][0] )
@@ -176,11 +169,11 @@ class WasteModel(object):
         #Take the next prediction horizon days, extract them from features.
         today = indices[self.config['cols']['date']].min() #The first day in the features
         #7 (or horizon) days from today
-        next_days = [today + datetime.timedelta(days=delta) for delta in range(0,horizon)]
+        future_days = [today + datetime.timedelta(days=delta) for delta in range(0,horizon)]
 
         #Sort the indices and only include the ones within the following days
         waste_matrix.sort_values(by=self.config['cols']['date'], inplace=True)
-        waste_matrix = waste_matrix[waste_matrix[self.config['cols']['date']].isin(next_days)]
+        waste_matrix = waste_matrix[waste_matrix[self.config['cols']['date']].isin(future_days)]
         #Pivot the waste matrix
         waste_matrix = waste_matrix.pivot(index = self.config['cols']['toiletname'], columns = self.config['cols']['date'],values='response')
 
@@ -207,16 +200,6 @@ class WasteModel(object):
             #    n_estimators=self.parameters['n_estimators'])
         elif self.modeltype == "LinearRegression" :
             return linear_model.LinearRegression()
-<<<<<<< HEAD
-        elif self.modeltype == "Lasso":
-            return linear_model.Lasso(
-              alpha=self.parameters['alpha'])
-        elif self.modeltype == "ElasticNet":
-            return linear_model.ElasticNet(
-            alpha=self.parameters['alpha'],
-            l1_ratio=self.parameters['l1_ratio'])
-        elif self.modeltype == "SVR":
-=======
         elif self.modeltype == "Lasso" :
             return linear_model.Lasso(
             alpha=self.parameters['alpha'])
@@ -225,16 +208,12 @@ class WasteModel(object):
             alpha=self.parameters['alpha'],
             l1_ratio=self.parameters['l1_ratio'])
         elif self.modeltype == "SVR" :
->>>>>>> 215c76549f2a25b78e36b62e45c552cdcb8c7a85
             return SVR(
             C=self.parameters['C'],
             epsilon=self.parameters['epsilon'],
             kernel=self.parameters['kernel'])
-<<<<<<< HEAD
-        elif self.modeltype == 'SGDClassifier':
-=======
+
         elif self.modeltype == 'SGDClassifier' :
->>>>>>> 215c76549f2a25b78e36b62e45c552cdcb8c7a85
             return linear_model.SGDClassifier(
             loss=self.parameters['loss'],
             penalty=self.parameters['penalty'],
@@ -256,11 +235,9 @@ class ScheduleModel(object):
         self.waste_past = waste_past
         self.train_x = train_x
         self.train_y = train_y
-<<<<<<< HEAD
-       
-=======
+
         #self.test_x = test_x
->>>>>>> 215c76549f2a25b78e36b62e45c552cdcb8c7a85
+
 
     def simple_waste_collector(self, waste_row, remaining_threshold = 0.0, waste_today=0) :
         """
@@ -303,15 +280,10 @@ class ScheduleModel(object):
         else:
             waste_today = {}
 
-<<<<<<< HEAD
 
-        if self.modeltype=='StaticModel':
-            collection_schedule = pd.DataFrame(0,index=self.train_y[self.config['cols']['toiletname']].unique(), columns=pd.DatetimeIndex(next_days)) 
-=======
         if self.modeltype=='StaticModel':
             #TODO: Afraid this indexing will not work :-(
             collection_schedule = pd.DataFrame(0,index=self.train_x[self.config['cols']['toiletname']].unique(), columns=pd.DatetimeIndex(next_days))
->>>>>>> 215c76549f2a25b78e36b62e45c552cdcb8c7a85
         else:
             collection_schedule = pd.DataFrame(index=waste_matrix.index, columns=pd.DatetimeIndex(next_days))
         if self.modeltype == 'simple':
@@ -327,13 +299,8 @@ class ScheduleModel(object):
                 ToiletID_LOW=list(set(group_low.index))
                 group_medium=group_mean.loc[(group_mean['response']>self.parameters['meanlow']) & (group_mean['response']<=self.parameters['meanmed']) & (group_std['response']<=self.parameters['stdmed'])];
                 ToiletID_MEDIUM=list(set(group_medium.index))
-<<<<<<< HEAD
-                for i_toilet in self.train_y[self.config['cols']['toiletname']].unique():
-                    if i_toilet in ToiletID_LOW: 
-=======
                 for i_toilet in self.train_x[self.config['cols']['toiletname']].unique():
                     if i_toilet in ToiletID_LOW:
->>>>>>> 215c76549f2a25b78e36b62e45c552cdcb8c7a85
                         toilet_accums=[1, 0, 0, 1, 0, 0, 1]
                     elif i_toilet in ToiletID_MEDIUM:
                         toilet_accums=[1, 0, 1, 0, 1, 0, 1]
@@ -341,20 +308,6 @@ class ScheduleModel(object):
                         toilet_accums=[1, 1, 1, 1, 1, 1, 1]
                     collection_schedule.loc[i_toilet] = toilet_accums
         elif self.modeltype == 'AdvancedStaticModel':
-<<<<<<< HEAD
-                ToiletID_LOW = ToiletID_MEDIUM = ToiletID_HIGH = self.train_y[self.config['cols']['toiletname']].unique()
-                keep_going=True
-                i=0
-                while (keep_going==True):
-                    day_start=pd.to_datetime(self.train_y[self.config['cols']['date']].min()+timedelta(days=i*7))
-                    day_end=day_start+timedelta(days=6)
-                    print (day_start)
-                    i=i+1
-                    if  (day_end>pd.to_datetime(self.train_y[self.config['cols']['date']].max())):
-                        keep_going=False
-                        break
-=======
-            #Not working yet?
             ToiletID_LOW = ToiletID_MEDIUM = ToiletID_HIGH = self.train_y.groupby(self.config['cols']['toiletname']).unique()
             keep_going=True
             i=0
@@ -366,52 +319,32 @@ class ScheduleModel(object):
                 if  (day_end>pd.to_datetime(self.train_y[self.config['cols']['date']].max())):
                     keep_going=False
                     break
->>>>>>> 215c76549f2a25b78e36b62e45c552cdcb8c7a85
-                    #one week in the traing data
-                    ToiletCollectionData_train=tmp.loc[((tmp['Collection_Date']>=day_start) & (tmp['Collection_Date']<=day_end))]
-                    # group the collections data by Toilet ID
-                    group_ID=ToiletCollectionData_train.groupby(['ToiletID'])
-                    #find means for the groups
-                    group_mean=group_ID.mean()
-                    #find standard deviations for the groups
-                    #group_std=group_ID.std()
-                    group_std=group_ID.agg(np.std, ddof=0)
-<<<<<<< HEAD
-        
-                    group_low=group_mean.loc[(group_mean['response']<=self.parameters['meanlow']) & (group_std['response']<=self.parameters['stdlow'])];
-                    ToiletID_LOW=list(set(group_low.index) & set(ToiletID_LOW))
-       
-                    group_medium=group_mean.loc[(group_mean['response']>self.parameters['meanlow']) & (group_mean['response']<=self.parameters['meanmed']) & (group_std['response']<=self.parameters['stdmed'])];
-                    ToiletID_MEDIUM=list(set(group_medium.index) & set(ToiletID_MEDIUM))
+                #one week in the traing data
+                ToiletCollectionData_train=tmp.loc[((tmp['Collection_Date']>=day_start) & (tmp['Collection_Date']<=day_end))]
+                # group the collections data by Toilet ID
+                group_ID=ToiletCollectionData_train.groupby(['ToiletID'])
+                #find means for the groups
+                group_mean=group_ID.mean()
+                #find standard deviations for the groups
+                #group_std=group_ID.std()
+                group_std=group_ID.agg(np.std, ddof=0)
+                group_low=group_mean.loc[(group_mean['response']<=self.parameters['meanlow']) & (group_std['response']<=self.parameters['stdlow'])];
+                ToiletID_LOW=list(set(group_low.index) & set(ToiletID_LOW))
+   
+                group_medium=group_mean.loc[(group_mean['response']>self.parameters['meanlow']) & (group_mean['response']<=self.parameters['meanmed']) & (group_std['response']<=self.parameters['stdmed'])];
+                ToiletID_MEDIUM=list(set(group_medium.index) & set(ToiletID_MEDIUM))
 
-                    for i_toilet in self.config['cols']['toiletname'].unique():
-                        if i_toilet in ToiletID_LOW: 
-=======
+            for i_toilet in self.config['cols']['toiletname'].unique():
+                if i_toilet in ToiletID_LOW: 
+                    toilet_accums=[1, 0, 0, 1, 0, 0, 1]
+                elif i_toilet in ToiletID_MEDIUM:
+                    toilet_accums=[1, 0, 1, 0, 1, 0, 1]
+                else:
+                    toilet_accums=[1, 1, 1, 1, 1, 1, 1]
+                collection_schedule.loc[i_toilet] = toilet_accums
 
-                    group_low=group_mean.loc[(group_mean['response']<=self.parameters.thresholds['meanlow']) & (group_std['response']<=self.parameters.thresholds['stdlow'])];
-                    ToiletID_LOW=list(set(group_low.index) & set(ToiletID_LOW))
-
-                    group_medium=group_mean.loc[(group_mean['response']>self.parameters.thresholds['meanlow']) & (group_mean['response']<=self.parameters.thresholds['meanmed']) & (group_std['response']<=self.parameters.thresholds['stdmed'])];
-                    ToiletID_MEDIUM=list(set(group_medium.index) & set(ToiletID_MEDIUM))
-
-                    for i_toilet in self.train_x[self.config['cols']['toiletname']].unique() :
-                        if i_toilet in ToiletID_LOW:
->>>>>>> 215c76549f2a25b78e36b62e45c552cdcb8c7a85
-                            toilet_accums=[1, 0, 0, 1, 0, 0, 1]
-                        elif i_toilet in ToiletID_MEDIUM:
-                            toilet_accums=[1, 0, 1, 0, 1, 0, 1]
-                        else:
-                            toilet_accums=[1, 1, 1, 1, 1, 1, 1]
-<<<<<<< HEAD
-                        collection_schedule.loc[i_toilet] = toilet_accums
- 
-=======
-                            collection_schedule.loc[i_toilet] = toilet_accums
-
->>>>>>> 215c76549f2a25b78e36b62e45c552cdcb8c7a85
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
-
         collection_matrix_aux = collection_schedule.copy()
         collection_matrix_aux[self.config['cols']['toiletname']] = collection_matrix_aux.index
         collection_vector = pd.melt(collection_matrix_aux,id_vars = self.config['cols']['toiletname'], var_name=self.config['cols']['date'], value_name = 'collect')
