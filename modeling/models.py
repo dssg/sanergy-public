@@ -188,6 +188,7 @@ class WasteModel(object):
         features = train_x.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
 
         #fit the model...
+        self.feature_names = features.columns
         self.trained_model.fit(features, labels)
         return self.trained_model
 
