@@ -13,7 +13,7 @@ class Staffing(object):
     Given: the collection schedule (toilets and every day whether to collect or not and how much waste they accumulate) and (initially) which route/area they belong to
     Output: A list of workers per route/area-day
     """
-    def __init__(self, schedule, waste, staffing_parameters, config):
+    def __init__(self, schedule, waste, toilet_routes, staffing_parameters, config):
         """
 
         Args:
@@ -27,6 +27,7 @@ class Staffing(object):
         """
         self.schedule = schedule
         self.waste = waste
+        self.toilet_routes = toilet_routes
         self.parameters = staffing_parameters
         self.config = config
         self.log = logging.getLogger("Sanergy Collection Optimizer")
@@ -38,10 +39,15 @@ class Staffing(object):
         T: number of toilets (from schedule)
         routes: ... (from schedule)
         """
-        self.routes = self.schedule[self.COL_ROUTE].unique()
+        today = schedule.columns.min()
+        self.routes = self.toilet_routes[self.config['cols']['route']].unique()
+        #Route-toilet dictionary
+        rtd = { r:toilet_routes.loc[(toilet_routes[self.config['cols']['route']]==r) and (toilet_routes[self.config['cols']['date']]==today), self.config['cols']['toiletname']] for r in self.routes}
+
         #Only include the routes that have at least one toilet to collect
-        self.is_the_route_collected_on_day = {(d,r) : self.schedule.loc[self.schedule[self.COL_ROUTE]==r,d].sum() > 0 for d in self.COL_DAYS for r in self.routes}
-        self.route_waste = {(d,r) : self.waste.loc[((self.schedule[self.COL_ROUTE] == r) & (self.schedule[d]==self.COLLECT)),d].sum() for d in self.COL_DAYS for r in self.routes}
+        #Select toilets which lie on route r
+        self.is_the_route_collected_on_day = {(d,r) : self.schedule.loc[self.schedule.index.isin(rtd[r]) ,d].sum() > 0 for d in self.COL_DAYS for r in self.routes}
+        self.route_waste = {(d,r) : self.waste.loc[((self.schedule.index.isin(rtd[r])) & (self.schedule[d]==self.COLLECT)),d].sum() for d in self.COL_DAYS for r in self.routes}
 
     def staff(self):
         """

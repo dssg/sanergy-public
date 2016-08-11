@@ -5,8 +5,8 @@
 #####################################################
 
 setup:
-    run_features: False
-    collection_remainder_threshold: [50,40,30,20,10] #Keep [] if you want to loop over 0..100
+    run_features: True
+    collection_remainder_threshold: [50] #[50,40,30,20,10] #Keep [] if you want to loop over 0..100
 
 ############################
 # Database column names    #
@@ -15,6 +15,7 @@ setup:
 cols:
   toiletname: "ToiletID" #the name of the toilet / toilet identifier
   date: "Collection_Date" # date / date identifier
+  route: "Route_Name"
   feces: "FecesContainer_percent" #How full the container will be
   urine: "UrineContainer_percent"
   feces_collect: "" #Should the toilet be collected?
@@ -62,7 +63,7 @@ Xy:
       #mean_air_temp: []
       SubAreaName: []
       School_Closure: []
-      #Route_Name: []
+      Route_Name: [] #This one is dropped in progress... Only used for staffing?
       #OpportunityName: []
       OpeningTime: []
       ClosingTime: []
