@@ -13,7 +13,7 @@ class Staffing(object):
     Given: the collection schedule (toilets and every day whether to collect or not and how much waste they accumulate) and (initially) which route/area they belong to
     Output: A list of workers per route/area-day
     """
-    def __init__(self, schedule, waste, staffing_parameters, config):
+    def __init__(self, schedule, waste, toilet_routes, staffing_parameters, config):
         """
 
         Args:
@@ -27,6 +27,7 @@ class Staffing(object):
         """
         self.schedule = schedule
         self.waste = waste
+        self.toilet_routes = toilet_routes
         self.parameters = staffing_parameters
         self.config = config
         self.log = logging.getLogger("Sanergy Collection Optimizer")
@@ -38,10 +39,19 @@ class Staffing(object):
         T: number of toilets (from schedule)
         routes: ... (from schedule)
         """
-        self.routes = self.schedule[self.COL_ROUTE].unique()
+        today = self.schedule.columns.values.min()
+        self.next_days = self.schedule.columns
+        self.routes = self.toilet_routes[self.config['cols']['route']].unique()
+        self.tr_valid = self.toilet_routes.loc[self.toilet_routes[self.config['cols']['route']] != "None" ] #Drop the none-routes....
+        #Route-toilet dictionary
+        #TODO: There will probably be an overlap...
+        rtd = { r:self.tr_valid.loc[(self.tr_valid[self.config['cols']['route']]==r) & (self.tr_valid[self.config['cols']['date']] <= today), self.config['cols']['toiletname']].unique() for r in self.routes}
+
         #Only include the routes that have at least one toilet to collect
-        self.is_the_route_collected_on_day = {(d,r) : self.schedule.loc[self.schedule[self.COL_ROUTE]==r,d].sum() > 0 for d in self.COL_DAYS for r in self.routes}
-        self.route_waste = {(d,r) : self.waste.loc[((self.schedule[self.COL_ROUTE] == r) & (self.schedule[d]==self.COLLECT)),d].sum() for d in self.COL_DAYS for r in self.routes}
+        #Select toilets which lie on route r
+        self.is_the_route_collected_on_day = {(d,r) : self.schedule.loc[self.schedule.index.isin(rtd[r]) ,d].sum() > 0 for d in self.next_days for r in self.routes}
+        #print(self.is_the_route_collected_on_day)
+        self.route_waste = {(d,r) : self.waste.loc[((self.schedule.index.isin(rtd[r])) & (self.schedule[d]==self.COLLECT)),d].sum() for d in self.next_days for r in self.routes}
 
     def staff(self):
         """
@@ -97,7 +107,7 @@ class Staffing(object):
         assign_vars = {}
         for c in range(0,self.parameters['N']):
             for i_r, r in enumerate(self.routes):
-                for d in self.COL_DAYS:
+                for d in self.next_days:
                     v_name = 'z' + str(c) + str(i_r) + str(d)
                     #This also handles the objective function...
                     assign_vars[c,r,d] = s.addVar(v_name, vtype='B', obj=1.0)
@@ -107,9 +117,9 @@ class Staffing(object):
         for c in range(0,self.parameters['N']):
             #1) Collector workday limits
             w_name = 'Worker_' + str(c)
-            coeffs_worker = {assign_vars[(c,r,d)] : 1 for d in self.COL_DAYS for i_r,r in enumerate(self.routes)}
+            coeffs_worker = {assign_vars[(c,r,d)] : 1 for d in self.next_days for i_r,r in enumerate(self.routes)}
             s.addCons(coeffs = coeffs_worker , rhs=self.parameters['D'], name=w_name)
-        for d in self.COL_DAYS:
+        for d in self.next_days:
             for i_r,r in enumerate(self.routes):
                 #2) Collector weight limits on routes. For each route: assign 2+ workers and also more than the predicted weight per the route
                 #3) Assign n+ workers on the route
@@ -128,6 +138,11 @@ class Staffing(object):
         #Objective function
         #Done: See in Vars
         s.optimize()
+        vars = s.getVars()
+        #for v in vars[0:50]:
+        #    print(s.getVal(v))
+
+
         roster = self.createRoster(s,assign_vars)
         self.log.debug(s.printStatistics())
         return(roster, s, assign_vars)
@@ -143,9 +158,9 @@ class Staffing(object):
         returns:
           DataFrame roster: a row for each route, a column for each day, the value indicates how many collectors are needed for that day and route
         """
-        roster = pd.DataFrame(index = self.routes, columns = self.COL_DAYS)
+        roster = pd.DataFrame(index = self.routes, columns = self.next_days)
         for r in self.routes:
-            for d in self.COL_DAYS:
+            for d in self.next_days:
                 roster.loc[r,d] = reduce(lambda x,y: x+y, [optimizedModel.getVal(vars[i_worker,r,d]) for i_worker in range(0,self.parameters['N'])])
 
         return(roster)

@@ -15,6 +15,7 @@ import statsmodels.tsa
 
 from sanergy.modeling.dataset import grab_from_features_and_labels, format_features_labels
 from sanergy.modeling.output import write_evaluation_into_db
+from sanergy.modeling.Staffing import Staffing
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +31,8 @@ class FullModel(object):
     A class for collection scheduling model(s)
     """
 
-    def __init__(self, config, modeltype_waste, modeltype_schedule="simple", parameters_waste=None, parameters_schedule=None):
+    def __init__(self, config, modeltype_waste, modeltype_schedule="simple", parameters_waste=None, parameters_schedule=None,
+    toilet_routes=None):
         """
         Args:
         """
@@ -38,10 +40,11 @@ class FullModel(object):
         self.parameters_schedule=parameters_schedule
         self.modeltype_waste=modeltype_waste
         self.modeltype_schedule=modeltype_schedule
+        self.toilet_routes = toilet_routes
         self.config = config
 
 
-    def run(self, train_x, train_y, test_x, waste_past = None):
+    def run(self, train_x, train_y, test_x, waste_past = None, remaining_threshold=50.0):
         """
         Args:
           waste_past: A past waste matrix. Currently not used?
@@ -57,9 +60,18 @@ class FullModel(object):
             waste_matrix, waste_vector, y = self.waste_model.predict(test_x)
             self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, train_y, train_x, train_y) #For simpler models, can ignore train_x and train_y?
             #Use train_y for waste_past
-            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix, 0.0, next_days)
+            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix, remaining_threshold , next_days)
         importances, coefs = self.get_feature_importances()
-        return collection_matrix, waste_matrix, collection_vector, waste_vector, importances
+
+        if self.config['staffing']['active']:
+            #Compute the staffing schedule for the next week
+            self.staffing_model = Staffing(collection_matrix, waste_matrix, self.toilet_routes, self.config['staffing'], self.config)
+            roster, _, _ = self.staffing_model.staff()
+        else:
+            roster = None
+
+
+        return collection_matrix, waste_matrix, roster, collection_vector, waste_vector, importances
 
 
     def get_feature_importances(self):
@@ -358,14 +370,14 @@ def run_models_on_folds(folds, loss_function, db, experiment):
     log.debug("Running model {0}".format(experiment.model))
     for i_fold, fold in enumerate(folds):
         #log.debug("Fold {0}: {1}".format(i_fold, fold))
-        features_train, labels_train, features_test, labels_test = grab_from_features_and_labels(db, fold, experiment.config)
+        features_train, labels_train, features_test, labels_test, toilet_routes = grab_from_features_and_labels(db, fold, experiment.config)
 
 
         # 5. Run the models
-        model = FullModel(experiment.config, experiment.model, parameters_waste = experiment.parameters)
-        cm, wm, cv, wv, fi = model.run(features_train, labels_train, features_test) #Not interested in the collection schedule, will recompute with different parameters.
+        model = FullModel(experiment.config, experiment.model, parameters_waste = experiment.parameters, toilet_routes = toilet_routes)
+        cm, wm, roster, cv, wv, fi = model.run(features_train, labels_train, features_test) #Not interested in the collection schedule, will recompute with different parameters.
         #L2 evaluation of the waste prediction
-        print(fi)
+        roster.to_csv("workforce_schedule.csv")
 
         loss = loss_function.evaluate_waste(labels_test, wv)
         results_fold = generate_result_row(experiment, i_fold, 'MSE', loss)
@@ -396,7 +408,6 @@ def run_models_on_folds(folds, loss_function, db, experiment):
            results_fold = results_fold.append(res_overflow_conservative, ignore_index=True)
 
         """
-        TODO:
         7. We have to save the model results and the evaluation in postgres
         Experiment x Fold, long file
         """
@@ -438,7 +449,6 @@ def write_experiment_into_db(experiment, model, db , append = True, chunksize=10
 
     exp_row = pd.DataFrame({'timestamp':[timestamp], 'id':[hash(experiment)] ,'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'model_config':[json.dumps(experiment.config)],
     'feature_importances':[json.dumps(model.get_feature_importances()[0].tolist())],'feature_names':[json.dumps(model.get_feature_importances()[1].tolist())] })
-    print(exp_row)
 
     exp_row.to_sql(name='experiments',
     schema="output",
