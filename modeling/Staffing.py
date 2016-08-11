@@ -39,15 +39,18 @@ class Staffing(object):
         T: number of toilets (from schedule)
         routes: ... (from schedule)
         """
-        today = self.schedule.columns.min()
+        today = self.schedule.columns.values.min()
         self.next_days = self.schedule.columns
         self.routes = self.toilet_routes[self.config['cols']['route']].unique()
+        self.tr_valid = self.toilet_routes.loc[self.toilet_routes[self.config['cols']['route']] != "None" ] #Drop the none-routes....
         #Route-toilet dictionary
-        rtd = { r:self.toilet_routes.loc[(self.toilet_routes[self.config['cols']['route']]==r) & (self.toilet_routes[self.config['cols']['date']]==today), self.config['cols']['toiletname']] for r in self.routes}
+        #TODO: There will probably be an overlap...
+        rtd = { r:self.tr_valid.loc[(self.tr_valid[self.config['cols']['route']]==r) & (self.tr_valid[self.config['cols']['date']] <= today), self.config['cols']['toiletname']].unique() for r in self.routes}
 
         #Only include the routes that have at least one toilet to collect
         #Select toilets which lie on route r
         self.is_the_route_collected_on_day = {(d,r) : self.schedule.loc[self.schedule.index.isin(rtd[r]) ,d].sum() > 0 for d in self.next_days for r in self.routes}
+        #print(self.is_the_route_collected_on_day)
         self.route_waste = {(d,r) : self.waste.loc[((self.schedule.index.isin(rtd[r])) & (self.schedule[d]==self.COLLECT)),d].sum() for d in self.next_days for r in self.routes}
 
     def staff(self):
@@ -135,6 +138,11 @@ class Staffing(object):
         #Objective function
         #Done: See in Vars
         s.optimize()
+        vars = s.getVars()
+        #for v in vars[0:50]:
+        #    print(s.getVal(v))
+
+
         roster = self.createRoster(s,assign_vars)
         self.log.debug(s.printStatistics())
         return(roster, s, assign_vars)

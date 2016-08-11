@@ -377,9 +377,7 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         model = FullModel(experiment.config, experiment.model, parameters_waste = experiment.parameters, toilet_routes = toilet_routes)
         cm, wm, roster, cv, wv, fi = model.run(features_train, labels_train, features_test) #Not interested in the collection schedule, will recompute with different parameters.
         #L2 evaluation of the waste prediction
-        print(wm)
         roster.to_csv("workforce_schedule.csv")
-        sys.exit()
 
         loss = loss_function.evaluate_waste(labels_test, wv)
         results_fold = generate_result_row(experiment, i_fold, 'MSE', loss)

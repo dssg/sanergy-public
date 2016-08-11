@@ -125,7 +125,7 @@ parameters:
     epsilon: [0.1]
     l1_ratio: [0.5]
 cv:
-  start_date: '2016-01-01'
+  start_date: '2016-03-01'
   end_date: '2016-05-01'
   train_on: 14
   test_on: 7
@@ -146,7 +146,7 @@ implementation:
 #############################
 staffing:
     active: True #Should we compute the staffing?
-    N: 30
-    W: 2000
-    NR: 2
-    D: 5
+    N: 30 #number of available workers
+    W: 2000 #weight limit per worker per day. 2000 = 20*100 (2000 toilets)
+    NR: 2 #minimum number of workers required per route (assume 2, but in fact some need 3 -> fix later)
+    D: 5 #day limit of workdays per week per worker
