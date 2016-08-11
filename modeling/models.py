@@ -15,6 +15,7 @@ import statsmodels.tsa
 
 from sanergy.modeling.dataset import grab_from_features_and_labels, format_features_labels
 from sanergy.modeling.output import write_evaluation_into_db
+from sanergy.modeling.Staffing import Staffing
 
 log = logging.getLogger(__name__)
 
@@ -62,12 +63,12 @@ class FullModel(object):
             collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix, remaining_threshold , next_days)
         importances, coefs = self.get_feature_importances()
 
-        if config['staffing']['on']:
-             #Compute the staffing schedule for the next week
-             self.staffing_model = Staffing(collection_matrix, waste_matrix, toilet_routes, self.config, self.config)
-             roster = self.staffing_model.staff()
-         else:
-             roster = None
+        if self.config['staffing']['active']:
+            #Compute the staffing schedule for the next week
+            self.staffing_model = Staffing(collection_matrix, waste_matrix, self.toilet_routes, self.config['staffing'], self.config)
+            roster, _, _ = self.staffing_model.staff()
+        else:
+            roster = None
 
 
         return collection_matrix, waste_matrix, roster, collection_vector, waste_vector, importances
@@ -376,7 +377,8 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         model = FullModel(experiment.config, experiment.model, parameters_waste = experiment.parameters, toilet_routes = toilet_routes)
         cm, wm, roster, cv, wv, fi = model.run(features_train, labels_train, features_test) #Not interested in the collection schedule, will recompute with different parameters.
         #L2 evaluation of the waste prediction
-        print(roster)
+        print(wm)
+        roster.to_csv("workforce_schedule.csv")
         sys.exit()
 
         loss = loss_function.evaluate_waste(labels_test, wv)

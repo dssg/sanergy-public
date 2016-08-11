@@ -5,7 +5,7 @@
 #####################################################
 
 setup:
-    run_features: True
+    run_features: False
     collection_remainder_threshold: [50] #[50,40,30,20,10] #Keep [] if you want to loop over 0..100
 
 ############################
@@ -145,4 +145,8 @@ implementation:
 # Staffing parameters       #
 #############################
 staffing:
-    on: True #Should we compute the staffing?
+    active: True #Should we compute the staffing?
+    N: 30
+    W: 2000
+    NR: 2
+    D: 5

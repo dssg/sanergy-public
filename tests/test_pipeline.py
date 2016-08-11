@@ -67,7 +67,8 @@ class datasetTest(unittest.TestCase):
         'start_date':'2014-01-01',
         'end_date':'2014-05-05',
         'train_on':{'days':0, 'weeks':5},
-        'test_on':{'days':0, 'weeks':1}
+        'test_on':{'days':0, 'weeks':1},
+        'fake_freq':'6W'
         }
         d_labels = {'response' : pd.Series([1.18, 1.28], index=[0,1]),
         'Feces_kg_day' : pd.Series([1.18, 1.28], index=[0,1]),
@@ -129,28 +130,28 @@ class datasetTest(unittest.TestCase):
         #Checked by Brian
         self.assertEqual(len(splits),12)
 
-    def test_create_enveloping_fold(self):
-        folds=temporal_split(self.config_cv,
-        day_of_week=6,
-        floating_window=False)
-        enveloping_fold = create_enveloping_fold(folds)
-        self.assertEqual(enveloping_fold['train_start'], datetime.strptime(self.config_cv['start_date'],'%Y-%m-%d'))
-        #print(f1)
+    # def test_create_enveloping_fold(self):
+    #     folds=temporal_split(self.config_cv,
+    #     day_of_week=6,
+    #     floating_window=False)
+    #     enveloping_fold = create_enveloping_fold(folds)
+    #     self.assertEqual(enveloping_fold['train_start'], datetime.strptime(self.config_cv['start_date'],'%Y-%m-%d'))
+    #     #print(f1)
 
-    def test_create_future(self):
-        enveloping_fold=create_enveloping_fold(temporal_split(self.config_cv,
-        day_of_week=6,
-        floating_window=False))
-        #Take the last day and duplicate it for the relevant number of days
-        last_day = enveloping_fold['window_end']
-        next_days = [last_day + timedelta(days=i) for i in xrange(1,5)]
-        old_features = self.features_big.drop_duplicates(subset='ToiletID')
-        l_future_features = []
-        for day in  next_days:
-            next_day_features = old_features.copy()
-            next_day_features["Collection_Date"] = day
-            l_future_features.append(next_day_features)
-        future_features = pd.concat(l_future_features, ignore_index=True)
+    # def test_create_future(self):
+    #     enveloping_fold=create_enveloping_fold(temporal_split(self.config_cv,
+    #     day_of_week=6,
+    #     floating_window=False))
+    #     #Take the last day and duplicate it for the relevant number of days
+    #     last_day = enveloping_fold['window_end']
+    #     next_days = [last_day + timedelta(days=i) for i in xrange(1,5)]
+    #     old_features = self.features_big.drop_duplicates(subset='ToiletID')
+    #     l_future_features = []
+    #     for day in  next_days:
+    #         next_day_features = old_features.copy()
+    #         next_day_features["Collection_Date"] = day
+    #         l_future_features.append(next_day_features)
+    #     future_features = pd.concat(l_future_features, ignore_index=True)
 
         #Now replicate the original features
 
@@ -319,6 +320,7 @@ class StaffingTest(unittest.TestCase):
         '6' : pd.Series([0,0,0], index=[0,1,2]),
         'Area' : pd.Series(['DSSG','DSSG','DSSG'], index=[0,1,2])
         }
+        
         self.dfw = pd.DataFrame(d_waste)
         self.dfs = pd.DataFrame(d_schedule)
         logging.basicConfig(format="%(asctime)s %(message)s",

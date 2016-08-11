@@ -163,7 +163,7 @@ def demand_daily_data(db, rows=[], feature='', function='lag', unique=['ToiletID
 	# Return the lagged/leave data
 	return(daily_data)
 
-def grab_collections_data(db, config_Xy, log ):
+def grab_collections_data(db, config, log ):
     """
     A function to return a postgres query as a Pandas data frame
     Args:
@@ -188,6 +188,7 @@ def grab_collections_data(db, config_Xy, log ):
     DF Y_LABELS		Pandas dataframe for the response variables
     DF X_FEATURES		Pandas dataframe for the feature variables
     """
+    config_Xy = config['Xy']
     response = config_Xy['response']
     features = config_Xy['features']
     unique = config_Xy['unique']
@@ -251,7 +252,7 @@ def grab_collections_data(db, config_Xy, log ):
 		dataset['response'] = dataset[response['variable']]
 
     #Link ToiletIds to areas. For now, just link by the route. For now, assume the route is available.
-    toilet_route = dataset[[self.config['cols']['toiletname'], self.config['cols']['date'], self.config['cols']['route']]]
+    toilet_route = dataset[[config['cols']['toiletname'], config['cols']['date'], config['cols']['route']]]
     db['connection'].execute('DROP TABLE IF EXISTS modeling."toilet_route"')
     toilet_route.to_sql(name='toilet_route',
     schema="modeling",
@@ -259,7 +260,7 @@ def grab_collections_data(db, config_Xy, log ):
     chunksize=20000)
 
     #Drop the route variable now
-    dataset = dataset.drop(self.config['cols']['route'], axis=1)
+    dataset = dataset.drop(config['cols']['route'], axis=1)
 
     #Code the categorical/string variables to dummies
     str_vars = [row for row, tp in dataset.dtypes.iteritems() if tp == 'object']
@@ -280,7 +281,7 @@ def grab_collections_data(db, config_Xy, log ):
     x_features = dataset.drop(['response',response['variable']], axis=1)
     y_labels = dataset[['response']+unique.keys()]
     # Insert tables into database
-    return(y_labels, x_features, toilet_routes)
+    return(y_labels, x_features, toilet_route)
 
 def grab_from_features_and_labels(db, fold, config):
 
