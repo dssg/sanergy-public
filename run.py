@@ -74,7 +74,7 @@ def main(config_file_name="default.yaml"):
       # 2. Create the labels / features data set in Postgres
       #TODO: grab_collections_data needs a unittest
       if experiment.config['setup']['run_features']:
-          features, responses, _ =grab_collections_data(db, experiment.config, log) #this creates df features and labels in the postgres
+          grab_collections_data(db, experiment.config, log) #this creates df features and labels in the postgres
       log.debug("Generated features in the database.")
 
 

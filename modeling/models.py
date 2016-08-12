@@ -44,7 +44,7 @@ class FullModel(object):
         self.config = config
 
 
-    def run(self, train_x, train_y, test_x, waste_past = None, remaining_threshold=50.0):
+    def run(self, train_x, train_yf, train_yu, test_x, waste_past = None, remaining_threshold=50.0):
         """
         Args:
           waste_past: A past waste matrix. Currently not used?
@@ -370,17 +370,19 @@ def run_models_on_folds(folds, loss_function, db, experiment):
     log.debug("Running model {0}".format(experiment.model))
     for i_fold, fold in enumerate(folds):
         #log.debug("Fold {0}: {1}".format(i_fold, fold))
-        features_train, labels_train, features_test, labels_test, toilet_routes = grab_from_features_and_labels(db, fold, experiment.config)
+        features_train, labels_train_f, labels_train_u, features_test, labels_test_f, labels_test_u,  toilet_routes = grab_from_features_and_labels(db, fold, experiment.config)
 
 
         # 5. Run the models
         model = FullModel(experiment.config, experiment.model, parameters_waste = experiment.parameters, toilet_routes = toilet_routes)
-        cm, wm, roster, cv, wv, fi = model.run(features_train, labels_train, features_test) #Not interested in the collection schedule, will recompute with different parameters.
+        cm, wmf, wmu, roster, cv, wvf, wvu, fi = model.run(features_train, labels_train_f, labels_train_u, features_test) #Not interested in the collection schedule, will recompute with different parameters.
         #L2 evaluation of the waste prediction
         roster.to_csv("workforce_schedule.csv")
 
-        loss = loss_function.evaluate_waste(labels_test, wv)
-        results_fold = generate_result_row(experiment, i_fold, 'MSE', loss)
+        loss_f = loss_function.evaluate_waste(labels_test_f, wvf)
+        loss_u = loss_function.evaluate_waste(labels_test_u, wvu)
+        results_fold = generate_result_row(experiment, i_fold, 'MSE_feces', loss_f)
+        results_fold.append(generate_result_row(experiment, i_fold, 'MSE_urine', loss_u), ignore_index=True)
         remainder_range = list(reversed(experiment.config['setup']['collection_remainder_threshold']))
         if len(remainder_range) == 0:
             remainder_range = range(0, 100, 1)
@@ -389,9 +391,10 @@ def run_models_on_folds(folds, loss_function, db, experiment):
            #Compute the collection schedule assuing the given safety_remainder
            schedule, cv = model.schedule_model.compute_schedule(wm, safety_remainder)
 
-           true_waste = model.waste_model.form_the_waste_matrix(features_test, labels_test, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
+           true_waste_f = model.waste_model.form_the_waste_matrix(features_test, labels_test_f, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
+           true_waste_u = model.waste_model.form_the_waste_matrix(features_test, labels_test_u, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
            p_collect = loss_function.compute_p_collect(cv)
-           p_overflow, p_overflow_conservative, _, _, _ =  loss_function.compute_p_overflow(schedule, true_waste)
+           p_overflow, p_overflow_conservative, p_overflow_f, p_overflow_f_conservative, p_overflow_u, p_overflow_u_conservative, _, _, _ =  loss_function.compute_p_overflow(schedule, true_waste_f, true_waste_u)
            #print(true_waste.head(10))
            #print(model.waste_model.waste_matrix.head(10))
            #print(cv.head(10))
@@ -403,9 +406,11 @@ def run_models_on_folds(folds, loss_function, db, experiment):
            res_collect = generate_result_row(experiment, i_fold, 'p_collect', p_collect, parameter = float(safety_remainder))
            res_overflow = generate_result_row(experiment, i_fold, 'p_overflow', p_overflow, parameter = float(safety_remainder))
            res_overflow_conservative = generate_result_row(experiment, i_fold, 'p_overflow_conservative', p_overflow_conservative, parameter = float(safety_remainder))
-           results_fold = results_fold.append(res_collect, ignore_index=True)
-           results_fold = results_fold.append(res_overflow, ignore_index=True)
-           results_fold = results_fold.append(res_overflow_conservative, ignore_index=True)
+           res_overflow_f = generate_result_row(experiment, i_fold, 'p_overflow_feces', p_overflow_f, parameter = float(safety_remainder))
+           res_overflow_u = generate_result_row(experiment, i_fold, 'p_overflow_urine', p_overflow_u, parameter = float(safety_remainder))
+           res_overflow_u_conservative = generate_result_row(experiment, i_fold, 'p_overflow_urine_conservative', p_overflow_u_conservative, parameter = float(safety_remainder))
+           res_overflow_f_conservative = generate_result_row(experiment, i_fold, 'p_overflow_feces_conservative', p_overflow_f_conservative, parameter = float(safety_remainder))
+           results_fold = results_fold.append([res_collect,res_overflow,res_overflow_conservative, res_overflow_f, res_overflow_f_conservative, res_overflow_u, res_overflow_u_conservative], ignore_index=True)
 
         """
         7. We have to save the model results and the evaluation in postgres

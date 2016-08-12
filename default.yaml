@@ -5,7 +5,7 @@
 #####################################################
 
 setup:
-    run_features: False
+    run_features: True
     collection_remainder_threshold: [50] #[50,40,30,20,10] #Keep [] if you want to loop over 0..100
 
 ############################
@@ -15,7 +15,7 @@ setup:
 cols:
   toiletname: "ToiletID" #the name of the toilet / toilet identifier
   date: "Collection_Date" # date / date identifier
-  route: "Route_Name"
+  route: "SubAreaName" #Which area/route to define as an allocation unit in the staffing model
   feces: "FecesContainer_percent" #How full the container will be
   urine: "UrineContainer_percent"
   feces_collect: "" #Should the toilet be collected?
@@ -35,13 +35,16 @@ db:
     database: 'premodeling'
 #The model matrix
 Xy:
-    response:
-      #variable: 'Feces_kg_day'
-      #split: []
-      type: 'binary'
-      variable: 'FecesContainer_percent'
-      split: []
-      #  and: [['>','100']]
+    response_f:
+        #variable: 'Feces_kg_day'
+        #split: []
+        #type: 'binary'
+        variable: 'FecesContainer_percent'
+        split: []
+        #  and: [['>','100']]
+    response_u:
+        variable: 'UrineContainer_percent'
+        split: []
     features:
       #Total_Waste_kg_day: []
       #UrineContainer_percent: []
@@ -63,8 +66,7 @@ Xy:
       #mean_air_temp: []
       SubAreaName: []
       School_Closure: []
-      Route_Name: [] #This one is dropped in progress... Only used for staffing?
-      #OpportunityName: []
+      #Route_Name: []       #OpportunityName: []
       OpeningTime: []
       ClosingTime: []
       #Missed_Collection_Code: []
@@ -78,10 +80,13 @@ Xy:
       ToiletID: []
       Collection_Date: []
     lagged:
-      FecesContainer_percent:
-          function: 'lag'
-          rows: [1,2,3]
-      #Urine_kg_day:
+        FecesContainer_percent:
+            function: 'lag'
+            rows: [1,2,3]
+        UrineContainer_percent:
+            function: 'lag'
+            rows: [1,2,3]
+              #Urine_kg_day:
       #    function: 'lag'
       #    rows: [1,2,3]
           #rows: [1,2,3]
