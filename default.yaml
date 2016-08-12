@@ -15,7 +15,7 @@ setup:
 cols:
   toiletname: "ToiletID" #the name of the toilet / toilet identifier
   date: "Collection_Date" # date / date identifier
-  route: "SubAreaName" #Which area/route to define as an allocation unit in the staffing model
+  route: "SubAreaName" #Which area/route to define as the allocation unit in the staffing model
   feces: "FecesContainer_percent" #How full the container will be
   urine: "UrineContainer_percent"
   feces_collect: "" #Should the toilet be collected?

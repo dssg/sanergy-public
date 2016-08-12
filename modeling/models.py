@@ -56,11 +56,13 @@ class FullModel(object):
             self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
             collection_matrix, collection_vector = self.schedule_model.compute_schedule(None, next_days)
         else:
-            self.waste_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_y) #Includes gen_model?
-            waste_matrix, waste_vector, y = self.waste_model.predict(test_x)
-            self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, train_y, train_x, train_y) #For simpler models, can ignore train_x and train_y?
+            self.feces_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_yf, waste_type = 'feces') #Includes gen_model?
+            self.urine_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_yu, waste_type = 'urine') #Includes gen_model?
+            waste_matrix_feces, waste_vector_feces, yf = self.feces_model.predict(test_x)
+            waste_matrix_urine, waste_vector_urine, yu = self.urine_model.predict(test_x)
+            self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, train_yf, train_yu, train_x, train_yf, train_yu) #For simpler models, can ignore train_x and train_y?
             #Use train_y for waste_past
-            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix, remaining_threshold , next_days)
+            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix_feces, waste_matrix_urine, remaining_threshold, remaining_threshold , next_days)
         importances, coefs = self.get_feature_importances()
 
         if self.config['staffing']['active']:
@@ -71,7 +73,7 @@ class FullModel(object):
             roster = None
 
 
-        return collection_matrix, waste_matrix, roster, collection_vector, waste_vector, importances
+        return collection_matrix, waste_matrix_feces, waste_matrix_urine, roster, collection_vector, waste_vector_feces, waste_vector_urine, importances
 
 
     def get_feature_importances(self):
@@ -109,16 +111,22 @@ class WasteModel(object):
       result_y: predictions on test set
       modelobj: trained model object
     """
-    def __init__(self, modeltype, parameters, config, train_x = None, train_y = None):
+    def __init__(self, modeltype, parameters, config, train_x = None, train_y = None, waste_type='feces'):
+        """
+
+        Args:
+        waste_type: 'feces' or 'urine'
+        """
         self.parameters = parameters
         self.modeltype = modeltype
         self.config = config
 	self.timestamp = datetime.datetime.now().isoformat()
         if (train_x is not None) and (train_y is not None):
             self.gen_model(train_x, train_y)
-        self.v_response = self.config['Xy']['response']['variable']
+        self.v_response = self.config['cols'][waste_type]
         if self.v_response in self.config['Xy']['lagged']:
             self.v_lag = self.config['Xy']['lagged'][self.v_response]['rows']
+            #For now, just extrapolate the response variable, keep the other dynamic variables fixed at the first day.
         else:
             self.v_lag = []
 
@@ -240,34 +248,41 @@ class ScheduleModel(object):
     """
     Based on the waste matrix, create the collection schedule. The same format as the waste matrix, but values are 0/1 (skip/collect)
     """
-    def __init__(self, config, modeltype='simple', parameters=None, waste_past = None, train_x=None, train_y=None):
+    def __init__(self, config, modeltype='simple', parameters=None, waste_past_feces = None, waste_past_urine=None, train_x=None, train_yf=None, train_yu=None):
         self.config = config
         self.modeltype = modeltype
         self.parameters = parameters  #needs a field "threshold" for the StaticModel
-        self.waste_past = waste_past
+        self.waste_past_feces = waste_past_feces
+        self.waste_past_urine = waste_past_urine
         self.train_x = train_x
-        self.train_y = train_y
+        self.train_yf = train_yf
+        self.train_yu = train_yu
         #self.test_x = test_x
 
-    def simple_waste_collector(self, waste_row, remaining_threshold = 0.0, waste_today=0) :
+    def simple_waste_collector(self, feces_row, urine_row, remaining_threshold_feces = 0.0, remaining_threshold_urine = 0.0, feces_today=0.0, urine_today=0.0) :
         """
         An iterator that simulates the simple waste collection process
         """
-        fill_threshold = self.TOILET_CAPACITY - remaining_threshold
-        total_waste = waste_today
+        fill_threshold_feces = self.TOILET_CAPACITY - remaining_threshold_feces
+        fill_threshold_urine = self.TOILET_CAPACITY - remaining_threshold_urine
+        total_waste_feces = feces_today
+        total_waste_urine = urine_today
         last_collected = 0
         i_collected = 0
-        for new_waste in waste_row:
+        for i, new_feces in enumerate(feces_row):
+            new_urine = urine_row
             collect = 0
             i_collected += 1
-            total_waste += new_waste
-            if (total_waste > fill_threshold) or ((i_collected - last_collected) >= self.MAXIMAL_COLLECTION_INTERVAL):
+            total_waste_feces += new_feces
+            total_waste_urine += new_urine
+            if (total_waste_feces > fill_threshold_feces) or (total_waste_urine > fill_threshold_urine) or ((i_collected - last_collected) >= self.MAXIMAL_COLLECTION_INTERVAL):
                 collect = 1
-                total_waste = 0
+                total_waste_feces = 0
+                total_waste_urine = 0
                 last_collected = i_collected
-            yield collect, total_waste
+            yield collect, total_waste_feces, total_waste_urine
 
-    def compute_schedule(self, waste_matrix = None, remaining_threshold=0.0, next_days = None):
+    def compute_schedule(self, waste_matrix_feces = None, waste_matrix_urine=None, remaining_threshold_feces=0.0, remaining_threshold_urine=0.0 next_days = None):
         """
         Based on the waste predictions, compute the optimal schedule for the next week.
 
@@ -285,10 +300,14 @@ class ScheduleModel(object):
              next_days = waste_matrix.columns
         yesterday = min(next_days) + datetime.timedelta(days=-1)
         #A dict of toilet -> waste
-        if self.waste_past is not None:
-            waste_today = { toilet[self.config['cols']['toiletname']]:toilet['response'] for i_toilet, toilet in  self.waste_past.iterrows() if toilet[self.config['cols']['date']]==yesterday}
+        if self.waste_past_feces is not None:
+            waste_feces_today = { toilet[self.config['cols']['toiletname']]:toilet['response'] for i_toilet, toilet in  self.waste_past_feces.iterrows() if toilet[self.config['cols']['date']]==yesterday}
         else:
-            waste_today = {}
+            waste_feces_today = {}
+        if self.waste_past_urine is not None:
+            waste_urine_today = { toilet[self.config['cols']['toiletname']]:toilet['response'] for i_toilet, toilet in  self.waste_past_urine.iterrows() if toilet[self.config['cols']['date']]==yesterday}
+        else:
+            waste_urine_today = {}
 
         if self.modeltype=='StaticModel':
             #TODO: Afraid this indexing will not work :-(
@@ -296,8 +315,8 @@ class ScheduleModel(object):
         else:
             collection_schedule = pd.DataFrame(index=waste_matrix.index, columns=pd.DatetimeIndex(next_days))
         if self.modeltype == 'simple':
-            for i_toilet, toilet in waste_matrix.iterrows():
-                toilet_accums = [collect for collect, waste in self.simple_waste_collector(toilet,remaining_threshold, waste_today.get(i_toilet,0)) ]
+            for i_toilet, toilet_urine in waste_matrix_feces.iterrows():
+                toilet_accums = [collect for collect, feces, urine in self.simple_waste_collector(toilet, waste_matrix_urine.loc[i_toilet], remaining_threshold_feces, remaining_threshold_urine, waste_feces_today.get(i_toilet,0), waste_urine_today.get(i_toilet,0)) ]
                 collection_schedule.loc[i_toilet] = toilet_accums
                 #collection_schedule.append(pd.DataFrame(toilet_accums, index = i_toilet), ignore_index=True)
         elif self.modeltype == 'StaticModel':
@@ -389,7 +408,7 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         #proportion collected and proportion overflow
         for safety_remainder in remainder_range:
            #Compute the collection schedule assuing the given safety_remainder
-           schedule, cv = model.schedule_model.compute_schedule(wm, safety_remainder)
+           schedule, cv = model.schedule_model.compute_schedule(wmf, wmu, safety_remainder)
 
            true_waste_f = model.waste_model.form_the_waste_matrix(features_test, labels_test_f, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
            true_waste_u = model.waste_model.form_the_waste_matrix(features_test, labels_test_u, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
