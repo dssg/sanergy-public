@@ -13,7 +13,7 @@ class Staffing(object):
     Given: the collection schedule (toilets and every day whether to collect or not and how much waste they accumulate) and (initially) which route/area they belong to
     Output: A list of workers per route/area-day
     """
-    def __init__(self, schedule, waste, toilet_routes, staffing_parameters, config):
+    def __init__(self, schedule, feces, urine, toilet_routes, staffing_parameters, config):
         """
 
         Args:
@@ -26,7 +26,7 @@ class Staffing(object):
             NR: minimum number of workers required per route (assume 2, but in fact some need 3 -> fix later)
         """
         self.schedule = schedule
-        self.waste = waste
+        self.waste = feces + urine
         self.toilet_routes = toilet_routes
         self.parameters = staffing_parameters
         self.config = config
