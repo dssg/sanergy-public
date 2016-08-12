@@ -212,10 +212,10 @@ class modelsTest(unittest.TestCase):
          'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,5,2), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
           'response': [1,1,1, 0,2,1,2]})
         self.dftrainx2=pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t2','t2','t3','t3'],
-         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,1,15), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
+         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,1,5), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
           'w':[30,5,18,17,18,19,0],'x':[0,10,10, 20, 30,40,5], 'z' : [5,3,6,0,0,10,0]})
         self.dftrainy2 = pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t2','t2','t3','t3'],
-         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,1,15), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
+         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,1,5), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
           'response': [10,40,60, 5,20,1,2]})
         self.dftrainx3=pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t1','t1','t1','t1','t2','t2','t3','t3'],
          'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,1,5),  datetime(2012,1,8),  datetime(2012,1,9),  datetime(2012,1,25), datetime(2012,1,26), datetime(2012,1,1), datetime(2012,1,2), datetime(2012,1,1), datetime(2012,1,2)],
