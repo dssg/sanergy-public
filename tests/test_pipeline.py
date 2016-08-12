@@ -9,6 +9,8 @@ import sys
 from datetime import datetime, date, timedelta
 from functools import reduce
 
+
+
 from sanergy.premodeling.Experiment import generate_experiments, Experiment
 from sanergy.modeling.LossFunction import LossFunction, compare_models_by_loss_functions
 from sanergy.modeling.dataset import grab_collections_data, temporal_split, format_features_labels, create_enveloping_fold
@@ -214,10 +216,10 @@ class modelsTest(unittest.TestCase):
           'w':[30,5,18,17,18,19,0],'x':[0,10,10, 20, 30,40,5], 'z' : [5,3,6,0,0,10,0]})
         self.dftrainy2 = pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t2','t2','t3','t3'],
          'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,1,5), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
-          'response': [1,1,1, 0,2,1,2]})
+          'response': [10,40,60, 5,20,1,2]})
         self.wm =WasteModel("LinearRegression",{},self.config)
         self.wm2 =WasteModel("LinearRegression",{},self.config2)
-        self.sm2 =ScheduleModel(self.config, modeltype='StaticModel', parameters={'meanlow':23, 'stdlow':100, 'meanmed':40, 'stdmed':10}, train_x=self.dftrainx2, train_y=self.dftrainy2)
+        self.sm2 =ScheduleModel(self.config, modeltype='AdvancedStaticModel', parameters={'meanlow':23, 'stdlow':100, 'meanmed':40, 'stdmed':10}, train_x=self.dftrainx2, train_y=self.dftrainy2)
         self.waste_matrix =  pd.DataFrame.from_items([('t1', [60, 50, 10, 40, 70, 10, 30]), ('t2', [10, 20, 30, 40, 50, 60, 70])],
         orient='index', columns=self.unique_dates)
         self.zero_day  = pd.DataFrame.from_dict({'ToiletID':['t1','t2'],
