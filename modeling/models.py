@@ -313,7 +313,7 @@ class ScheduleModel(object):
                     toilet_accums=[1, 1, 1, 1, 1, 1, 1]
                 collection_schedule.loc[i_toilet] = toilet_accums
         elif self.modeltype == 'AdvancedStaticModel':
-            pdb.set_trace()
+            #pdb.set_trace()
             ToiletID_LOW = ToiletID_MEDIUM = ToiletID_HIGH = self.train_y[self.config['cols']['toiletname']].unique()
             keep_going=True
             i=0
@@ -348,6 +348,7 @@ class ScheduleModel(object):
                 else:
                     toilet_accums=[1, 1, 1, 1, 1, 1, 1]
                 collection_schedule.loc[i_toilet] = toilet_accums
+                #pdb.set_trace()
 
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))

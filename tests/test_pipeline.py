@@ -212,11 +212,17 @@ class modelsTest(unittest.TestCase):
          'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,5,2), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
           'response': [1,1,1, 0,2,1,2]})
         self.dftrainx2=pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t2','t2','t3','t3'],
-         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,1,5), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
+         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,1,15), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
           'w':[30,5,18,17,18,19,0],'x':[0,10,10, 20, 30,40,5], 'z' : [5,3,6,0,0,10,0]})
         self.dftrainy2 = pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t2','t2','t3','t3'],
-         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,1,5), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
+         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,1,15), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
           'response': [10,40,60, 5,20,1,2]})
+        self.dftrainx3=pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t1','t1','t1','t1','t2','t2','t3','t3'],
+         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,1,5),  datetime(2012,1,8),  datetime(2012,1,9),  datetime(2012,1,25), datetime(2012,1,26), datetime(2012,1,1), datetime(2012,1,2), datetime(2012,1,1), datetime(2012,1,2)],
+          'w':[30,5,18,17,1,1,1,1,18,19,0],'x':[0,10,10, 20, 1,1,1,1,30,40,5], 'z' : [5,3,6,0,0,1,1,1,1,10,0]})
+        self.dftrainy3 = pd.DataFrame.from_dict({'ToiletID':['t1','t1','t1','t1','t1','t1','t1','t2','t2','t3','t3'],
+         'Collection_Date':[datetime(2012,1,1), datetime(2012,1,2),  datetime(2012,1,5),  datetime(2012,1,8),  datetime(2012,1,9),  datetime(2012,1,25), datetime(2012,1,26), datetime(2012,1,1), datetime(2012,1,2),datetime(2012,1,1), datetime(2012,1,2)],
+          'response': [10,1,2, 45,1,1,3, 5,20,1,2]})
         self.wm =WasteModel("LinearRegression",{},self.config)
         self.wm2 =WasteModel("LinearRegression",{},self.config2)
         self.sm2 =ScheduleModel(self.config, modeltype='AdvancedStaticModel', parameters={'meanlow':23, 'stdlow':100, 'meanmed':40, 'stdmed':10}, train_x=self.dftrainx2, train_y=self.dftrainy2)
