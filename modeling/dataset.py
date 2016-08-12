@@ -21,6 +21,7 @@ from datetime import datetime, date, timedelta
 # For logging errors
 import logging
 
+RESPONSE_RENAMER = {'response_f':'response', 'response_u':'response'}
 
 def get_db(config, log):
 	engine = create_engine('postgresql+psycopg2://%s:%s@%s:%s' %(dbconfig.config['user'],
@@ -279,8 +280,9 @@ def grab_collections_data(db, config, log ):
 
 
     x_features = dataset.drop(['response_f', 'response_u',response_f['variable'], response_u['variable']], axis=1)
-    yf_labels = dataset[['response_f']+unique.keys()]
-    yu_labels = dataset[['response_f']+unique.keys()]
+
+    yf_labels = dataset[['response_f']+unique.keys()].rename(columns=RESPONSE_RENAMER)
+    yu_labels = dataset[['response_u']+unique.keys()].rename(columns=RESPONSE_RENAMER)
     # Insert tables into database
     return(yf_labels, yu_labels, x_features, toilet_route)
 
@@ -316,10 +318,10 @@ def grab_from_features_and_labels(db, fold, config):
     features_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"]))].drop(['response_f','response_u',config['Xy']['response_f']['variable'], config['Xy']['response_u']['variable']],axis=1)
     features_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"]))].drop(['response_f','response_u',config['Xy']['response_f']['variable'], config['Xy']['response_u']['variable']],axis=1)
 
-    labels_train_f = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"])),['response_f','Collection_Date','ToiletID']]
-    labels_train_u = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"])),['response_u','Collection_Date','ToiletID']]
-    labels_test_f = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"])),['response_f','Collection_Date','ToiletID']]
-    labels_test_u = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"])),['response_u','Collection_Date','ToiletID']]
+    labels_train_f = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"])),['response_f','Collection_Date','ToiletID']].rename(RESPONSE_RENAMER)
+    labels_train_u = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"])),['response_u','Collection_Date','ToiletID']].rename(RESPONSE_RENAMER)
+    labels_test_f = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"])),['response_f','Collection_Date','ToiletID']].rename(RESPONSE_RENAMER)
+    labels_test_u = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"])),['response_u','Collection_Date','ToiletID']].rename(RESPONSE_RENAMER)
     return(features_train, labels_train_f, labels_train_u, features_test, labels_test_f, labels_test_u, toilet_routes)
 
 def format_features_labels(features_big,labels_big):
