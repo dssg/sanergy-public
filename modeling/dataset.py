@@ -22,6 +22,7 @@ from datetime import datetime, date, timedelta
 import logging
 
 
+
 def get_db(config, log):
 	engine = create_engine('postgresql+psycopg2://%s:%s@%s:%s' %(dbconfig.config['user'],
 	dbconfig.config['password'],
@@ -189,13 +190,15 @@ def grab_collections_data(db, config, log ):
     DF X_FEATURES		Pandas dataframe for the feature variables
     """
     config_Xy = config['Xy']
-    response = config_Xy['response']
+    response_f = config_Xy['response_f']
+    response_u = config_Xy['response_u']
     features = config_Xy['features']
     unique = config_Xy['unique']
     lagged = config_Xy['lagged']
+    RESPONSE_RENAMER = {'response_f':'response', 'response_u':'response'}
 
     # Create the list of all variables requested from the database
-    list_of_variables = [response['variable']]+features.keys()+unique.keys()
+    list_of_variables = [response_f['variable']]+[response_u['variable']]+features.keys()+unique.keys()
     list_of_predictors = features.keys()
     list_of_variables = ['"'+lv+'"' for lv in list_of_variables]
     log.info('Request variable(s): %s' %(','.join(list_of_variables)))
@@ -237,19 +240,21 @@ def grab_collections_data(db, config, log ):
 		dataset = dataset.loc[dataset['duplicated']==False]
 		dataset = dataset.drop(["duplicated"], axis=1)
 	# Return the response variable
-	if (bool(response['split'])==True):
-		statement = ""
-		for split in response['split']:
-			if (split=='and'):
-				statement = '&'.join(['(dataset["%s"]%s%s)' %(response['variable'],sp[0],sp[1])
-						for sp in response['split'][split]])
-			elif (split=='or'):
-				statement = '|'.join(['(dataset["%s"]%s%s)' %(response['variable'],sp[0],sp[1])
-						for sp in response['split'][split]])
-		dataset['response'] = False
-		dataset.loc[(eval(statement)),"response"] = True
-	else:
-		dataset['response'] = dataset[response['variable']]
+    #Binary response variable? Ignore this.
+	# if (bool(response['split'])==True):
+	# 	statement = ""
+	# 	for split in response['split']:
+	# 		if (split=='and'):
+	# 			statement = '&'.join(['(dataset["%s"]%s%s)' %(response['variable'],sp[0],sp[1])
+	# 					for sp in response['split'][split]])
+	# 		elif (split=='or'):
+	# 			statement = '|'.join(['(dataset["%s"]%s%s)' %(response['variable'],sp[0],sp[1])
+	# 					for sp in response['split'][split]])
+	# 	dataset['response'] = False
+	# 	dataset.loc[(eval(statement)),"response"] = True
+	# else:
+	dataset['response_f'] = dataset[response_f['variable']]
+    dataset['response_u'] = dataset[response_u['variable']]
 
     #Link ToiletIds to areas. For now, just link by the route. For now, assume the route is available.
     toilet_route = dataset[[config['cols']['toiletname'], config['cols']['date'], config['cols']['route']]]
@@ -258,9 +263,6 @@ def grab_collections_data(db, config, log ):
     schema="modeling",
     con=db['connection'],
     chunksize=20000)
-
-    #Drop the route variable now
-    dataset = dataset.drop(config['cols']['route'], axis=1)
 
     #Code the categorical/string variables to dummies
     str_vars = [row for row, tp in dataset.dtypes.iteritems() if tp == 'object']
@@ -278,10 +280,12 @@ def grab_collections_data(db, config, log ):
 
 
 
-    x_features = dataset.drop(['response',response['variable']], axis=1)
-    y_labels = dataset[['response']+unique.keys()]
+    x_features = dataset.drop(['response_f', 'response_u',response_f['variable'], response_u['variable']], axis=1)
+
+    yf_labels = dataset[['response_f']+unique.keys()].rename(columns=RESPONSE_RENAMER)
+    yu_labels = dataset[['response_u']+unique.keys()].rename(columns=RESPONSE_RENAMER)
     # Insert tables into database
-    return(y_labels, x_features, toilet_route)
+    return(yf_labels, yu_labels, x_features, toilet_route)
 
 def grab_from_features_and_labels(db, fold, config):
 
@@ -296,6 +300,7 @@ def grab_from_features_and_labels(db, fold, config):
     df features test
     df labels test
     """
+    RESPONSE_RENAMER = {'response_f':'response', 'response_u':'response'}
     dataset = pd.read_sql('select * from modeling.dataset where (("Collection_Date" >= '+"'"+fold['train_start'].strftime('%Y-%m-%d')+"'"+') and ("Collection_Date" <= '+"'"+fold['test_end'].strftime('%Y-%m-%d')+"'"+'))', db['connection'], coerce_float=True, params=None)
     toilet_routes = pd.read_sql('select * from modeling.toilet_route', db['connection'], coerce_float=True, params=None)
 
@@ -312,12 +317,14 @@ def grab_from_features_and_labels(db, fold, config):
     dataset = dataset.sort_values(by=['Collection_Date','ToiletID'])
 
 
-    features_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"]))].drop(['response',config['Xy']['response']['variable']],axis=1)
-    features_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"]))].drop(['response', config['Xy']['response']['variable']],axis=1)
+    features_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"]))].drop(['response_f','response_u',config['Xy']['response_f']['variable'], config['Xy']['response_u']['variable']],axis=1)
+    features_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"]))].drop(['response_f','response_u',config['Xy']['response_f']['variable'], config['Xy']['response_u']['variable']],axis=1)
 
-    labels_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"])),['response','Collection_Date','ToiletID']]
-    labels_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"])),['response','Collection_Date','ToiletID']]
-    return(features_train, labels_train, features_test, labels_test, toilet_routes)
+    labels_train_u = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"])),['response_u','Collection_Date','ToiletID']].rename(columns=RESPONSE_RENAMER)
+    labels_train_f = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"])),['response_f','Collection_Date','ToiletID']].rename(columns=RESPONSE_RENAMER)
+    labels_test_f = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"])),['response_f','Collection_Date','ToiletID']].rename(columns=RESPONSE_RENAMER)
+    labels_test_u = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"])),['response_u','Collection_Date','ToiletID']].rename(columns=RESPONSE_RENAMER)
+    return(features_train, labels_train_f, labels_train_u, features_test, labels_test_f, labels_test_u, toilet_routes)
 
 def format_features_labels(features_big,labels_big):
 

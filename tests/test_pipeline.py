@@ -179,7 +179,7 @@ class modelsTest(unittest.TestCase):
         'response':{'variable':'y'},
         'lagged':{}
         },
-        'cols':{'toiletname':'ToiletID', 'date':'Collection_Date'},
+        'cols':{'toiletname':'ToiletID', 'date':'Collection_Date', 'feces':'y'},
         'implementation':{'prediction_horizon':[2]}
         }
         self.config2 = {
@@ -187,7 +187,7 @@ class modelsTest(unittest.TestCase):
         'response':{'variable':'y'},
         'lagged':{'y':{'rows':[1,2]}}
         },
-        'cols':{'toiletname':'ToiletID', 'date':'Collection_Date'},
+        'cols':{'toiletname':'ToiletID', 'date':'Collection_Date', 'feces':'y'},
         'implementation':{'prediction_horizon':[7]}
         }
         self.y = pd.DataFrame.from_dict({'response':range(0,2*self.horizon)})
@@ -230,7 +230,7 @@ class modelsTest(unittest.TestCase):
         self.assertEqual(np.linalg.norm(y  + self.dftest2['x'] - 5.0) < 1.0e-9,True)
 
     def test_compute_schedule(self):
-        schedule, sv = self.sm.compute_schedule(self.waste_matrix)
+        schedule, sv = self.sm.compute_schedule(self.waste_matrix, self.waste_matrix)
         self.assertEqual(schedule.loc["t2",datetime(2011,11,13) ], 1 ) #Test that collects after 3 days
         self.assertEqual(schedule.loc["t1",datetime(2011,11,12) ], 1 ) #Test that the toilet is collected when full
         self.assertEqual(schedule.loc["t2",datetime(2011,11,16) ], 1 ) #Test that the toilet is collected when full
@@ -238,8 +238,8 @@ class modelsTest(unittest.TestCase):
         self.assertEqual(schedule.loc["t2",datetime(2011,11,12) ], 0 ) #Test that the toilet is not collected when not full
 
     def test_compute_schedule_with_initial_waste(self):
-        self.sm.waste_past = self.zero_day
-        schedule, sv = self.sm.compute_schedule(self.waste_matrix)
+        self.sm.waste_past_feces = self.zero_day
+        schedule, sv = self.sm.compute_schedule(self.waste_matrix, self.waste_matrix)
         self.assertEqual(schedule.loc["t1",datetime(2011,11,11) ], 1 ) #Test that the toilet is collected when full
         self.assertEqual(schedule.loc["t2",datetime(2011,11,11) ], 0 ) #Test that the toilet is collected when full
         self.assertEqual(schedule.loc["t2",datetime(2011,11,13) ], 1 ) #Test that the toilet is empty after the collection
@@ -287,7 +287,7 @@ class LossFunctionTest(unittest.TestCase):
         datetime(2015,1,5):[30, 30], datetime(2015,1,6):[30, 30],  datetime(2015,1,7):[30, 30]}, index = ['t1', 't2'])
         schedule = pd.DataFrame({datetime(2015,1,1):[0,0], datetime(2015,1,2):[0,0], datetime(2015,1,3):[1,0], datetime(2015,1,4):[0,1] ,
         datetime(2015,1,5):[0,0], datetime(2015,1,6):[0,0], datetime(2015,1,7):[1,1]}, index = ['t1', 't2'])
-        p_overflows, _, n_overflows, _, n_days = lf.compute_p_overflow(schedule, waste)
+        p_overflows, dummy1 , dummy2 , dummy3 , dummy4 , dummy5 , n_overflows, dummy6 , n_days = lf.compute_p_overflow(schedule, waste, waste)
         self.assertEqual(n_days, 14)
         self.assertEqual(n_overflows, 2) #t1 on 15/1/2 and on 15/1/6
 
@@ -343,7 +343,10 @@ class StaffingTest(unittest.TestCase):
         self.log.addHandler(screenlog)
 
     def test_staff(self):
-        staffing = Staffing(self.dfs, self.dfw, self.dtr, self.staffing_parameters,self.config)
+        dfw2 = self.dfw.copy()
+        dfw2 = 0
+
+        staffing = Staffing(self.dfs, self.dfw, dfw2, self.dtr, self.staffing_parameters,self.config)
         roster, s, vars =staffing.staff()
 
         collectors_day0 =  reduce(lambda x,y: x+y, [s.getVal(vars[i,'DSSG',datetime(2011,11,11)]) for i in range(0,self.staffing_parameters['N'])])
@@ -359,7 +362,7 @@ class StaffingTest(unittest.TestCase):
         self.assertEqual( list(roster.loc['DSSG',[datetime(2011,11,11),datetime(2011,11,12),datetime(2011,11,13)]].values), [collectors_day0,collectors_day1,collectors_day2])
 
     def test_emptyStaffing(self):
-        staffing = Staffing(None, None, self.dtr, self.staffing_parameters, self.config)
+        staffing = Staffing(None, 0, 0, self.dtr, self.staffing_parameters, self.config)
         output_roster = staffing.staff()[0]
         self.assertEqual(output_roster, None)
 
