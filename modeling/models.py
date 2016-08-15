@@ -477,9 +477,18 @@ def write_experiment_into_db(experiment, model, db , append = True, chunksize=10
     timestamp =  datetime.datetime.now().isoformat()
 
     #save model to pickle object
-    save_model_file = open('./store/%s.pkl' %(timestamp), 'wb')
-    pickle.dump(model, save_model_file)
+    save_model_file = open('./store/feces_model-%s.pkl' %(timestamp), 'wb')
+    pickle.dump(model.feces_model, save_model_file)
     save_model_file.close()
+    save_model_file = open('./store/urine_model-%s.pkl' %(timestamp), 'wb')
+    pickle.dump(model.urine_model, save_model_file)
+    save_model_file.close()
+    save_model_file = open('./store/schedule_model-%s.pkl' %(timestamp), 'wb')
+    pickle.dump(model.schedule_model, save_model_file)
+    save_model_file.close()
+    #save_model_file = open('./store/staffing_model-%s.pkl' %(timestamp), 'wb')
+    #pickle.dump(model.staffing_model, save_model_file)
+    #save_model_file.close()
 
     exp_row = pd.DataFrame({'timestamp':[timestamp], 'id':[hash(experiment)] ,'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'model_config':[json.dumps(experiment.config)],
     'feature_importances':[json.dumps(model.get_feature_importances()[0].tolist())],'feature_names':[json.dumps(model.get_feature_importances()[1].tolist())] })
