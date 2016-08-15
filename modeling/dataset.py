@@ -163,7 +163,7 @@ def demand_daily_data(db, rows=[], feature='', function='lag', unique=['ToiletID
 	# Return the lagged/leave data
 	return(daily_data)
 
-def grab_collections_data(db, config_Xy, log ):
+def grab_collections_data(db, config, log ):
     """
     A function to return a postgres query as a Pandas data frame
     Args:
@@ -188,6 +188,7 @@ def grab_collections_data(db, config_Xy, log ):
     DF Y_LABELS		Pandas dataframe for the response variables
     DF X_FEATURES		Pandas dataframe for the feature variables
     """
+    config_Xy = config['Xy']
     response = config_Xy['response']
     features = config_Xy['features']
     unique = config_Xy['unique']
@@ -250,6 +251,17 @@ def grab_collections_data(db, config_Xy, log ):
 	else:
 		dataset['response'] = dataset[response['variable']]
 
+    #Link ToiletIds to areas. For now, just link by the route. For now, assume the route is available.
+    toilet_route = dataset[[config['cols']['toiletname'], config['cols']['date'], config['cols']['route']]]
+    db['connection'].execute('DROP TABLE IF EXISTS modeling."toilet_route"')
+    toilet_route.to_sql(name='toilet_route',
+    schema="modeling",
+    con=db['connection'],
+    chunksize=20000)
+
+    #Drop the route variable now
+    dataset = dataset.drop(config['cols']['route'], axis=1)
+
     #Code the categorical/string variables to dummies
     str_vars = [row for row, tp in dataset.dtypes.iteritems() if tp == 'object']
     vars_to_dummify = set(list_of_predictors).intersection(str_vars)
@@ -263,10 +275,13 @@ def grab_collections_data(db, config_Xy, log ):
     schema="modeling",
     con=db['connection'],
     chunksize=20000)
+
+
+
     x_features = dataset.drop(['response',response['variable']], axis=1)
     y_labels = dataset[['response']+unique.keys()]
     # Insert tables into database
-    return(y_labels, x_features)
+    return(y_labels, x_features, toilet_route)
 
 def grab_from_features_and_labels(db, fold, config):
 
@@ -282,6 +297,7 @@ def grab_from_features_and_labels(db, fold, config):
     df labels test
     """
     dataset = pd.read_sql('select * from modeling.dataset where (("Collection_Date" >= '+"'"+fold['train_start'].strftime('%Y-%m-%d')+"'"+') and ("Collection_Date" <= '+"'"+fold['test_end'].strftime('%Y-%m-%d')+"'"+'))', db['connection'], coerce_float=True, params=None)
+    toilet_routes = pd.read_sql('select * from modeling.toilet_route', db['connection'], coerce_float=True, params=None)
 
     #TODO: Fix this...
     dataset = dataset.fillna(0) #A hack to make it run for now...
@@ -301,7 +317,7 @@ def grab_from_features_and_labels(db, fold, config):
 
     labels_train = dataset.loc[((dataset['Collection_Date']>=fold["train_start"]) & (dataset['Collection_Date']<=fold["train_end"])),['response','Collection_Date','ToiletID']]
     labels_test = dataset.loc[((dataset['Collection_Date']>=fold["test_start"]) & (dataset['Collection_Date']<=fold["test_end"])),['response','Collection_Date','ToiletID']]
-    return(features_train, labels_train, features_test, labels_test)
+    return(features_train, labels_train, features_test, labels_test, toilet_routes)
 
 def format_features_labels(features_big,labels_big):
 

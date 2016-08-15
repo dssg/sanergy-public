@@ -6,7 +6,7 @@
 
 setup:
     run_features: False
-    collection_remainder_threshold: [50,40,30,20,10] #Keep [] if you want to loop over 0..100
+    collection_remainder_threshold: [50] #[50,40,30,20,10] #Keep [] if you want to loop over 0..100
 
 ############################
 # Database column names    #
@@ -15,6 +15,7 @@ setup:
 cols:
   toiletname: "ToiletID" #the name of the toilet / toilet identifier
   date: "Collection_Date" # date / date identifier
+  route: "Route_Name"
   feces: "FecesContainer_percent" #How full the container will be
   urine: "UrineContainer_percent"
   feces_collect: "" #Should the toilet be collected?
@@ -62,7 +63,7 @@ Xy:
       #mean_air_temp: []
       SubAreaName: []
       School_Closure: []
-      #Route_Name: []
+      Route_Name: [] #This one is dropped in progress... Only used for staffing?
       #OpportunityName: []
       OpeningTime: []
       ClosingTime: []
@@ -124,7 +125,7 @@ parameters:
     epsilon: [0.1]
     l1_ratio: [0.5]
 cv:
-  start_date: '2016-01-01'
+  start_date: '2016-03-01'
   end_date: '2016-05-01'
   train_on: 14
   test_on: 7
@@ -139,3 +140,13 @@ implementation:
   prediction_weekday_start: [0] #Which day of the week do we recompute the schedule? 0=Mon, 7=Sun. Applicable for weekly or multiple-thereof schedules.
   aggregation_measure: ["mean"] #A measure to use to aggregate the losses across different folds. Since different experiments may have different numbers of folds, should be a probability measure.
   #thresholds: {'meanlow':23, 'stdlow':100, 'meanmed':40, 'stdmed':10}  # static model parameters
+
+#############################
+# Staffing parameters       #
+#############################
+staffing:
+    active: True #Should we compute the staffing?
+    N: 30 #number of available workers
+    W: 2000 #weight limit per worker per day. 2000 = 20*100 (2000 toilets)
+    NR: 2 #minimum number of workers required per route (assume 2, but in fact some need 3 -> fix later)
+    D: 5 #day limit of workdays per week per worker
