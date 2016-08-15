@@ -67,7 +67,7 @@ class FullModel(object):
 
         if self.config['staffing']['active']:
             #Compute the staffing schedule for the next week
-            self.staffing_model = Staffing(collection_matrix, waste_matrix, self.toilet_routes, self.config['staffing'], self.config)
+            self.staffing_model = Staffing(collection_matrix, waste_matrix_feces, waste_matrix_urine, self.toilet_routes, self.config['staffing'], self.config)
             roster, _, _ = self.staffing_model.staff()
         else:
             roster = None
@@ -76,7 +76,7 @@ class FullModel(object):
         return collection_matrix, waste_matrix_feces, waste_matrix_urine, roster, collection_vector, waste_vector_feces, waste_vector_urine, importances
 
 
-    def get_feature_importances(self):
+    def get_feature_importances(self, modeltype="feces"):
         """
         Get feature importances (from scikit-learn) of trained model.
         Args:
@@ -84,7 +84,10 @@ class FullModel(object):
         Returns:
         Feature importances, or failing that, None
         """
-        model = self.waste_model.trained_model
+        if modeltype == "feces":
+            model = self.feces_model.trained_model
+        else:
+            model = self.urine_model.trained_model
         try:
             importances = model.feature_importances_
         except:
@@ -270,7 +273,7 @@ class ScheduleModel(object):
         last_collected = 0
         i_collected = 0
         for i, new_feces in enumerate(feces_row):
-            new_urine = urine_row[i]            
+            new_urine = urine_row[i]
             collect = 0
             i_collected += 1
             total_waste_feces += new_feces
@@ -410,8 +413,8 @@ def run_models_on_folds(folds, loss_function, db, experiment):
            #Compute the collection schedule assuing the given safety_remainder
            schedule, cv = model.schedule_model.compute_schedule(wmf, wmu, safety_remainder)
 
-           true_waste_f = model.waste_model.form_the_waste_matrix(features_test, labels_test_f, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
-           true_waste_u = model.waste_model.form_the_waste_matrix(features_test, labels_test_u, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
+           true_waste_f = model.feces_model.form_the_waste_matrix(features_test, labels_test_f, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
+           true_waste_u = model.urine_model.form_the_waste_matrix(features_test, labels_test_u, experiment.config['implementation']['prediction_horizon'][0], merge_y=True)#Compute the actual waste produced based on labels_test
            p_collect = loss_function.compute_p_collect(cv)
            p_overflow, p_overflow_conservative, p_overflow_f, p_overflow_f_conservative, p_overflow_u, p_overflow_u_conservative, _, _, _ =  loss_function.compute_p_overflow(schedule, true_waste_f, true_waste_u)
            #print(true_waste.head(10))
