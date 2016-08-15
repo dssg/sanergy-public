@@ -117,8 +117,7 @@ class LossFunction(object):
             if (current_feces > self.TOILET_CAPACITY) or (current_urine > self.TOILET_CAPACITY):
                 n_overflows +=1
 
-        return n_overflows, n_overflows_conservative, n_overflows_feces, n_overflows_feces_conservative,
-        n_overflows_urine, n_overflows_urine_conservative, n_days
+        return n_overflows, n_overflows_conservative, n_overflows_feces, n_overflows_feces_conservative, n_overflows_urine, n_overflows_urine_conservative, n_days
 
     def compute_p_overflow(self, schedule, true_feces, true_urine):
         """
@@ -127,14 +126,13 @@ class LossFunction(object):
           schedule (DataFrame): the proposed schedule, in the format row=toiletname, column=date. Has 1 if the collection is recommended.
           true_waste (DataFrame): The same format as schedule, the entries are actually accumulated waste percentages.
         """
-        n_overflows = 0
-        n_overflows_conservative = 0 #
+        n_overflows = n_overflows_feces = n_overflows_urine = 0
+        n_overflows_conservative = n_overflows_feces_conservative = n_overflows_urine_conservative = 0 #
         n_days = 0
         for i_toilet, toilet_schedule in schedule.iterrows():
             toilet_feces = true_feces.loc[i_toilet]
             toilet_urine = true_urine.loc[i_toilet]
-            n_overflows_i, n_overflows_conservative_i, n_overflows_feces_i, n_overflows_feces_conservative_i,
-            n_overflows_urine_i, n_overflows_urine_conservative_i, n_days_i = self.simple_waste_inspector(toilet_schedule, toilet_feces, toilet_urine)
+            n_overflows_i, n_overflows_conservative_i, n_overflows_feces_i, n_overflows_feces_conservative_i, n_overflows_urine_i, n_overflows_urine_conservative_i, n_days_i = self.simple_waste_inspector(toilet_schedule, toilet_feces, toilet_urine)
             n_overflows += n_overflows_i
             n_overflows_feces += n_overflows_feces_i
             n_overflows_urine += n_overflows_urine_i
@@ -143,9 +141,7 @@ class LossFunction(object):
             n_overflows_urine_conservative += n_overflows_urine_conservative_i
             n_days += n_days_i
 
-        return (n_overflows / float(n_days)), (n_overflows_conservative / float(n_days)), (n_overflows_feces / float(n_days)), (n_overflows_feces_conservative / float(n_days)),
-        (n_overflows_urine / float(n_days)), (n_overflows_urine_conservative / float(n_days)),
-        n_overflows, n_overflows_conservative, n_days
+        return( (n_overflows / float(n_days)), (n_overflows_conservative / float(n_days)), (n_overflows_feces / float(n_days)), (n_overflows_feces_conservative / float(n_days)), (n_overflows_urine / float(n_days)), (n_overflows_urine_conservative / float(n_days)), n_overflows, n_overflows_conservative, n_days )
 
 
 def compare_models_by_loss_functions(results_from_experiments):

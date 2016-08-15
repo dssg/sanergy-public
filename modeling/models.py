@@ -270,7 +270,7 @@ class ScheduleModel(object):
         last_collected = 0
         i_collected = 0
         for i, new_feces in enumerate(feces_row):
-            new_urine = urine_row
+            new_urine = urine_row[i]            
             collect = 0
             i_collected += 1
             total_waste_feces += new_feces
@@ -282,7 +282,7 @@ class ScheduleModel(object):
                 last_collected = i_collected
             yield collect, total_waste_feces, total_waste_urine
 
-    def compute_schedule(self, waste_matrix_feces = None, waste_matrix_urine=None, remaining_threshold_feces=0.0, remaining_threshold_urine=0.0 next_days = None):
+    def compute_schedule(self, waste_matrix_feces = None, waste_matrix_urine=None, remaining_threshold_feces=0.0, remaining_threshold_urine=0.0, next_days = None):
         """
         Based on the waste predictions, compute the optimal schedule for the next week.
 
@@ -297,7 +297,7 @@ class ScheduleModel(object):
         """
         #Same dimensions as the waste_matrix
         if next_days is None:
-             next_days = waste_matrix.columns
+             next_days = waste_matrix_feces.columns
         yesterday = min(next_days) + datetime.timedelta(days=-1)
         #A dict of toilet -> waste
         if self.waste_past_feces is not None:
@@ -313,9 +313,9 @@ class ScheduleModel(object):
             #TODO: Afraid this indexing will not work :-(
             collection_schedule = pd.DataFrame(0,index=self.train_x[self.config['cols']['toiletname']].unique(), columns=pd.DatetimeIndex(next_days))
         else:
-            collection_schedule = pd.DataFrame(index=waste_matrix.index, columns=pd.DatetimeIndex(next_days))
+            collection_schedule = pd.DataFrame(index=waste_matrix_feces.index, columns=pd.DatetimeIndex(next_days))
         if self.modeltype == 'simple':
-            for i_toilet, toilet_urine in waste_matrix_feces.iterrows():
+            for i_toilet, toilet in waste_matrix_feces.iterrows():
                 toilet_accums = [collect for collect, feces, urine in self.simple_waste_collector(toilet, waste_matrix_urine.loc[i_toilet], remaining_threshold_feces, remaining_threshold_urine, waste_feces_today.get(i_toilet,0), waste_urine_today.get(i_toilet,0)) ]
                 collection_schedule.loc[i_toilet] = toilet_accums
                 #collection_schedule.append(pd.DataFrame(toilet_accums, index = i_toilet), ignore_index=True)
