@@ -53,7 +53,7 @@ class FullModel(object):
           waste_past: A past waste matrix. Currently not used?
         """
         today = test_x[self.config['cols']['date']].min() #The first day in the features
-        future_days = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
+        next_days = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
 
         if  self.modeltype_schedule=='StaticModel':
             self.schedule_model = schedule_model(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?

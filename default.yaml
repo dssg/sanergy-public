@@ -15,7 +15,7 @@ setup:
 cols:
   toiletname: "ToiletID" #the name of the toilet / toilet identifier
   date: "Collection_Date" # date / date identifier
-  route: "SubAreaName" #Which area/route to define as the allocation unit in the staffing model
+  route: "Area" #Which area/route to define as the allocation unit in the staffing model
   feces: "FecesContainer_percent" #How full the container will be
   urine: "UrineContainer_percent"
   feces_collect: "" #Should the toilet be collected?
@@ -65,6 +65,7 @@ Xy:
       #mean_precipitation_6hr: []
       #mean_air_temp: []
       SubAreaName: []
+      Area: []
       School_Closure: []
       #Route_Name: []       #OpportunityName: []
       OpeningTime: []
@@ -151,7 +152,7 @@ implementation:
 #############################
 staffing:
     active: True #Should we compute the staffing?
-    N: 30 #number of available workers
+    N: 200 #number of available workers
     W: 2000 #weight limit per worker per day. 2000 = 20*100 (2000 toilets)
     NR: 2 #minimum number of workers required per route (assume 2, but in fact some need 3 -> fix later)
     D: 5 #day limit of workdays per week per worker

@@ -52,6 +52,7 @@ class Staffing(object):
         self.is_the_route_collected_on_day = {(d,r) : self.schedule.loc[self.schedule.index.isin(rtd[r]) ,d].sum() > 0 for d in self.next_days for r in self.routes}
         #print(self.is_the_route_collected_on_day)
         self.route_waste = {(d,r) : self.waste.loc[((self.schedule.index.isin(rtd[r])) & (self.schedule[d]==self.COLLECT)),d].sum() for d in self.next_days for r in self.routes}
+        #print(self.route_waste)
 
     def staff(self):
         """
