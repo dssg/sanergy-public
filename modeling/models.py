@@ -12,7 +12,7 @@ import pdb
 from sklearn import svm, ensemble, tree, linear_model, neighbors, naive_bayes
 from sklearn.svm import SVR
 from sklearn.feature_selection import SelectKBest
-import statsmodels.tsa
+import statsmodels
 from datetime import  timedelta
 
 
@@ -219,9 +219,9 @@ class WasteModel(object):
         return self.trained_model
 
     def define_model(self):
-        if self.modeltype == "AR" :
-            return statsmodels.tsa.ar_model.AR(max_order=self.parameters['max_order'])
-        elif self.modeltype == "RandomForest" :
+        #if self.modeltype == "AR" :
+        #    return statsmodels.tsa.ar_model.AR(max_order=self.parameters['max_order'])
+        if self.modeltype == "RandomForest" :
             return ensemble.RandomForestRegressor(n_estimators=self.parameters['n_estimators'])
             #return ensemble.RandomForestClassifier(
             #    n_estimators=self.parameters['n_estimators'])
@@ -239,13 +239,12 @@ class WasteModel(object):
             C=self.parameters['C'],
             epsilon=self.parameters['epsilon'],
             kernel=self.parameters['kernel'])
-
-        elif self.modeltype == 'SGDClassifier' :
-            return linear_model.SGDClassifier(
-            loss=self.parameters['loss'],
-            penalty=self.parameters['penalty'],
-            epsilon=self.parameters['epsilon'],
-            l1_ratio=self.parameters['l1_ratio'])
+        # elif self.modeltype == 'SGDRegressor' :
+        #     print(self.parameters)
+        #     return linear_model.SGDRegressor(
+        #     loss=self.parameters['loss'],
+        #     penalty=self.parameters['penalty'],
+        #     l1_ratio=self.parameters['l1_ratio'])
         else:
             raise ConfigError("Unsupported model {0}".format(self.modeltype))
 
