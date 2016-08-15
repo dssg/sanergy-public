@@ -263,6 +263,7 @@ def grab_collections_data(db, config, log ):
     schema="modeling",
     con=db['connection'],
     chunksize=20000)
+    dataset.drop([config['cols']['route']], axis=1, inplace = True)
 
     #Code the categorical/string variables to dummies
     str_vars = [row for row, tp in dataset.dtypes.iteritems() if tp == 'object']

@@ -227,11 +227,11 @@ class modelsTest(unittest.TestCase):
           'response': [10,1,2, 45,1,1,3, 5,20,1,2]})
         self.wm =WasteModel("LinearRegression",{},self.config)
         self.wm2 =WasteModel("LinearRegression",{},self.config2)
-        self.sm2 =ScheduleModel(self.config, modeltype='AdvancedStaticModel', parameters={'meanlow':23, 'stdlow':100, 'meanmed':40, 'stdmed':10}, train_x=self.dftrainx2, train_y=self.dftrainy2)
-        self.waste_matrix =  pd.DataFrame.from_items([('t1', [60, 50, 10, 40, 70, 10, 30]), ('t2', [10, 20, 30, 40, 50, 60, 70])],
-        orient='index', columns=self.unique_dates)
+        self.waste_matrix =  pd.DataFrame.from_items([('t1', [60, 50, 10, 40, 70, 10, 30]), ('t2', [10, 20, 30, 40, 50, 60, 70])],orient='index', columns=self.unique_dates)
+        self.sm = ScheduleModel(self.config)
+        self.sm2 =ScheduleModel(self.config, modeltype='AdvancedStaticModel', parameters={'meanlow':23, 'stdlow':100, 'meanmed':40, 'stdmed':10}, train_x=self.dftrainx2, train_yf=self.dftrainy2, train_yu=self.dftrainy2)
         self.zero_day  = pd.DataFrame.from_dict({'ToiletID':['t1','t2'],
-         'Collection_Date':[self.yesterday]*2, 'response':[50,20]})
+        'Collection_Date':[self.yesterday]*2, 'response':[50,20]})
 
         self.shift_set = pd.DataFrame.from_dict({'ToiletID':['t1','t2','t1','t2','t1','t2'],
         'Collection_Date':[datetime(2012,1,1),datetime(2012,1,1),datetime(2012,1,2),datetime(2012,1,2),datetime(2012,1,3),datetime(2012,1,3)],
@@ -259,9 +259,9 @@ class modelsTest(unittest.TestCase):
         self.assertEqual(schedule.loc["t1",datetime(2011,11,13) ], 0 ) #Test that the toilet is empty after the collection
         self.assertEqual(schedule.loc["t2",datetime(2011,11,12) ], 0 ) #Test that the toilet is not collected when not full
 
-    def test_compute_schedule_Static_model(self):
-        schedule, sv = self.sm2.compute_schedule(waste_matrix = None, remaining_threshold=0, next_days = self.unique_dates2)
-        print (schedule)
+        # def test_compute_schedule_Static_model(self):
+        #     schedule, sv = self.sm2.compute_schedule(None, remaining_threshold=0, next_days = self.unique_dates2)
+        #     print (schedule)
         #collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix=None, next_days)
 
     def test_compute_schedule_with_initial_waste(self):
