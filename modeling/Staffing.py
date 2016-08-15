@@ -162,6 +162,6 @@ class Staffing(object):
         roster = pd.DataFrame(index = self.routes, columns = self.next_days)
         for r in self.routes:
             for d in self.next_days:
-                roster.loc[r,d] = reduce(lambda x,y: x+y, [optimizedModel.getVal(vars[i_worker,r,d]) for i_worker in range(0,self.parameters['N'])])
+                roster.loc[r,d] = int(round(reduce(lambda x,y: x+y, [optimizedModel.getVal(vars[i_worker,r,d]) for i_worker in range(0,self.parameters['N'])])))
 
         return(roster)
