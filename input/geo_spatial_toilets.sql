@@ -107,7 +107,7 @@ begin
 -- distances := string_to_array('100m,50m,25m,5m',',');
 -- Initially loop through the date range
     FOR ddate IN select date from generate_series(
-					  '2016-05-15'::date,
+					  '2011-01-01'::date,
 					  '2016-05-23'::date,
 					  '1 day'::interval) date
     LOOP
@@ -117,7 +117,7 @@ begin
 		LOOP
 			FOREACH distance IN array string_to_array('50m,5m',',')
 			LOOP
-				RAISE NOTICE 'Dist: %s', distance;
+				RAISE NOTICE 'Dist: %s, %s, %s', ddate, period, distance;
 				if distance = '100m' then			
 				-- Number of observations
 				
