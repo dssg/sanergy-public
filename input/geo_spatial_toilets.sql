@@ -117,7 +117,7 @@ begin
 		LOOP
 			FOREACH distance IN array string_to_array('50m,5m',',')
 			LOOP
-				RAISE NOTICE format('Dist: %s, %s, %s', ddate, period, distance);
+				RAISE NOTICE 'Dist: %s, %s, %s', ddate, period, distance;
 				if distance = '100m' then			
 				-- Number of observations
 				
