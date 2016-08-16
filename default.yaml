@@ -6,7 +6,7 @@
 
 setup:
     run_features: False
-    collection_remainder_threshold: [50] #[50,40,30,20,10] #Keep [] if you want to loop over 0..100
+    collection_remainder_threshold: [50,40,30,20,10] #Keep [] if you want to loop over 0..100
 
 ############################
 # Database column names    #
@@ -95,9 +95,8 @@ Xy:
 ############################
 # Model parameters         #
 ############################
-#model: ["LinearRegression", "RandomForest", "Autoregression", "SimpleModel"]
-#model: ['LinearRegression', "RandomForest",  'Lasso', 'ElasticNet', 'SVR', 'SGDClassifier'] #'AR'
-model: ['LinearRegression']
+#model: ["LinearRegression", "RandomForest", "Autoregression", "SimpleModel"] 'SGDRegressor',
+model: ['LinearRegression', "RandomForest",  'Lasso', 'ElasticNet', 'SVR']
 
 pickle_store: "/mnt/data"
 
@@ -113,9 +112,9 @@ parameters:
     # max_features: ['sqrt', 'log2']  # [2, 4, 8, 16, "auto"]
     # criterion: ['gini', 'entropy']
     # min_samples_split: [2, 5, 10]
-  AR:
-    maxlag: [3]
-    #maxlag: [5, 10]
+    # AR:
+    #   maxlag: [3]
+    #   #maxlag: [5, 10]
   LinearRegression:
     dummy: [1] #A fake parameter making sure that we loop over this model.
   Lasso:
@@ -127,11 +126,10 @@ parameters:
     C: [1.0] # Penalty parameter C of the error term.
     epsilon: [0.1] # Epsilon in the epsilon-SVR model. It specifies the epsilon-tube within which no penalty is associated in the training loss function with points predicted within a distance epsilon from the actual value.
     kernel: ['rbf'] #Specifies the kernel type to be used in the algorithm. It must be one of 'linear', 'poly', 'rbf', 'sigmoid', 'precomputed' or a callable. If none is given, 'rbf' will be used. If a callable is given it is used to precompute the kernel matrix.
-  SGDClassifier:
-    loss: ['hinge']
-    penalty: ['l1']
-    epsilon: [0.1]
-    l1_ratio: [0.5]
+  # SGDRegressor:
+  #   loss: ['squared_loss']
+  #   penalty: ['elasticnet']
+  #   l1_ratio: [0.15]
 cv:
   start_date: '2016-03-01'
   end_date: '2016-05-01'
@@ -143,7 +141,7 @@ cv:
 # Implementation parameters #
 #############################
 implementation:
-  loss: ['0-1'] #["L2", "L1"]
+  #loss: ['0-1'] #["L2", "L1"]
   prediction_horizon: [7] #How many days
   prediction_weekday_start: [0] #Which day of the week do we recompute the schedule? 0=Mon, 7=Sun. Applicable for weekly or multiple-thereof schedules.
   aggregation_measure: ["mean"] #A measure to use to aggregate the losses across different folds. Since different experiments may have different numbers of folds, should be a probability measure.
@@ -154,7 +152,7 @@ implementation:
 #############################
 staffing:
     active: True #Should we compute the staffing?
-    N: 200 #number of available workers
+    N: 100 #number of available workers
     W: 2000 #weight limit per worker per day. 2000 = 20*100 (2000 toilets)
     NR: 2 #minimum number of workers required per route (assume 2, but in fact some need 3 -> fix later)
     D: 5 #day limit of workdays per week per worker
