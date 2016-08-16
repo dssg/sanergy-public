@@ -96,7 +96,7 @@ Xy:
 # Model parameters         #
 ############################
 #model: ["LinearRegression", "RandomForest", "Autoregression", "SimpleModel"] 'SGDRegressor',
-model: ['LinearRegression', "RandomForest",  'Lasso', 'ElasticNet', 'SVR']
+model: ['LinearRegression', "RandomForest",  'Lasso', 'ElasticNet', 'SVR', 'StaticModel', 'AdvancedStaticModel']
 
 pickle_store: "/mnt/data"
 
@@ -115,6 +115,12 @@ parameters:
     # AR:
     #   maxlag: [3]
     #   #maxlag: [5, 10]
+  StaticModel:
+    parameters:
+      meanlow: [23]
+      stdlow: [100]
+      meanmed: [40]
+      stdmed: [10]
   LinearRegression:
     dummy: [1] #A fake parameter making sure that we loop over this model.
   Lasso:
