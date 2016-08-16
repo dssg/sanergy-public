@@ -96,7 +96,8 @@ Xy:
 # Model parameters         #
 ############################
 #model: ["LinearRegression", "RandomForest", "Autoregression", "SimpleModel"] 'SGDRegressor',
-model: ['LinearRegression', "RandomForest",  'Lasso', 'ElasticNet', 'SVR', 'StaticModel', 'AdvancedStaticModel']
+model: ['StaticModel']
+#model: ['LinearRegression', "RandomForest",  'Lasso', 'ElasticNet', 'SVR', 'StaticModel', 'AdvancedStaticModel']
 
 pickle_store: "/mnt/data"
 
