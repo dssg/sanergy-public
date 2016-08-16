@@ -239,6 +239,15 @@ class WasteModel(object):
             C=self.parameters['C'],
             epsilon=self.parameters['epsilon'],
             kernel=self.parameters['kernel'])
+        elif self.modeltype == 'StaticModel'
+            return StaticModel (
+                parameters=self.parameters
+                )
+        elif self.modeltype == 'AdvancedStaticModel'
+            return AdvancedStaticModel (
+                parameters=self.parameters
+                )
+
         # elif self.modeltype == 'SGDRegressor' :
         #     print(self.parameters)
         #     return linear_model.SGDRegressor(
@@ -476,13 +485,13 @@ def write_experiment_into_db(experiment, model, db , append = True, chunksize=10
     timestamp =  datetime.datetime.now().isoformat()
 
     #save model to pickle object
-    save_model_file = open('%s/feces_model-%s.pkl' %(experiment.config['pickle_store'], timestamp), 'wb')
+    save_model_file = open('%s/feces_model-%s.pkl' %(experiment.config.pickle_store, timestamp), 'wb')
     pickle.dump(model.feces_model, save_model_file)
     save_model_file.close()
-    save_model_file = open('%s/urine_model-%s.pkl' %(experiment.config['pickle_store'], timestamp), 'wb')
+    save_model_file = open('%s/urine_model-%s.pkl' %(experiment.config.pickle_store, timestamp), 'wb')
     pickle.dump(model.urine_model, save_model_file)
     save_model_file.close()
-    save_model_file = open('%s/schedule_model-%s.pkl' %(experiment.config['pickle_store'], timestamp), 'wb')
+    save_model_file = open('%s/schedule_model-%s.pkl' %(experiment.config.pickle_store, timestamp), 'wb')
     pickle.dump(model.schedule_model, save_model_file)
     save_model_file.close()
     #save_model_file = open('./store/staffing_model-%s.pkl' %(timestamp), 'wb')
