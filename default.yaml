@@ -121,6 +121,12 @@ parameters:
       stdlow: [100]
       meanmed: [40]
       stdmed: [10]
+  AdvancedStaticModel:
+    parameters:
+      meanlow: [23]
+      stdlow: [100]
+      meanmed: [40]
+      stdmed: [10]
   LinearRegression:
     dummy: [1] #A fake parameter making sure that we loop over this model.
   Lasso:
