@@ -55,9 +55,12 @@ class FullModel(object):
         today = test_x[self.config['cols']['date']].min() #The first day in the features
         next_days = [today + datetime.timedelta(days=delta) for delta in range(0,self.config['implementation']['prediction_horizon'][0])]
 
-        if  self.modeltype_schedule=='StaticModel':
+        if  self.modeltype_waste=='StaticModel':
+            self.modeltype_schedule='StaticModel'
             self.schedule_model = schedule_model(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
-            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix=None, next_days= future_days)
+            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix=None, next_days= next_days)
+            waste_matrix_feces = waste_matrx_urine = roster = waste_vector_urine = waste_vector_feces = importances = None
+            
         else:
             self.feces_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_yf, waste_type = 'feces') #Includes gen_model?
             self.urine_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_yu, waste_type = 'urine') #Includes gen_model?
@@ -66,14 +69,14 @@ class FullModel(object):
             self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, train_yf, train_yu, train_x, train_yf, train_yu) #For simpler models, can ignore train_x and train_y?
             #Use train_y for waste_past
             collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix_feces, waste_matrix_urine, remaining_threshold, remaining_threshold , next_days)
-        importances, coefs = self.get_feature_importances()
+            importances, coefs = self.get_feature_importances()
 
-        if self.config['staffing']['active']:
-            #Compute the staffing schedule for the next week
-            self.staffing_model = Staffing(collection_matrix, waste_matrix_feces, waste_matrix_urine, self.toilet_routes, self.config['staffing'], self.config)
-            roster, _, _ = self.staffing_model.staff()
-        else:
-            roster = None
+            if self.config['staffing']['active']:
+                #Compute the staffing schedule for the next week
+                self.staffing_model = Staffing(collection_matrix, waste_matrix_feces, waste_matrix_urine, self.toilet_routes, self.config['staffing'], self.config)
+                roster, _, _ = self.staffing_model.staff()
+            else:
+                roster = None
 
 
         return collection_matrix, waste_matrix_feces, waste_matrix_urine, roster, collection_vector, waste_vector_feces, waste_vector_urine, importances
