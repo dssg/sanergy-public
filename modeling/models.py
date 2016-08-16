@@ -239,14 +239,14 @@ class WasteModel(object):
             C=self.parameters['C'],
             epsilon=self.parameters['epsilon'],
             kernel=self.parameters['kernel'])
-        elif self.modeltype == 'StaticModel':
-            return StaticModel (
-                parameters=self.parameters
-                )
-        elif self.modeltype == 'AdvancedStaticModel':
-            return AdvancedStaticModel (
-                parameters=self.parameters
-                )
+        #elif self.modeltype == 'StaticModel':
+        #   return StaticModel (
+        #      parameters=self.parameters
+        #     )
+        #elif self.modeltype == 'AdvancedStaticModel':
+        #   return AdvancedStaticModel (
+        #       parameters=self.parameters
+        #        )
 
         # elif self.modeltype == 'SGDRegressor' :
         #     print(self.parameters)
