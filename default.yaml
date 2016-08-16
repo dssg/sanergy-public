@@ -98,7 +98,8 @@ Xy:
 #model: ["LinearRegression", "RandomForest", "Autoregression", "SimpleModel"] 'SGDRegressor',
 model: ['LinearRegression', "RandomForest",  'Lasso', 'ElasticNet', 'SVR', 'StaticModel', 'AdvancedStaticModel']
 
-pickle_store: "/mnt/data"
+#pickle_store: "/mnt/data"
+pickle_store: "./store"
 
 parameters:
   RandomForest:
