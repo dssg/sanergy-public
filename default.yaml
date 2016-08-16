@@ -99,7 +99,7 @@ Xy:
 #model: ['LinearRegression', "RandomForest",  'Lasso', 'ElasticNet', 'SVR', 'SGDClassifier'] #'AR'
 model: ['LinearRegression']
 
-pickle_store: './store'
+pickle_store: "/mnt/data"
 
 parameters:
   RandomForest:
