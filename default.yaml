@@ -99,7 +99,8 @@ Xy:
 #model: ['StaticModel']
 model: ['LinearRegression', "RandomForest",  'Lasso', 'ElasticNet', 'SVR', 'StaticModel']
 
-pickle_store: "/mnt/data"
+#pickle_store: "/mnt/data"
+pickle_store: "/mnt/data/sanergy/output"
 
 parameters:
   RandomForest:
@@ -144,11 +145,11 @@ parameters:
   #   penalty: ['elasticnet']
   #   l1_ratio: [0.15]
 cv:
-  start_date: '2016-03-01'
+  start_date: '2016-02-01'
   end_date: '2016-05-01'
   train_on: 14
   test_on: 7
-  fake_freq: '3W'
+  fake_freq: '1W'
 
 #############################
 # Implementation parameters #
