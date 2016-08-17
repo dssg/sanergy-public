@@ -87,6 +87,23 @@ print('connected to postgres')
 
 conn.execute("DROP TABLE IF EXISTS premodeling.toiletcollection")
 
+# Incorporate the large collection of time, geography, fill, neighbor features
+density = pd.read_sql("SELECT * FROM premodeling.toiletdensity",
+                       engine,
+                       coerce_float=True,
+                       params=None,
+                       chunksize=200000)
+density = pd.concat(density)
+density.head()
+
+density['period'] = density['period'].str.replace(' ', '')
+density['concat'] = density['functional'] +'_'+ density['area'] +'_'+ density['period'] +'_'+ density['variable']
+
+density = pd.pivot_table(density, 
+         index=['ToiletID','Collection_Date'],
+         columns='concat',
+         values='value').reset_index()
+
 # Load the weather data to pandas
 weather = pd.read_sql('SELECT * FROM input."weather"', conn, coerce_float=True, params=None)
 # Transform some of the variables
@@ -166,12 +183,10 @@ collects.loc[(collects['Total_Waste_kg_day']>OUTLIER_KG_DAY),['Total_Waste_kg_da
 print(collects['Feces_kg_day'].describe())
 
 # Incorporate geospatial data in collections
-density = pd.read_sql('SELECT * FROM premodeling.toiletdensity', conn, coerce_float=True, params=None)
 collects = pd.merge(collects,
 		    density,
 		    on=['ToiletID','Collection_Date'],
 		    how='left')
-collects.loc[(collects['50m'].isnull()),'50m'] = 0
 
 collects = collects.sort_values(by=['ToiletID','Collection_Date'])
 

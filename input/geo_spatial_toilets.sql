@@ -83,12 +83,12 @@ create table premodeling.toiletdensity
 (
 	"ToiletID" text,
 	"Collection_Date" timestamp,
-	"FUNCTIONAL" text,
-	"AREA" text,
-	"PERIOD" text,
-	"VARIABLE" text,
-	"OBSERVATIONS" float8,
-	"VALUE" float8
+	"functional" text,
+	"area" text,
+	"period" text,
+	"variable" text,
+	"observations" float8,
+	"value" float8
 );
 
 -- A function with two loops by day and by toilet
@@ -107,7 +107,7 @@ begin
 -- distances := string_to_array('100m,50m,25m,5m',',');
 -- Initially loop through the date range
     FOR ddate IN select date from generate_series(
-					  '2011-01-01'::date,
+					  '2016-05-15'::date,
 					  '2016-05-23'::date,
 					  '1 day'::interval) date
     LOOP
@@ -117,7 +117,7 @@ begin
 		LOOP
 			FOREACH distance IN array string_to_array('50m,5m',',')
 			LOOP
-				RAISE NOTICE 'Dist: %s, %s, %s', ddate, period, distance;
+				RAISE NOTICE 'Dist: %s', distance;
 				if distance = '100m' then			
 				-- Number of observations
 				
@@ -125,7 +125,7 @@ begin
 					functional := 'average';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -146,7 +146,7 @@ begin
 					functional := 'average';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -167,7 +167,7 @@ begin
 					functional := 'collections';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -188,7 +188,7 @@ begin
 					functional := 'average';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -209,7 +209,7 @@ begin
 					functional := 'collections';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -232,7 +232,7 @@ begin
 					functional := 'average';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -253,7 +253,7 @@ begin
 					functional := 'average';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -274,7 +274,7 @@ begin
 					functional := 'collections';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -295,7 +295,7 @@ begin
 					functional := 'average';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -316,7 +316,7 @@ begin
 					functional := 'collections';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -339,7 +339,7 @@ begin
 					functional := 'average';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -360,7 +360,7 @@ begin
 					functional := 'average';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -381,7 +381,7 @@ begin
 					functional := 'collections';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -402,7 +402,7 @@ begin
 					functional := 'average';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -423,7 +423,7 @@ begin
 					functional := 'collections';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -446,7 +446,7 @@ begin
 					functional := 'average';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -467,7 +467,7 @@ begin
 					functional := 'average';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -488,7 +488,7 @@ begin
 					functional := 'collections';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -509,7 +509,7 @@ begin
 					functional := 'average';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
@@ -530,7 +530,7 @@ begin
 					functional := 'collections';
 					area := format('%s', distance);
 					
-			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","VARIABLE","FUNCTIONAL","AREA","PERIOD","OBSERVATIONS","VALUE")
+			    	insert into premodeling.toiletdensity ("ToiletID","Collection_Date","variable","functional","area","period","observations","value")
 			    	select 	td."ToiletID",
 			    			ddate as "Collection_Date",
 			    			variable,
