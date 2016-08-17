@@ -60,10 +60,10 @@ Xy:
       #max_sea_level_pressure: []
       #max_precipitation_6hr: []
       #max_air_temp: []
-      #mean_wind_speed_rate: []
-      #mean_sea_level_pressure: []
-      #mean_precipitation_6hr: []
-      #mean_air_temp: []
+      mean_wind_speed_rate: []
+      mean_sea_level_pressure: []
+      mean_precipitation_6hr: []
+      mean_air_temp: []
       SubAreaName: []
       Area: []
       School_Closure: []
@@ -115,7 +115,7 @@ Xy:
 ############################
 #model: ["LinearRegression", "RandomForest", "Autoregression", "SimpleModel"] 'SGDRegressor',
 #model: ['StaticModel']
-model: ['LinearRegression', "RandomForest",  'Lasso', 'ElasticNet', 'SVR', 'StaticModel']
+model: ['LinearRegression', "RandomForest",  'Lasso', 'ElasticNet', 'SVR']
 
 #pickle_store: "/mnt/data"
 pickle_store: "/mnt/data/sanergy/output"
