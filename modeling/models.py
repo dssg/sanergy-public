@@ -66,7 +66,7 @@ class FullModel(object):
             self.schedule_model = ScheduleModel(self.config, self.modeltype_schedule, self.parameters_schedule, train_yf, train_yu, train_x, train_yf, train_yu) #For simpler models, can ignore train_x and train_y?
             #Use train_y for waste_past
             collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix_feces, waste_matrix_urine, remaining_threshold, remaining_threshold , next_days)
-        importances, coefs = self.get_feature_importances()
+            importances, coefs = self.get_feature_importances()
 
         if self.config['staffing']['active']:
             #Compute the staffing schedule for the next week
