@@ -57,9 +57,9 @@ class FullModel(object):
 
         if  self.modeltype_waste=='StaticModel':
             self.modeltype_schedule='StaticModel'
-            self.schedule_model = schedule_model(self.config, self.modeltype_schedule, self.parameters_schedule, waste_past, train_x, train_y) #For simpler models, can ignore train_x and train_y?
-            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix=None, next_days= next_days)
-            waste_matrix_feces = waste_matrx_urine = roster = waste_vector_urine = waste_vector_feces = importances = None
+            self.schedule_model = ScheduleModel(config=self.config, modeltype=self.modeltype_schedule, parameters=self.parameters_schedule, waste_past_feces=None, waste_past_urine=None, train_x= train_x, train_yf=train_yf) #For simpler models, can ignore train_x and train_y?
+            collection_matrix, collection_vector = self.schedule_model.compute_schedule(waste_matrix_feces = None, waste_matrix_urine=None, remaining_threshold_feces=0.0, remaining_threshold_urine=0.0, next_days =next_days)
+            waste_matrix_feces = waste_matrix_urine = roster = waste_vector_urine = waste_vector_feces = importances = None
             
         else:
             self.feces_model = WasteModel(self.modeltype_waste, self.parameters_waste, self.config, train_x, train_yf, waste_type = 'feces') #Includes gen_model?
@@ -331,7 +331,7 @@ class ScheduleModel(object):
             print(self.config['cols']['toiletname'])
             #TODO: Afraid this indexing will not work :-(
             #collection_schedule = pd.DataFrame(0,index=self.train_x['Id'].unique(), columns=pd.DatetimeIndex(next_days))
-            collection_schedule = pd.DataFrame(0,index=self.train_y[self.config['cols']['toiletname']].unique(), columns=pd.DatetimeIndex(next_days))
+            collection_schedule = pd.DataFrame(0,index=self.train_yf[self.config['cols']['toiletname']].unique(), columns=pd.DatetimeIndex(next_days))
         else:
             collection_schedule = pd.DataFrame(index=waste_matrix_feces.index, columns=pd.DatetimeIndex(next_days))
         if self.modeltype == 'simple':
@@ -340,16 +340,17 @@ class ScheduleModel(object):
                 collection_schedule.loc[i_toilet] = toilet_accums
                #collection_schedule.append(pd.DataFrame(toilet_accums, index = i_toilet), ignore_index=True)
         elif self.modeltype == 'StaticModel':
-            pdb.set_trace()
-            group_ID=self.train_y.groupby(self.config['cols']['toiletname'])
+            #pdb.set_trace()
+            group_ID=self.train_yf.groupby(self.config['cols']['toiletname'])
             #group_ID=self.train_x.groupby('Id')
             group_mean=group_ID.mean()
             group_std=group_ID.agg(np.std, ddof=0)
-            group_low=group_mean.loc[(group_mean['response']<=self.parameters['meanlow']) & (group_std['response']<=self.parameters['stdlow'])];
+            pdb.set_trace()
+            group_low=group_mean.loc[(group_mean['response']<=self.parameters['meanlow'][0]) & (group_std['response']<=self.parameters['stdlow'][0])];
             ToiletID_LOW=list(set(group_low.index))
-            group_medium=group_mean.loc[(group_mean['response']>self.parameters['meanlow']) & (group_mean['response']<=self.parameters['meanmed']) & (group_std['response']<=self.parameters['stdmed'])];
+            group_medium=group_mean.loc[(group_mean['response']>self.parameters['meanlow'][0]) & (group_mean['response']<=self.parameters['meanmed'][0]) & (group_std['response']<=self.parameters['stdmed'][0])];
             ToiletID_MEDIUM=list(set(group_medium.index))
-            for i_toilet in self.train_y[self.config['cols']['toiletname']].unique():
+            for i_toilet in self.train_yf[self.config['cols']['toiletname']].unique():
                 if i_toilet in ToiletID_LOW:
                     toilet_accums=[1, 0, 0, 1, 0, 0, 1]
                 elif i_toilet in ToiletID_MEDIUM:
@@ -359,7 +360,7 @@ class ScheduleModel(object):
                 collection_schedule.loc[i_toilet] = toilet_accums
         elif self.modeltype == 'AdvancedStaticModel':
             #pdb.set_trace()
-            ToiletID_LOW = ToiletID_MEDIUM = ToiletID_HIGH = self.train_y[self.config['cols']['toiletname']].unique()
+            ToiletID_LOW = ToiletID_MEDIUM = ToiletID_HIGH = self.train_yf[self.config['cols']['toiletname']].unique()
             keep_going=True
             i=0
             while (keep_going==True):
@@ -368,7 +369,7 @@ class ScheduleModel(object):
                 print (day_start)
                 i=i+1
                 #one week in the traing data
-                train_tmp=self.train_y.loc[((self.train_y[self.config['cols']['date']]>=day_start) & (self.train_y[self.config['cols']['date']]<=day_end))]
+                train_tmp=self.train_yf.loc[((self.train_y[self.config['cols']['date']]>=day_start) & (self.train_y[self.config['cols']['date']]<=day_end))]
                 # group the collections data by Toilet ID
                 group_ID=train_tmp.groupby(self.config['cols']['toiletname'])
                 #find means for the groups
@@ -382,10 +383,10 @@ class ScheduleModel(object):
                 group_medium=group_mean.loc[(group_mean['response']>self.parameters['meanlow']) & (group_mean['response']<=self.parameters['meanmed']) & (group_std['response']<=self.parameters['stdmed'])];
                 ToiletID_MEDIUM=list(set(group_medium.index) & set(ToiletID_MEDIUM))
 
-                if  (day_end>pd.to_datetime(self.train_y[self.config['cols']['date']].max())):
+                if  (day_end>pd.to_datetime(self.train_yf[self.config['cols']['date']].max())):
                     keep_going=False
                     break
-            for i_toilet in self.train_y[self.config['cols']['toiletname']].unique():
+            for i_toilet in self.train_yf[self.config['cols']['toiletname']].unique():
                 if i_toilet in ToiletID_LOW:
                     toilet_accums=[1, 0, 0, 1, 0, 0, 1]
                 elif i_toilet in ToiletID_MEDIUM:
@@ -414,7 +415,8 @@ def run_models_on_folds(folds, loss_function, db, experiment):
 
 
         # 5. Run the models
-        model = FullModel(experiment.config, experiment.model, parameters_waste = experiment.parameters, toilet_routes = toilet_routes)
+        #pdb.set_trace()
+        model = FullModel(experiment.config, experiment.model, parameters_waste = experiment.parameters, parameters_schedule=experiment.config['parameters']['StaticModel']['parameters'], toilet_routes = toilet_routes)
         cm, wmf, wmu, roster, cv, wvf, wvu, fi = model.run(features_train, labels_train_f, labels_train_u, features_test) #Not interested in the collection schedule, will recompute with different parameters.
         #L2 evaluation of the waste prediction
         roster.to_csv("workforce_schedule.csv")
