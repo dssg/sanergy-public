@@ -4,6 +4,7 @@ import logging
 import yaml
 import sys
 import pandas as pd
+import readline
 
 #Import our modules
 from sanergy.modeling.LossFunction import LossFunction, compare_models_by_loss_functions
