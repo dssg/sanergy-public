@@ -214,9 +214,11 @@ class WasteModel(object):
         #For features, assume they have already been subsetted, use everything except toilet_id, day...
         features = train_x.drop([self.config['cols']['toiletname'], self.config['cols']['date']], axis=1)
 
-        #fit the model...
+        #fit the model..
+	self.time_started = datetime.datetime.now().isoformat()
         self.feature_names = features.columns
         self.trained_model.fit(features, labels)
+	self.time_ended = datetime.datetime.now().isoformat()
         return self.trained_model
 
     def define_model(self):
@@ -417,12 +419,12 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         model = FullModel(experiment.config, experiment.model, parameters_waste = experiment.parameters, parameters_schedule=experiment.config['parameters']['StaticModel']['parameters'], toilet_routes = toilet_routes)
         cm, wmf, wmu, roster, cv, wvf, wvu, fi = model.run(features_train, labels_train_f, labels_train_u, features_test) #Not interested in the collection schedule, will recompute with different parameters.
         #L2 evaluation of the waste prediction
-        roster.to_csv("workforce_schedule.csv")
+        roster.to_csv("%s\workforce_schedule.csv" %(experiment.config['pickle_store']))
 
         loss_f = loss_function.evaluate_waste(labels_test_f, wvf)
         loss_u = loss_function.evaluate_waste(labels_test_u, wvu)
-        results_fold = generate_result_row(experiment, i_fold, 'MSE_feces', loss_f)
-        results_fold.append(generate_result_row(experiment, i_fold, 'MSE_urine', loss_u), ignore_index=True)
+        generate_result_row(db, experiment, model.feces_model, i_fold, 'MSE_feces', loss_f)
+        generate_result_row(db, experiment, model.urine_model, i_fold, 'MSE_urine', loss_u)
         remainder_range = list(reversed(experiment.config['setup']['collection_remainder_threshold']))
         if len(remainder_range) == 0:
             remainder_range = range(0, 100, 1)
@@ -443,46 +445,54 @@ def run_models_on_folds(folds, loss_function, db, experiment):
            print(p_overflow)
            print(p_overflow_conservative)
            #print("--------")
-           res_collect = generate_result_row(experiment, i_fold, 'p_collect', p_collect, parameter = float(safety_remainder))
-           res_overflow = generate_result_row(experiment, i_fold, 'p_overflow', p_overflow, parameter = float(safety_remainder))
-           res_overflow_conservative = generate_result_row(experiment, i_fold, 'p_overflow_conservative', p_overflow_conservative, parameter = float(safety_remainder))
-           res_overflow_f = generate_result_row(experiment, i_fold, 'p_overflow_feces', p_overflow_f, parameter = float(safety_remainder))
-           res_overflow_u = generate_result_row(experiment, i_fold, 'p_overflow_urine', p_overflow_u, parameter = float(safety_remainder))
-           res_overflow_u_conservative = generate_result_row(experiment, i_fold, 'p_overflow_urine_conservative', p_overflow_u_conservative, parameter = float(safety_remainder))
-           res_overflow_f_conservative = generate_result_row(experiment, i_fold, 'p_overflow_feces_conservative', p_overflow_f_conservative, parameter = float(safety_remainder))
-           results_fold = results_fold.append([res_collect,res_overflow,res_overflow_conservative, res_overflow_f, res_overflow_f_conservative, res_overflow_u, res_overflow_u_conservative], ignore_index=True)
+           generate_result_row(db, experiment, model.feces_model, i_fold, 'p_collect', p_collect, parameter = float(safety_remainder))
+           generate_result_row(db, experiment, model.feces_model, i_fold, 'p_overflow', p_overflow, parameter = float(safety_remainder))
+           generate_result_row(db, experiment, model.feces_model, i_fold, 'p_overflow_conservative', p_overflow_conservative, parameter = float(safety_remainder))
+           generate_result_row(db, experiment, model.feces_model, i_fold, 'p_overflow_feces', p_overflow_f, parameter = float(safety_remainder))
+           generate_result_row(db, experiment, model.urine_model, i_fold, 'p_overflow_urine', p_overflow_u, parameter = float(safety_remainder))
+           generate_result_row(db, experiment, model.urine_model, i_fold, 'p_overflow_urine_conservative', p_overflow_u_conservative, parameter = float(safety_remainder))
+           generate_result_row(db, experiment, model.feces_model, i_fold, 'p_overflow_feces_conservative', p_overflow_f_conservative, parameter = float(safety_remainder))
+           #results_fold = results_fold.append([res_collect,res_overflow,res_overflow_conservative, res_overflow_f, res_overflow_f_conservative, res_overflow_u, res_overflow_u_conservative], ignore_index=True)
 
         """
         7. We have to save the model results and the evaluation in postgres
         Experiment x Fold, long file
         """
         #print(results_fold)
-        write_evaluation_into_db(results_fold, db)
+        #write_evaluation_into_db(results_fold, db)
         write_experiment_into_db(experiment, model, db)
-        results = results.append(results_fold,ignore_index=True)
+        #results = results.append(results_fold,ignore_index=True)
 
-	exp_results = {"model_id":"model",
-			"algorithm","algo",
-			"hyperparameters":"",
-			"features":"",
-			"time_started":date.now(),
-			"time_ended":date.now(),
-			"batch_id":"",
-			"fold_id":1,
-			"comment":"Joe was right."}
-	db['connection'].execute('INSERT INTO output.model VALUES (%s) (%s)' %(",".join(exp_results.keys()),
-									       ",".join(exp_results.values())))	
-
-    #write_evaluation_into_db(results, append = False)
+	#write_evaluation_into_db(results, append = False)
     return(results)
 
-def generate_result_row(experiment, fold, metric, value, parameter=np.nan):
+def generate_result_row(db, experiment, model, fold, metric, value, parameter=np.nan):
     """
     Just a wrapper
     """
+    timestamp = datetime.datetime.now().isoformat()
+    exp_results = [{"model_id": hash(experiment),
+			"algorithm": experiment.model,
+			"hyperparameters": experiment.to_json(),
+			"features": "|".join(model.feature_names.tolist()),
+			"time_started": model.time_started,
+			"time_ended": model.time_ended,
+			"batch_id": None,
+			"fold_id": fold,
+			"comment": "Joe was right."}]  
+    pd.DataFrame(exp_results).to_sql(con=db['connection'], name="model", schema="output", if_exists="append", index=False)
+    
+    exp_results = [{"model_id": hash(experiment),
+			"metric": metric,
+			"parameter": parameter,
+			"fold_id": fold,
+			"parameter_value": "Joe was right.",
+			"value":value}]  
+    pd.DataFrame(exp_results).to_sql(con=db['connection'], name="evaluations", schema="output", if_exists="append", index=False)
+
     #result_row = pd.DataFrame({'model id':[hash(experiment)], 'model':[experiment.model], 'fold':[fold], 'metric':[metric], 'parameter':[parameter], 'value':[value]})#, index = [hash( (experiment.model, fold, metric,parameter) )] )
-    result_row = pd.DataFrame({'id':[hash(experiment)],'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'fold':[fold], 'metric':[metric], 'parameter':[parameter], 'value':[value]})#, index = [hash( (experiment.model, fold, metric,parameter) )] )
-    return result_row
+    #result_row = pd.DataFrame({'id':[hash(experiment)],'model':[experiment.model], 'model_parameters':[experiment.to_json()], 'fold':[fold], 'metric':[metric], 'parameter':[parameter], 'value':[value]})#, index = [hash( (experiment.model, fold, metric,parameter) )] )
+    return None
 
 def write_evaluation_into_db(results, db , append = True, chunksize=1000):
     #if ~append :
@@ -496,7 +506,7 @@ def write_evaluation_into_db(results, db , append = True, chunksize=1000):
     return None
 
 def write_experiment_into_db(experiment, model, db , append = True, chunksize=1000):
-    timestamp =  datetime.datetime.now().isoformat()
+    timestamp =  model.feces_model.time_started
 
     #save model to pickle object
     save_model_file = open('%s/feces_model-%s.pkl' %(experiment.config["pickle_store"], timestamp), 'wb')
