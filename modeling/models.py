@@ -15,13 +15,11 @@ from sklearn.feature_selection import SelectKBest
 import statsmodels
 from datetime import  timedelta
 
-
 from sanergy.modeling.dataset import grab_from_features_and_labels, format_features_labels
 from sanergy.modeling.output import write_evaluation_into_db
 from sanergy.modeling.Staffing import Staffing
 
 log = logging.getLogger(__name__)
-
 
 class ConfigError(NameError):
     def __init__(self, value):
@@ -463,6 +461,17 @@ def run_models_on_folds(folds, loss_function, db, experiment):
         write_experiment_into_db(experiment, model, db)
         results = results.append(results_fold,ignore_index=True)
 
+	exp_results = {"model_id":"model",
+			"algorithm","algo",
+			"hyperparameters":"",
+			"features":"",
+			"time_started":date.now(),
+			"time_ended":date.now(),
+			"batch_id":"",
+			"fold_id":1,
+			"comment":"Joe was right."}
+	db['connection'].execute('INSERT INTO output.model VALUES (%s) (%s)' %(",".join(exp_results.keys()),
+									       ",".join(exp_results.values())))	
 
     #write_evaluation_into_db(results, append = False)
     return(results)
