@@ -59,6 +59,9 @@ psql/input/Collection_Schedule_School <- input/CollectionSchedule_input.sql, dat
 psql/input/new_geo_data <- input/CollectionSchedule_input.sql, data/input/new_geo_data.csv [method:psql]
 psql/input/toilet_cases <- input/CollectionSchedule_input.sql, data/input/AllCasesAreaToiletID.csv [method:psql]
 
+;;; Model tables ;;;
+psql/input/model_tables <- input/model_reporting_tables.sql, data/input/AllCasesAreaToiletID.csv [method:psql]
+
 ;;; Toilet Coordinates ;;;
 psql/input/toilet_coordinates <- input/ToiletCoords_input.sql, data/input/ToiletCoords.csv [method:psql]
 
