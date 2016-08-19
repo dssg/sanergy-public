@@ -19,8 +19,8 @@ CREATE TABLE output.predictions (
         "fold_id" INTEGER,
         "ToiletID" VARCHAR(50),
 	"Collection_Date" timestamp,
-	"predicted" smallint,
-	"observed" smallint,
+	"collect" smallint,
+	"waste_type" VARCHAR(50),
 	"comment" TEXT
 );
 
