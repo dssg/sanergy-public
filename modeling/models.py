@@ -453,6 +453,15 @@ def run_models_on_folds(folds, loss_function, db, experiment):
            generate_result_row(db, experiment, model.urine_model, i_fold, 'p_overflow_urine', p_overflow_u, parameter = float(safety_remainder))
            generate_result_row(db, experiment, model.urine_model, i_fold, 'p_overflow_urine_conservative', p_overflow_u_conservative, parameter = float(safety_remainder))
            generate_result_row(db, experiment, model.feces_model, i_fold, 'p_overflow_feces_conservative', p_overflow_f_conservative, parameter = float(safety_remainder))
+
+           exp_results = pd.DataFrame({'ToiletID':model.schedule_model.train_yf['ToiletID'],
+					'Collection_Date':model.schedule_model.train_yf['Collection_Date'],
+					'predicted':model.schedule_model.collection_vector})
+	   exp_results["waste"]="Feces"
+	   exp_results["fold_id"]=i_fold  
+           exp_results.to_sql(con=db['connection'], name="predictions", schema="output", if_exists="append", index=False)
+
+
            #results_fold = results_fold.append([res_collect,res_overflow,res_overflow_conservative, res_overflow_f, res_overflow_f_conservative, res_overflow_u, res_overflow_u_conservative], ignore_index=True)
 
         """
@@ -519,6 +528,7 @@ def write_experiment_into_db(experiment, model, db , append = True, chunksize=10
     save_model_file = open('%s/schedule_model-%s.pkl' %(experiment.config["pickle_store"], timestamp), 'wb')
     pickle.dump(model.schedule_model, save_model_file)
     save_model_file.close()
+
     #save_model_file = open('./store/staffing_model-%s.pkl' %(timestamp), 'wb')
     #pickle.dump(model.staffing_model, save_model_file)
     #save_model_file.close()
