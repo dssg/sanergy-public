@@ -454,13 +454,11 @@ def run_models_on_folds(folds, loss_function, db, experiment):
            generate_result_row(db, experiment, model.urine_model, i_fold, 'p_overflow_urine_conservative', p_overflow_u_conservative, parameter = float(safety_remainder))
            generate_result_row(db, experiment, model.feces_model, i_fold, 'p_overflow_feces_conservative', p_overflow_f_conservative, parameter = float(safety_remainder))
 
-           exp_results = pd.DataFrame({'ToiletID':model.schedule_model.train_yf['ToiletID'],
-					'Collection_Date':model.schedule_model.train_yf['Collection_Date'],
-					'predicted':model.schedule_model.collection_vector})
-	   exp_results["waste"]="Feces"
-	   exp_results["fold_id"]=i_fold  
+           exp_results = pd.DataFrame(model.schedule_model.collection_vector)
+	   exp_results["waste_type"]="Combined"
+	   exp_results["fold_id"]=i_fold
+	   exp_results["comment"]="Lauren will reach inbox 0!"  
            exp_results.to_sql(con=db['connection'], name="predictions", schema="output", if_exists="append", index=False)
-
 
            #results_fold = results_fold.append([res_collect,res_overflow,res_overflow_conservative, res_overflow_f, res_overflow_f_conservative, res_overflow_u, res_overflow_u_conservative], ignore_index=True)
 
