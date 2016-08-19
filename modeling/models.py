@@ -401,6 +401,7 @@ class ScheduleModel(object):
         collection_matrix_aux = collection_schedule.copy()
         collection_matrix_aux[self.config['cols']['toiletname']] = collection_matrix_aux.index
         collection_vector = pd.melt(collection_matrix_aux,id_vars = self.config['cols']['toiletname'], var_name=self.config['cols']['date'], value_name = 'collect')
+	self.collection_vector = collection_vector
 
         return collection_schedule, collection_vector
 
