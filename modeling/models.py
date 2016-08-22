@@ -455,7 +455,8 @@ def run_models_on_folds(folds, loss_function, db, experiment):
            generate_result_row(db, experiment, model.feces_model, i_fold, 'p_overflow_feces_conservative', p_overflow_f_conservative, parameter = float(safety_remainder))
 
            exp_results = pd.DataFrame(model.schedule_model.collection_vector)
-	   exp_results["waste_type"]="Combined"
+	   exp_results["model_id"] = hash(experiment)
+           exp_results["waste_type"]="Combined"
 	   exp_results["fold_id"]=i_fold
 	   exp_results["comment"]="Lauren will reach inbox 0!"  
            exp_results.to_sql(con=db['connection'], name="predictions", schema="output", if_exists="append", index=False)
