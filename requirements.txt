@@ -9,3 +9,4 @@ scikit-learn==0.14.1
 scipy==0.13.3
 statsmodels==0.5.0
 tqdm
+geopandas
