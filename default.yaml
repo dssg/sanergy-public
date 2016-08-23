@@ -47,19 +47,19 @@ Xy:
         split: []
     features:
       #Total_Waste_kg_day: []
-      #UrineContainer_percent: []
-      #sd_wind_speed_rate: []
-      #sd_sea_level_pressure: []
-      #sd_precipitation_6hr: []
-      #sd_air_temp: []
-      #min_wind_speed_rate: []
-      #min_sea_level_pressure: []
-      #min_precipitation_6hr: []
-      #min_air_temp: []
-      #max_wind_speed_rate: []
-      #max_sea_level_pressure: []
-      #max_precipitation_6hr: []
-      #max_air_temp: []
+      UrineContainer_percent: []
+      sd_wind_speed_rate: []
+      sd_sea_level_pressure: []
+      sd_precipitation_6hr: []
+      sd_air_temp: []
+      min_wind_speed_rate: []
+      min_sea_level_pressure: []
+      min_precipitation_6hr: []
+      min_air_temp: []
+      max_wind_speed_rate: []
+      max_sea_level_pressure: []
+      max_precipitation_6hr: []
+      max_air_temp: []
       mean_wind_speed_rate: []
       mean_sea_level_pressure: []
       mean_precipitation_6hr: []
@@ -67,10 +67,11 @@ Xy:
       SubAreaName: []
       Area: []
       School_Closure: []
-      #Route_Name: []       #OpportunityName: []
+      Route_Name: []      
+      OpportunityName: []
       OpeningTime: []
       ClosingTime: []
-      #Missed_Collection_Code: []
+      Missed_Collection_Code: []
       FranchiseType: []
       average_50m_1days_Feces_kg_day: []
       average_50m_1days_Urine_kg_day: []
@@ -115,16 +116,16 @@ Xy:
 ############################
 #model: ["LinearRegression", "RandomForest", "Autoregression", "SimpleModel"] 'SGDRegressor',
 #model: ['StaticModel']
-model: ['LinearRegression', "RandomForest",  'Lasso', 'ElasticNet', 'SVR']
+model: ['RandomForest',  'Lasso', 'ElasticNet', 'SVR']
 
 #pickle_store: "/mnt/data"
 pickle_store: "/mnt/data/sanergy/output"
 
 parameters:
   RandomForest:
-    n_estimators: [10]
-    max_depth: [3]
-    max_features: [8]
+    n_estimators: [120,300,500,800,1200]
+    max_depth: [5,8,15,25,30]
+    max_features: ['sqrt','log2']
     criterion: ['entropy']
     min_samples_split: [10]
     # n_estimators: [1, 10, 25, 50, 100]  # [1000, 10000]
@@ -150,14 +151,15 @@ parameters:
   LinearRegression:
     dummy: [1] #A fake parameter making sure that we loop over this model.
   Lasso:
-    alpha: [0.1] # The alpha parameter controls the degree of sparsity of the coefficients estimated.
+    normalize: [True, False]
+    alpha: [0.1, 1.0, 10] # The alpha parameter controls the degree of sparsity of the coefficients estimated.
   ElasticNet:
-    alpha: [0.1]
-    l1_ratio: [0.5]
+    alpha: [0.1, 1.0, 10]
+    l1_ratio: [0.1, 0.5, 1.0]
   SVR: # http://scikit-learn.org/stable/modules/generated/sklearn.svm.SVR.html
-    C: [1.0] # Penalty parameter C of the error term.
-    epsilon: [0.1] # Epsilon in the epsilon-SVR model. It specifies the epsilon-tube within which no penalty is associated in the training loss function with points predicted within a distance epsilon from the actual value.
-    kernel: ['rbf'] #Specifies the kernel type to be used in the algorithm. It must be one of 'linear', 'poly', 'rbf', 'sigmoid', 'precomputed' or a callable. If none is given, 'rbf' will be used. If a callable is given it is used to precompute the kernel matrix.
+    C: [0.001, 0.01, 0.1, 1.0, 10, 100, 1000] # Penalty parameter C of the error term.
+    epsilon: [0.001, 0.01, 0.1, 1.0] # Epsilon in the epsilon-SVR model. It specifies the epsilon-tube within which no penalty is associated in the training loss function with points predicted within a distance epsilon from the actual value.
+    kernel: ['rbf', 'linear', 'poly'] #Specifies the kernel type to be used in the algorithm. It must be one of 'linear', 'poly', 'rbf', 'sigmoid', 'precomputed' or a callable. If none is given, 'rbf' will be used. If a callable is given it is used to precompute the kernel matrix.
   # SGDRegressor:
   #   loss: ['squared_loss']
   #   penalty: ['elasticnet']
