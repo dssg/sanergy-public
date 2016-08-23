@@ -316,19 +316,6 @@ schedule.loc[(schedule['Schedule_Status']=="no"),'Schedule_Status']="Closed by F
 schedule.loc[(schedule['Schedule_Status']=="Closed by FLI"),'Schedule_Status']="Closed by FLI"
 print(schedule['Schedule_Status'].value_counts())
 
-# Load the collection schedule data.
-schedule_wheelcart = pd.read_sql('SELECT ' + SQL_COL_COLLECTION1 + '  FROM input."collection_schedule_wheelbarrow"', conn, coerce_float=True, params=None)
-schedule_tuktuk = pd.read_sql('SELECT ' + SQL_COL_COLLECTION1 + '  FROM input."collection_schedule_tuktuk"', conn, coerce_float=True, params=None)
-schedule_truck = pd.read_sql('SELECT ' + SQL_COL_COLLECTION2 + '  FROM input."collection_schedule_truck"', conn, coerce_float=True, params=None)
-schedule_truck.rename(columns={'"extra_container?"':'"extra_containers"','"open"':'"open?"'},inplace=True)
-schedule_wheelcart.append(schedule_truck)
-schedule_wheelcart.append(schedule_tuktuk)
-schedule_wheelcart = standardize_variable_names(schedule_wheelcart,RULES)
-schedule_wheelcart['flt-location'] = schedule_wheelcart['flt-location'].str.upper()
-schedule_wheelcart['flt_name'] = schedule_wheelcart['flt_name'].str.upper()
-
-print(schedule_wheelcart.shape)
-
 # Drop columns that are identical between the Collections and FLT Collections records
 schedule = schedule.drop('CreatedDate',1)
 schedule = schedule.drop('CurrencyIsoCode',1)
