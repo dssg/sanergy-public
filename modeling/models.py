@@ -16,7 +16,6 @@ import statsmodels
 from datetime import  timedelta
 
 from sanergy.modeling.dataset import grab_from_features_and_labels, format_features_labels
-from sanergy.modeling.output import write_evaluation_into_db
 from sanergy.modeling.Staffing import Staffing
 
 log = logging.getLogger(__name__)
