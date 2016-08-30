@@ -19,6 +19,10 @@ You can find most of the documentation in the Technical Report.
 You need the following software:
 * [drake](https://github.com/Factual/drake) 
 * [SCIP](http://scip.zib.de/)
+  * Building SCIP is a bit complicated and requires a number of dependencies; see below
+* Python packages listed in [requirements.txt](requirements.txt)
+  * `geopandas` requires `apt-get install libgdal-dev`
+  * `pyscipopt` is installed via SCIP
 * `davfs2` (can mount data source directly through WebDAV)
 
 Build directory structure:
@@ -32,9 +36,11 @@ Setup Details
 
 Setting up SCIP
 -------------
+0. Install required dependencies: `apt-get install -y libgmp3-dev libreadline6 libreadline6-dev zlib1g-dev libncurses5-dev bison flex`
 1. Download the [SCIP Optimization suite](http://scip.zib.de/download.php?fname=scipoptsuite-3.2.1.tgz)
-2. Follow the [suite installation instruction](http://scip.zib.de/doc/html/MAKE.php) , steps 1-3
-3. In 3. ,before compiling, replace the Makefile.doit file with [the correct version](http://scip.zib.de/download/bugfixes/scip-3.2.1/Makefile.doit)
+2. Follow the [suite installation instruction](http://scip.zib.de/doc/html/MAKE.php), steps 1-3
+  * In 3, before compiling, replace the Makefile.doit file with [the correct version](http://scip.zib.de/download/bugfixes/scip-3.2.1/Makefile.doit)
+  * Build as a shared library
 4. Follow the instructions to [set up the Python interface](http://scip.zib.de/doc/html/PYTHON_INTERFACE.php). When running `python setup.py install`, consider running it locally with the `--user` option.
 5. Include `import pyscipopt` in you code and you are good to go! If you want to understand the syntax better, a good place to start is with [their examples](https://github.com/SCIP-Interfaces/PySCIPOpt/tree/master/examples/finished). This assumes some basic knowledge of linear and integer programming.
 
