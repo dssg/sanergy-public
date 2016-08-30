@@ -23,6 +23,7 @@ You need the following software:
 * Python packages listed in [requirements.txt](requirements.txt)
   * `geopandas` requires `apt-get install libgdal-dev`
   * `pyscipopt` is installed via SCIP
+* At least one of the ETL data processing steps requires R: `apt-get install r-base`
 * `davfs2` (can mount data source directly through WebDAV)
 
 Build directory structure:
