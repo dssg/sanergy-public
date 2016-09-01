@@ -22,7 +22,7 @@ select "Toilet__c" as "ToiletID",
 DROP TABLE IF EXISTS premodeling.toiletdensity;
 -- similar drop if exists
 select "ToiletID",
-		ST_Transform(ST_SetSRID(ST_MakePoint("Latitude", "Longitude"), 4326),21037) as "Point"
+		ST_Transform(ST_SetSRID(ST_MakePoint(min("Latitude"), min("Longitude")), 4326),21037) as "Point"
 -- #4326 is WGS84, but that one is not linear but spherical -> difficult to compute distances
 -- #21037 is one of the 4 systems in Kenya and contains Nairobi
 	   	into premodeling.toiletdensity
@@ -59,8 +59,8 @@ select "ToiletID",
 		into premodeling.toiletdensity
 		from premodeling.toiletdistances
 -- First, subquery for the toilets and neighbors that existed within the same time periods
-			where ("ToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" > {d '2014-01-01'})and("LastCollection" < {d '2016-07-01'})))
-				and ("NeighborToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" > {d '2014-01-01'})and("LastCollection" < {d '2016-07-01'})))
+			where ("ToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" > '2014-01-01')and("LastCollection" < '2016-07-01')))
+				and ("NeighborToiletID" in (select "ToiletID" from premodeling.toilethistory where ("StartCollection" > '2014-01-01')and("LastCollection" < '2016-07-01')))
 					group by "ToiletID";
 /**
  * The following count should equal 780,572 = ((884*884)-884)
