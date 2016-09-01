@@ -1,5 +1,6 @@
 # Ignore  directories
-data
+Sanergy
+Sanergy.zip
 psql
 
 # Ignore sensitive drake outputs

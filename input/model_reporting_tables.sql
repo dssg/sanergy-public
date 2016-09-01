@@ -1,3 +1,5 @@
+create schema if not exists output;
+
 drop table if exists output.model;
 drop table if exists output.predictions;
 drop table if exists output.evaluations;

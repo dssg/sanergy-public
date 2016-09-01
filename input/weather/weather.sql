@@ -15,4 +15,4 @@ CREATE TABLE input.weather (
 	liquid_precipitation_depth_dimension_six_hours INTEGER
 );
 
-\copy input.weather from 'data/input/weather/weather_master.csv' with csv header;
+\copy input.weather from 'Sanergy/data/weather/weather_master.csv' with csv header;

@@ -7,4 +7,8 @@ PROFILE:=default_profile
 
 PYTHONPATH=$(echo $PWD:$PYTHONPATH)
 
+; Sanergy provided files via Box.com; this zip archive is that folder.
+Sanergy <- Sanergy.zip [-timecheck]
+	unzip -o $INPUT
+
 %include input/Drakefile

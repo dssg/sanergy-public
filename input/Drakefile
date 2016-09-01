@@ -11,11 +11,11 @@ extract_shapefiles_fromzip()
         unzip -joDD $INPUT */$BASENAME.* -d $DIRNAME
 
 import_shapefile()
-        BASENAME=$(basename $INPUT | sed 's/.shp//')
+        BASENAME=$(basename "$INPUT" | sed 's/.shp//')
         BASENAME_LOWERCASE=$(echo $BASENAME | tr -d ':' | tr [:upper:] [:lower:])
-        shp2pgsql -d -s 2274 $INPUT shapefiles."$BASENAME_LOWERCASE" | psql -q
-        touch $OUTPUT
+        shp2pgsql -d -s 2274 "$INPUT" shapefiles."$BASENAME_LOWERCASE" | psql -q && touch $OUTPUT
 
+BOX_FOLDER:=Sanergy/data
 
 ;;; SHAPEFILES ;;;
 psql/input/shapefiles/SanergyFresh_Life_mapping_areas <- data/input/shapefiles/SanergyFresh_Life_mapping_areas.kml
@@ -31,20 +31,22 @@ psql/input/shapefiles/mukuru_public <- data/input/shapefiles/mukuru_public.kml
 	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles_mukuru" $INPUT
 	touch $OUTPUT
 
-psql/input/shapefiles/watsan_Mathare <- data/input/shapefiles/Map_Kibera/Mathare-watsan-shapefile/watsan.shp [method:import_shapefile]
-psql/input/shapefiles//watsan_Mukuru <- data/input/shapefiles/Map_Kibera/MKR-watsan-shapefile/watsan.shp [method:import_shapefile]
-psql/input/shapefiles/boundary_Kibera <- data/input/shapefiles/Map_Kibera/Shapefiles/kibera_boundary-shapefile/Boundary.shp [method:import_shapefile]
-psql/input/shapefiles/boundary_Mathare <- data/input/shapefiles/Map_Kibera/Shapefiles/Mathare_boundary-shapefile/Boundary.shp [method:import_shapefile]
-psql/input/shapefiles/boundary_Mukuru <- data/input/shapefiles/Map_Kibera/Shapefiles/Mukuru_boundary-shapefile/Boundary.shp [method:import_shapefile]
+psql/input/shapefiles/schema <- [-timecheck]
+	echo "create schema if not exists shapefiles;" | psql && mkdir -p $(dirname $OUTPUT) && touch $OUTPUT
+
+psql/input/shapefiles/watsan_Mathare <- $[BOX_FOLDER]/'Map Kibera/Mathare - watsan-shapefile/watsan.shp', psql/input/shapefiles/schema [method:import_shapefile]
+psql/input/shapefiles/watsan_Mukuru <- $[BOX_FOLDER]/'Map Kibera/MKR - watsan-shapefile/watsan.shp', psql/input/shapefiles/schema [method:import_shapefile]
+psql/input/shapefiles/boundary_Kibera <- $[BOX_FOLDER]/'Map Kibera/Shapefiles/kibera_boundary-shapefile/Boundary.shp', psql/input/shapefiles/schema [method:import_shapefile]
+psql/input/shapefiles/boundary_Mathare <- $[BOX_FOLDER]/'Map Kibera/Shapefiles/Mathare_boundary-shapefile/Boundary.shp', psql/input/shapefiles/schema [method:import_shapefile]
+psql/input/shapefiles/boundary_Mukuru <- $[BOX_FOLDER]/'Map Kibera/Shapefiles/Mukuru_boundary-shapefile/Boundary.shp', psql/input/shapefiles/schema [method:import_shapefile]
 
 
 ;;; IPA Survey ;;;
-data/input/IPA/IPA_data_incomplete.csv <- input/IPA_data_incomplete.R, data/input/IPA/IPA_data_incomplete.sav
+$[BOX_FOLDER]/IPA/IPA_data_incomplete.csv <- input/IPA_data_incomplete.R, $[BOX_FOLDER]/IPA/IPA_data_incomplete.sav
 	R CMD BATCH $INPUT0
-data/input/IPA/IPA_data_incomplete_NAreplaced.csv <- data/input/IPA/IPA_data_incomplete.csv
+$[BOX_FOLDER]/IPA/IPA_data_incomplete_NAreplaced.csv <- $[BOX_FOLDER]/IPA/IPA_data_incomplete.csv
 	sed -E 's~("N/A"|NA)~~g' $INPUT > $OUTPUT
-psql/input/ipa_data_incomplete_NAreplaced <- input/ipa_data_incomplete.sql, data/input/IPA/IPA_data_incomplete_NAreplaced.csv [method:psql]
-
+psql/input/ipa_data_incomplete_NAreplaced <- input/ipa_data_incomplete.sql, $[BOX_FOLDER]/IPA/IPA_data_incomplete_NAreplaced.csv [method:psql]
 
 ;;; Collection Schedule ;;;
 ;Deleted...
@@ -55,36 +57,34 @@ psql/input/ipa_data_incomplete_NAreplaced <- input/ipa_data_incomplete.sql, data
 
 psql/input/Collection_Schedule_School <- input/CollectionSchedule_input.sql, data/input/school_by_route.csv [method:psql]
 psql/input/new_geo_data <- input/CollectionSchedule_input.sql, data/input/new_geo_data.csv [method:psql]
-psql/input/toilet_cases <- input/CollectionSchedule_input.sql, data/input/AllCasesAreaToiletID.csv [method:psql]
+psql/input/toilet_cases <- input/CollectionSchedule_input.sql, $[BOX_FOLDER]/AllCasesAreaToiletID.csv [method:psql]
 
 ;;; Model tables ;;;
-psql/input/model_tables <- input/model_reporting_tables.sql, data/input/AllCasesAreaToiletID.csv [method:psql]
+psql/input/model_tables <- input/model_reporting_tables.sql, $[BOX_FOLDER]/AllCasesAreaToiletID.csv [method:psql]
 
 ;;; Toilet Coordinates ;;;
-psql/input/toilet_coordinates <- input/ToiletCoords_input.sql, data/input/ToiletCoords.csv [method:psql]
+psql/input/toilet_coordinates <- input/ToiletCoords_input.sql, $[BOX_FOLDER]/ToiletCoords.csv [method:psql]
 
 ;;; Route Schedule Since Feb 2016 ;;;
-psql/input/schedule_routes <- input/schedule_routes.sql, data/input/Route_Master_All_Dates.csv [method:psql]
+psql/input/schedule_routes <- input/schedule_routes.sql, $[BOX_FOLDER]/Route_Master_All_Dates.csv [method:psql]
+
 
 ;;; WEATHER ;;;
-data/input/weather/weather_download_jkia <- input/weather/weather_download.sh
+$[BOX_FOLDER]/weather/weather_download_jkia <- input/weather/weather_download.sh
         DIRNAME=$(dirname $OUTPUT)
-        bash $INPUT $DIRNAME '637400' '99999'
-        touch $OUTPUT
-data/input/weather/weather_master.csv <- input/weather/weather_schema.csv, data/input/weather/weather_download_jkia
+        bash $INPUT $DIRNAME '637400' '99999' && touch $OUTPUT
+$[BOX_FOLDER]/weather/weather_master.csv <- input/weather/weather_schema.csv, $[BOX_FOLDER]/weather/weather_download_jkia
         gunzip -c $(dirname $OUTPUT)/*.gz |
         sed 's/-9999/     /g' |
         in2csv -H -s $INPUT0 > $OUTPUT
-psql/input/weather/jkia <- input/weather/weather.sql, data/input/weather/weather_master.csv [method:psql]
+psql/input/weather <- input/weather/weather.sql, $[BOX_FOLDER]/weather/weather_master.csv [method:psql]
 
 ;;; CONVERSION FROM MSSQL ;;;
-psql/input/dssg_dump <- 'data/input/Sanergy - Fresh Life Toilet Waste DataBase.bak'
-	python input/mssql2postgres.py -m mssql_profile -p default_profile || echo "ERROR: Must have SQL Server instance running with backup file loaded. See input/README.md for details"
-	touch $OUTPUT
+psql/input/dssg_dump <- $[BOX_FOLDER]/'Sanergy - Fresh Life Toilet Waste DataBase.bak'
+	python input/mssql2postgres.py -m mssql_profile -p default_profile && touch $OUTPUT || echo "ERROR: Must have SQL Server instance running with backup file loaded. See input/README.md for details"
 
+;;; FURTHER PROCESSING ;;;
 psql/input/toiletcollection <- premodeling/ProcessCollectionsData.py, psql/input/toilethistory, psql/input/dssg_dump
-	python premodeling/ProcessCollectionsData.py
+	python premodeling/ProcessCollectionsData.py && touch $OUTPUT
 
-psql/input/toilethistory <- input/geo_spatial_toilets.sql, data/input/weather/weather_master.csv [method:psql]
-
-;;; SQL SERVER DATA ;;;
+psql/input/toilethistory <- input/geo_spatial_toilets.sql, $[BOX_FOLDER]/weather/weather_master.csv [method:psql]
