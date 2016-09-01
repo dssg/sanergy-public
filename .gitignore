@@ -79,4 +79,4 @@ target/
 
 # credentials
 default_profile*
-dbconfig.py
+mssql_profile*

@@ -5,4 +5,6 @@ psql()
 PROFILE:=default_profile
 %include $[PROFILE]
 
+PYTHONPATH=$(echo $PWD:$PYTHONPATH)
+
 %include input/Drakefile

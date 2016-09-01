@@ -6,37 +6,19 @@ import pymssql
 import pandas as pd
 from tqdm import tqdm
 
-def engine_generator(pass_file='pgpass', engine_type='postgresql'):
-    """ Generate a sqlalchemy engine to database. Parses a password file in the
-    format that psql expects. `address:port:user:database:password`
-
-    :param str pass_file: file with the credential information
-    :return sqlalchemy.engine object engine: object created  by create_engine() in sqlalchemy                         
-    :rtype sqlalchemy.engine                                                                                          
-    """
-    with open(pass_file, 'r') as f:
-        passinfo = f.read()
-    passinfo = passinfo.strip().split(':')
-    host_address = passinfo[0]
-    port = passinfo[1]
-    user_name = passinfo[2]
-    name_of_database = passinfo[3]
-    user_password = ''.join(passinfo[4:])
-    sql_eng_str = engine_type+"://"+user_name+":"+user_password+"@"+host_address+'/'+name_of_database
-    engine = sqlalchemy.create_engine(sql_eng_str)
-    return engine
+import dbconfig
 
 p = ArgumentParser()
 p.add_argument("-m", "--mssql", help="credentials file for MS SQL Server")
 p.add_argument("-p", "--pgsql", help="credentials file for PostgreSQL server")
 args = p.parse_args()
 
-mssql = engine_generator(args.mssql, "mssql+pymssql")
-pgsql = engine_generator(args.pgsql, "postgres")
+mssql = dbconfig.engine_generator(args.mssql, "mssql+pymssql")
+pgsql = dbconfig.engine_generator(args.pgsql, "postgres")
 
 tables = pd.read_sql("""SELECT TABLE_NAME FROM information_schema.tables WHERE TABLE_TYPE='BASE TABLE'""", mssql)
 
-for table in tqdm(tables['TABLE_NAME'][1:]):
+for table in tqdm(tables['TABLE_NAME']):
     if pymssql.__version__ < '2.2.0':
         # The pymssql driver unfortunately has a bug that doesn't allow reading
         # reads dates as datetime objects. We'll parse them back. Ref:

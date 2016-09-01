@@ -28,9 +28,13 @@ You need the following software:
 
 ### Configuration
 
-There are two configuration files required:
-* `./default_profile`, which contains the variables `PGHOST`, `PGDATABASE`, `PGUSER`, and `PGPASSWORD` assigned with Bash-like syntax.
-* `./premodeling/dbconfig.py`, which contains a python dict named `config`, with keys `'host'`, `'port'`, `'user'`, and `'password'`.
+There are two required configuration files for each of the database connections:
+
+* `./default_profile`, which contains Bash-like assignments to the variables
+  `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, and `PGPASSWORD` assigned with Bash-like
+  syntax.
+* `./mssql_profile`, similarly contains assignments to host, port, database,
+  user, and password variables.
 
 ### Build directory structure:
 
