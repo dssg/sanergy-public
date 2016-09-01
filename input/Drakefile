@@ -77,8 +77,12 @@ data/input/weather/weather_master.csv <- input/weather/weather_schema.csv, data/
         in2csv -H -s $INPUT0 > $OUTPUT
 psql/input/weather/jkia <- input/weather/weather.sql, data/input/weather/weather_master.csv [method:psql]
 
-;;; PREMODELING DATA ;;;
-psql/input/toiletcollection <- premodeling/ProcessCollectionsData.py
+;;; CONVERSION FROM MSSQL ;;;
+psql/input/dssg_dump <- 'data/input/Sanergy - Fresh Life Toilet Waste DataBase.bak'
+	python input/mssql2postgres.py -m mspass -p pgpass || echo "ERROR: Must have SQL Server instance running with backup file loaded. See input/README.md for details"
+	touch $OUTPUT
+
+psql/input/toiletcollection <- premodeling/ProcessCollectionsData.py, psql/input/toilethistory, psql/input/dssg_dump
 	python premodeling/ProcessCollectionsData.py
 
 psql/input/toilethistory <- input/geo_spatial_toilets.sql, data/input/weather/weather_master.csv [method:psql]
