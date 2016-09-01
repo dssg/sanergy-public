@@ -49,7 +49,9 @@ $[BOX_FOLDER]/IPA/IPA_data_incomplete_NAreplaced.csv <- $[BOX_FOLDER]/IPA/IPA_da
 psql/input/ipa_data_incomplete_NAreplaced <- input/ipa_data_incomplete.sql, $[BOX_FOLDER]/IPA/IPA_data_incomplete_NAreplaced.csv [method:psql]
 
 ;;; Collection Schedule ;;;
-;Deleted...
+data/input/wheelCut.csv, data/input/truckCut.csv, data/input/tukCut.csv <- input/extract_schedule.sh, data/input/Logistics_schedule.xlsx
+	bash $INPUT0
+psql/input/Collection_Schedule_Wheelbarrow <- input/CollectionSchedule_input.sql, data/input/wheelCut.csv, data/input/truckCut.csv, data/input/tukCut.csv [method:psql]
 
 ;;; School by Route ;;;
 ;data/input/school_by_route.csv <- input/extract_school.sh, data/input/Logistics_schedule.xlsx
