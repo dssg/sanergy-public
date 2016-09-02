@@ -86,7 +86,12 @@ psql/input/dssg_dump <- $[BOX_FOLDER]/'Sanergy - Fresh Life Toilet Waste DataBas
 	python input/mssql2postgres.py -m mssql_profile -p default_profile && touch $OUTPUT || echo "ERROR: Must have SQL Server instance running with backup file loaded. See input/README.md for details"
 
 ;;; FURTHER PROCESSING ;;;
-psql/input/toiletcollection <- premodeling/ProcessCollectionsData.py, psql/input/toilethistory, psql/input/dssg_dump
+psql/input/toilethistory <- input/geo_spatial_toilets_sham.sql, $[BOX_FOLDER]/weather/weather_master.csv [method:psql]
+
+psql/input/toiletcollection1 <- premodeling/ProcessCollectionsData.py, psql/input/toilethistory, psql/input/dssg_dump
 	python premodeling/ProcessCollectionsData.py && touch $OUTPUT
 
-psql/input/toilethistory <- input/geo_spatial_toilets.sql, $[BOX_FOLDER]/weather/weather_master.csv [method:psql]
+psql/input/toiletdensity <- input/geo_spatial_toilets.sql, psql/input/toiletcollection1 [method:psql]
+
+psql/input/toiletcollection2 <- premodeling/ProcessCollectionsData.py, psql/input/toiletdensity, psql/input/dssg_dump
+	python premodeling/ProcessCollectionsData.py && touch $OUTPUT
