@@ -35,6 +35,8 @@ psql/input/shapefiles/schema <- [-timecheck]
 	echo "create schema if not exists shapefiles;" | psql && mkdir -p $(dirname $OUTPUT) && touch $OUTPUT
 psql/input/schema <- [-timecheck]
 	echo "create schema if not exists input;" | psql && mkdir -p $(dirname $OUTPUT) && touch $OUTPUT
+psql/premodeling/schema <- [-timecheck]
+	echo "create schema if not exists premodeling;" | psql && mkdir -p $(dirname $OUTPUT) && touch $OUTPUT
 
 psql/input/shapefiles/watsan_Mathare <- $[BOX_FOLDER]/'Map Kibera/Mathare - watsan-shapefile/watsan.shp', psql/input/shapefiles/schema [method:import_shapefile]
 psql/input/shapefiles/watsan_Mukuru <- $[BOX_FOLDER]/'Map Kibera/MKR - watsan-shapefile/watsan.shp', psql/input/shapefiles/schema [method:import_shapefile]
@@ -85,12 +87,12 @@ psql/input/dssg_dump <- $[BOX_FOLDER]/'Sanergy - Fresh Life Toilet Waste DataBas
 	python input/mssql2postgres.py -m mssql_profile -p default_profile && touch $OUTPUT || echo "ERROR: Must have SQL Server instance running with backup file loaded. See input/README.md for details"
 
 ;;; FURTHER PROCESSING ;;;
-psql/input/toilethistory <- input/geo_spatial_toilets_sham.sql, $[BOX_FOLDER]/weather/weather_master.csv [method:psql]
+psql/input/toilethistory <- input/geo_spatial_toilets_sham.sql, $[BOX_FOLDER]/weather/weather_master.csv, psql/premodeling/schema [method:psql]
 
-psql/input/toiletcollection1 <- premodeling/ProcessCollectionsData.py, psql/input/toilethistory, psql/input/dssg_dump, psql/input/collection_schedule
+psql/input/toiletcollection1 <- premodeling/ProcessCollectionsData.py, psql/input/toilethistory, psql/input/dssg_dump, psql/input/collection_schedule, psql/premodeling/schema
 	python premodeling/ProcessCollectionsData.py && touch $OUTPUT
 
-psql/input/toiletdensity <- input/geo_spatial_toilets.sql, psql/input/toiletcollection1 [method:psql]
+psql/input/toiletdensity <- input/geo_spatial_toilets.sql, psql/input/toiletcollection1, psql/premodeling/schema[method:psql]
 
-psql/input/toiletcollection2 <- premodeling/ProcessCollectionsData.py, psql/input/toiletdensity, psql/input/dssg_dump, psql/input/collection_schedule
+psql/input/toiletcollection2 <- premodeling/ProcessCollectionsData.py, psql/input/toiletdensity, psql/input/dssg_dump, psql/input/collection_schedule, psql/premodeling/schema
 	python premodeling/ProcessCollectionsData.py && touch $OUTPUT
