@@ -637,4 +637,4 @@ CREATE TABLE input.ipa_data_incomplete (
 	d5d5_fli_nonfli TEXT
 );
 
-\copy input.ipa_data_incomplete from 'Sanergy/data/IPA/IPA_data_incomplete_NAreplaced.csv`' with csv header;
+\copy input.ipa_data_incomplete from 'Sanergy/data/IPA/IPA_data_incomplete_NAreplaced.csv' with csv header;

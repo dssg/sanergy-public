@@ -27,4 +27,4 @@ CREATE TABLE input.schedule_routes (
 	_unnamed VARCHAR(32)
 );
 
-\copy input.schedule_routes from 'Sanergy/data/Route_Master_All_Dates.csv` with csv header;
+\copy input.schedule_routes from 'Sanergy/data/Route_Master_All_Dates.csv' with csv header;

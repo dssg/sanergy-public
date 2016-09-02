@@ -132,10 +132,9 @@ CREATE TABLE input.Collection_Schedule_School (
 	"who_operates_or_manages_the_flt_on_a_daily_basis?" VARCHAR(24) 
 );
 
-\copy input.toilet_cases from 'data/input/AllCasesAreaToiletID.csv' with csv header;
-\copy input.Collection_Schedule_Wheelbarrow from 'data/input/wheelCut.csv' with csv header;
-\copy input.Collection_Schedule_Truck from 'data/input/truckCut.csv' with csv header;
-\copy input.Collection_Schedule_Tuktuk from 'data/input/tukCut.csv' with csv header;
-\copy input.Collection_Schedule_School from 'data/input/school_by_route.csv' with csv header;
-\copy input.new_geo_data from 'data/input/new_geo_data.csv' with csv header;
-
+\copy input.toilet_cases from 'Sanergy/data/AllCasesAreaToiletID.csv' with csv header;
+\copy input.Collection_Schedule_Wheelbarrow from 'Sanergy/data/wheelCut.csv' with csv header;
+\copy input.Collection_Schedule_Truck from 'Sanergy/data/truckCut.csv' with csv header;
+\copy input.Collection_Schedule_Tuktuk from 'Sanergy/data/tukCut.csv' with csv header;
+\copy input.Collection_Schedule_School from 'Sanergy/data/school_by_route.csv' with csv header;
+\copy input.new_geo_data from 'Sanergy/data/new_geo_data.csv' with csv header;
