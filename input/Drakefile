@@ -85,10 +85,10 @@ psql/input/dssg_dump <- $[BOX_FOLDER]/'Sanergy - Fresh Life Toilet Waste DataBas
 ;;; FURTHER PROCESSING ;;;
 psql/input/toilethistory <- input/geo_spatial_toilets_sham.sql, $[BOX_FOLDER]/weather/weather_master.csv [method:psql]
 
-psql/input/toiletcollection1 <- premodeling/ProcessCollectionsData.py, psql/input/toilethistory, psql/input/dssg_dump
+psql/input/toiletcollection1 <- premodeling/ProcessCollectionsData.py, psql/input/toilethistory, psql/input/dssg_dump, psql/input/collection_schedule
 	python premodeling/ProcessCollectionsData.py && touch $OUTPUT
 
 psql/input/toiletdensity <- input/geo_spatial_toilets.sql, psql/input/toiletcollection1 [method:psql]
 
-psql/input/toiletcollection2 <- premodeling/ProcessCollectionsData.py, psql/input/toiletdensity, psql/input/dssg_dump
+psql/input/toiletcollection2 <- premodeling/ProcessCollectionsData.py, psql/input/toiletdensity, psql/input/dssg_dump, psql/input/collection_schedule
 	python premodeling/ProcessCollectionsData.py && touch $OUTPUT
