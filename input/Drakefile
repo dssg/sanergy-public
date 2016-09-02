@@ -18,18 +18,18 @@ import_shapefile()
 BOX_FOLDER:=Sanergy/data
 
 ;;; SHAPEFILES ;;;
-psql/input/shapefiles/SanergyFresh_Life_mapping_areas <- data/input/shapefiles/SanergyFresh_Life_mapping_areas.kml
-	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles" $INPUT
-	touch $OUTPUT
-psql/input/shapefiles/kibera_public <- data/input/shapefiles/kibera_public.kml
-	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles_kibera" $INPUT
-	touch $OUTPUT
-psql/input/shapefiles/mathare_public <- data/input/shapefiles/mathare_public.kml
-	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles_mathare" $INPUT
-	touch $OUTPUT
-psql/input/shapefiles/mukuru_public <- data/input/shapefiles/mukuru_public.kml
-	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles_mukuru" $INPUT
-	touch $OUTPUT
+;;; psql/input/shapefiles/SanergyFresh_Life_mapping_areas <- data/input/shapefiles/SanergyFresh_Life_mapping_areas.kml
+;;; 	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles" $INPUT
+;;; 	touch $OUTPUT
+;;; psql/input/shapefiles/kibera_public <- data/input/shapefiles/kibera_public.kml
+;;; 	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles_kibera" $INPUT
+;;; 	touch $OUTPUT
+;;; psql/input/shapefiles/mathare_public <- data/input/shapefiles/mathare_public.kml
+;;; 	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles_mathare" $INPUT
+;;; 	touch $OUTPUT
+;;; psql/input/shapefiles/mukuru_public <- data/input/shapefiles/mukuru_public.kml
+;;; 	ogr2ogr -f "PostgreSQL" PG:"host=$PGHOST user=$PGUSER dbname=$PGDATABASE password=$PGPASSWORD active_schema=shapefiles_mukuru" $INPUT
+;;; 	touch $OUTPUT
 
 psql/input/shapefiles/schema <- [-timecheck]
 	echo "create schema if not exists shapefiles;" | psql && mkdir -p $(dirname $OUTPUT) && touch $OUTPUT
