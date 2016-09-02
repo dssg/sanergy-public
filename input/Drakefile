@@ -33,6 +33,8 @@ BOX_FOLDER:=Sanergy/data
 
 psql/input/shapefiles/schema <- [-timecheck]
 	echo "create schema if not exists shapefiles;" | psql && mkdir -p $(dirname $OUTPUT) && touch $OUTPUT
+psql/input/schema <- [-timecheck]
+	echo "create schema if not exists input;" | psql && mkdir -p $(dirname $OUTPUT) && touch $OUTPUT
 
 psql/input/shapefiles/watsan_Mathare <- $[BOX_FOLDER]/'Map Kibera/Mathare - watsan-shapefile/watsan.shp', psql/input/shapefiles/schema [method:import_shapefile]
 psql/input/shapefiles/watsan_Mukuru <- $[BOX_FOLDER]/'Map Kibera/MKR - watsan-shapefile/watsan.shp', psql/input/shapefiles/schema [method:import_shapefile]
@@ -56,16 +58,16 @@ $[BOX_FOLDER]/wheelCut.csv, $[BOX_FOLDER]/truckCut.csv, $[BOX_FOLDER]/tukCut.csv
 $[BOX_FOLDER]/school_by_route.csv <- $[BOX_FOLDER]/Logistics_schedule.xlsx
 	in2csv --sheet "SF_check" $[BOX_FOLDER]/Logistics_schedule.xlsx | csvcut -c 1-25 > $[BOX_FOLDER]/school_by_route.csv
 
-psql/input/collection_schedule <- input/CollectionSchedule_input.sql, $[BOX_FOLDER]/AllCasesAreaToiletID.csv, $[BOX_FOLDER]/school_by_route.csv [method:psql]
+psql/input/collection_schedule <- input/CollectionSchedule_input.sql, $[BOX_FOLDER]/AllCasesAreaToiletID.csv, $[BOX_FOLDER]/school_by_route.csv, psql/input/schema [method:psql]
 
 ;;; Model tables ;;;
-psql/input/model_tables <- input/model_reporting_tables.sql, $[BOX_FOLDER]/AllCasesAreaToiletID.csv [method:psql]
+psql/input/model_tables <- input/model_reporting_tables.sql, $[BOX_FOLDER]/AllCasesAreaToiletID.csv, psql/input/schema [method:psql]
 
 ;;; Toilet Coordinates ;;;
-psql/input/toilet_coordinates <- input/ToiletCoords_input.sql, $[BOX_FOLDER]/ToiletCoords.csv [method:psql]
+psql/input/toilet_coordinates <- input/ToiletCoords_input.sql, $[BOX_FOLDER]/ToiletCoords.csv, psql/input/schema [method:psql]
 
 ;;; Route Schedule Since Feb 2016 ;;;
-psql/input/schedule_routes <- input/schedule_routes.sql, $[BOX_FOLDER]/Route_Master_All_Dates.csv [method:psql]
+psql/input/schedule_routes <- input/schedule_routes.sql, $[BOX_FOLDER]/Route_Master_All_Dates.csv, psql/input/schema [method:psql]
 
 
 ;;; WEATHER ;;;
